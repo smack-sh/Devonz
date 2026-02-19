@@ -742,6 +742,7 @@ export default function VercelTab() {
                 <label className="block text-sm text-bolt-elements-textSecondary mb-2">Personal Access Token</label>
                 <input
                   type="password"
+                  autoComplete="off"
                   value={connection.token}
                   onChange={(e) => updateVercelConnection({ ...connection, token: e.target.value })}
                   disabled={connecting}

@@ -906,6 +906,7 @@ export default function NetlifyConnection() {
             </label>
             <input
               type="password"
+              autoComplete="off"
               value={tokenInput}
               onChange={(e) => setTokenInput(e.target.value)}
               placeholder="Enter your Netlify API token"

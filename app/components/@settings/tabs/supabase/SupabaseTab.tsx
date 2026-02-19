@@ -572,6 +572,7 @@ export default function SupabaseTab() {
                                 <div className="flex items-center gap-2 mt-1">
                                   <input
                                     type="password"
+                                    autoComplete="off"
                                     value={connection.credentials.anonKey || ''}
                                     readOnly
                                     className="flex-1 px-2 py-1 text-xs bg-bolt-elements-background border border-bolt-elements-borderColor rounded"
@@ -722,6 +723,7 @@ export default function SupabaseTab() {
                 <label className="block text-sm text-bolt-elements-textSecondary mb-2">Access Token</label>
                 <input
                   type="password"
+                  autoComplete="off"
                   value={tokenInput}
                   onChange={(e) => setTokenInput(e.target.value)}
                   disabled={connecting}

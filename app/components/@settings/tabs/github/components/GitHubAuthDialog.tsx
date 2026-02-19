@@ -98,6 +98,7 @@ export function GitHubAuthDialog({ isOpen, onClose, onSuccess }: GitHubAuthDialo
                   </label>
                   <input
                     type="password"
+                    autoComplete="off"
                     value={token}
                     onChange={(e) => setToken(e.target.value)}
                     disabled={isConnecting}

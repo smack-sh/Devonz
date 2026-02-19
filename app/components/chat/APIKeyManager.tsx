@@ -121,6 +121,7 @@ export const APIKeyManager: React.FC<APIKeyManagerProps> = ({ provider, apiKey, 
           <div className="flex items-center gap-2">
             <input
               type="password"
+              autoComplete="off"
               value={tempKey}
               placeholder="Enter API Key"
               onChange={(e) => setTempKey(e.target.value)}

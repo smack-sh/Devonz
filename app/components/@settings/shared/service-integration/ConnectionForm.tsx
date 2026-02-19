@@ -107,6 +107,7 @@ export function ConnectionForm({
                 <label className="block text-sm text-bolt-elements-textSecondary mb-2">{tokenLabel}</label>
                 <input
                   type="password"
+                  autoComplete="off"
                   value={token}
                   onChange={(e) => onTokenChange(e.target.value)}
                   disabled={isConnecting}

@@ -108,6 +108,7 @@ export function GitLabAuthDialog({ isOpen, onClose }: GitLabAuthDialogProps) {
                   </label>
                   <input
                     type="password"
+                    autoComplete="off"
                     value={token}
                     onChange={(e) => setToken(e.target.value)}
                     disabled={isConnecting}

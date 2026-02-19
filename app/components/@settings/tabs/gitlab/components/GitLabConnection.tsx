@@ -120,6 +120,7 @@ export default function GitLabConnection({ connectionTest, onTestConnection }: G
               <label className="block text-sm text-bolt-elements-textSecondary mb-2">Access Token</label>
               <input
                 type="password"
+                autoComplete="off"
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
                 disabled={isConnecting || isConnected}
