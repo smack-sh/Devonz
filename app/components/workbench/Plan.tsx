@@ -1,7 +1,7 @@
 import React, { memo, useCallback } from 'react';
 import { useStore } from '@nanostores/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { planStore, planProgress, approvePlan, rejectPlan, type PlanTask } from '~/lib/stores/plan';
+import { planStore, planProgress, approvePlan, rejectPlan, modifyPlan, type PlanTask } from '~/lib/stores/plan';
 import { classNames } from '~/utils/classNames';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/components/ui/Collapsible';
 import { Button } from '~/components/ui/Button';
@@ -94,11 +94,18 @@ const TaskItem = memo(({ task, index }: { task: PlanTask; index: number }) => {
 TaskItem.displayName = 'TaskItem';
 
 /**
- * Plan approval buttons component
+ * Plan approval buttons component — drives the two-phase plan workflow.
+ * - Approve & Execute: fires planActionAtom('approve') → Chat sends execute message
+ * - Modify: opens PLAN.md in editor for the user to edit
+ * - Cancel: clears the plan state
  */
 const PlanActions = memo(({ approvedByUser }: { approvedByUser: boolean }) => {
   const handleApprove = useCallback(() => {
     approvePlan();
+  }, []);
+
+  const handleModify = useCallback(() => {
+    modifyPlan();
   }, []);
 
   const handleReject = useCallback(() => {
@@ -109,7 +116,7 @@ const PlanActions = memo(({ approvedByUser }: { approvedByUser: boolean }) => {
     return (
       <div className="flex items-center gap-2 text-sm text-green-500">
         <div className="i-ph:check-circle-fill" />
-        <span>Plan Approved</span>
+        <span>Plan Approved — Executing...</span>
       </div>
     );
   }
@@ -122,8 +129,12 @@ const PlanActions = memo(({ approvedByUser }: { approvedByUser: boolean }) => {
         onClick={handleApprove}
         className="bg-green-600 hover:bg-green-700 text-white"
       >
-        <div className="i-ph:check-bold mr-1" />
-        Approve Plan
+        <div className="i-ph:play-fill mr-1" />
+        Approve &amp; Execute
+      </Button>
+      <Button variant="outline" size="sm" onClick={handleModify}>
+        <div className="i-ph:pencil-simple mr-1" />
+        Modify
       </Button>
       <Button variant="outline" size="sm" onClick={handleReject}>
         <div className="i-ph:x-bold mr-1" />

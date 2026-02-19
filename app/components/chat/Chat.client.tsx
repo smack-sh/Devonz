@@ -42,6 +42,7 @@ import {
 } from '~/utils/previewErrorHandler';
 import { createAutoFixHandler, handleFixSuccess, isAutoFixActive } from '~/lib/services/autoFixService';
 import { autoFixStore, recordFixAttempt } from '~/lib/stores/autofix';
+import { planActionAtom, clearPlanAction } from '~/lib/stores/plan';
 
 const logger = createScopedLogger('Chat');
 
@@ -767,6 +768,51 @@ export const ChatImpl = memo(
         unregisterPreviewAutoFixCallback();
       };
     }, []); // Empty deps - only run on mount/unmount
+
+    /**
+     * Watch the plan action atom for approval/rejection/modify events.
+     * When the user clicks Approve in the Plan component, this fires
+     * a follow-up message to the LLM telling it to execute the plan.
+     */
+    useEffect(() => {
+      const unsubscribe = planActionAtom.subscribe((action) => {
+        if (!action) {
+          return;
+        }
+
+        // Consume the action immediately to prevent repeated triggers
+        clearPlanAction();
+
+        if (action === 'approve') {
+          const executeMessage =
+            `[Model: ${modelRef.current}]\n\n[Provider: ${providerRef.current.name}]\n\n` +
+            `The plan has been approved. Execute all steps in PLAN.md now. ` +
+            `Implement each task in order, creating files, writing code, and running commands as needed. ` +
+            `After completing each step, update PLAN.md to mark it done with \`- [x]\`.`;
+
+          runAnimation();
+
+          appendRef.current({
+            role: 'user',
+            content: executeMessage,
+          });
+        } else if (action === 'reject') {
+          // Plan already cleared by rejectPlan() — optionally notify user
+          toast.info('Plan cancelled');
+        } else if (action === 'modify') {
+          // Open the PLAN.md file in the editor for the user to edit
+          workbenchStore.setSelectedFile('/home/project/PLAN.md');
+
+          if (!workbenchStore.showWorkbench.get()) {
+            workbenchStore.showWorkbench.set(true);
+          }
+
+          toast.info('Edit PLAN.md in the editor, then approve when ready');
+        }
+      });
+
+      return unsubscribe;
+    }, []);
 
     useEffect(() => {
       const storedApiKeys = Cookies.get('apiKeys');

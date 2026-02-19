@@ -1,7 +1,22 @@
-import { map, computed } from 'nanostores';
+import { map, computed, atom } from 'nanostores';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('PlanStore');
+
+/**
+ * Action types for plan approval workflow.
+ * - 'approve': User approved the plan → trigger execution message
+ * - 'reject':  User cancelled the plan → clear plan state
+ * - 'modify':  User wants to edit PLAN.md before approving
+ * - null:      No pending action
+ */
+export type PlanAction = 'approve' | 'reject' | 'modify' | null;
+
+/**
+ * Atom that fires plan actions. Chat.client.tsx watches this
+ * and sends the appropriate follow-up message to the LLM.
+ */
+export const planActionAtom = atom<PlanAction>(null);
 
 /**
  * Represents a single task in the plan
@@ -177,7 +192,8 @@ export function setCurrentTask(taskId: string | null): void {
 }
 
 /**
- * Mark the plan as approved by the user
+ * Mark the plan as approved by the user and fire the approval action.
+ * Chat.client.tsx watches planActionAtom and sends the execute message.
  */
 export function approvePlan(): void {
   const currentState = planStore.get();
@@ -186,13 +202,33 @@ export function approvePlan(): void {
     ...currentState,
     approvedByUser: true,
   });
+
+  logger.info('Plan approved — firing approval action');
+  planActionAtom.set('approve');
 }
 
 /**
- * Reject/cancel the plan
+ * Reject/cancel the plan and fire the reject action.
  */
 export function rejectPlan(): void {
+  logger.info('Plan rejected — clearing plan state');
+  planActionAtom.set('reject');
   planStore.set(initialState);
+}
+
+/**
+ * Request to modify the plan — opens PLAN.md for editing.
+ */
+export function modifyPlan(): void {
+  logger.info('Plan modification requested');
+  planActionAtom.set('modify');
+}
+
+/**
+ * Clear the plan action atom after it has been consumed.
+ */
+export function clearPlanAction(): void {
+  planActionAtom.set(null);
 }
 
 /**

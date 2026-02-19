@@ -94,6 +94,7 @@ export async function streamText(props: {
   } = props;
   const planMode = props.planMode ?? false;
   const enableThinking = props.enableThinking ?? false;
+
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
   let processedMessages = messages.map((message) => {
@@ -211,29 +212,42 @@ export async function streamText(props: {
     systemPrompt = `${systemPrompt}
 
 <plan_mode>
-## CRITICAL: PLANNING MODE IS ACTIVE — YOU MUST FOLLOW THESE RULES
+## CRITICAL: PLANNING MODE IS ACTIVE — TWO-PHASE WORKFLOW
 
-**YOUR VERY FIRST ACTION** in EVERY response MUST be to create or update a file called \`PLAN.md\` in the project root (\`/home/project/PLAN.md\`).
+You are in **Plan Mode**. This is a TWO-PHASE workflow. The user will review your plan before you implement anything.
 
-### Rules (NON-NEGOTIABLE):
-1. **FIRST artifact action = create/update PLAN.md** — BEFORE writing ANY other file, you MUST write PLAN.md with a markdown checklist of all steps needed.
+### PHASE 1 — PLAN ONLY (current phase unless told otherwise)
+Your ONLY action is to create a file called \`PLAN.md\` in the project root (\`/home/project/PLAN.md\`).
+
+**Rules (NON-NEGOTIABLE):**
+1. Create PLAN.md with a markdown checklist of ALL steps needed to fulfill the request.
 2. Each step MUST be a checkbox: \`- [ ] Step description\`
-3. After writing PLAN.md, proceed with implementation — creating/editing other files as needed.
-4. As you complete each step in the SAME response, update PLAN.md again to mark completed steps: \`- [x] Step description\`
-5. Keep the plan concise and scoped to the current request.
-6. If PLAN.md already exists from a previous message, read it first, then update it with any new steps and mark completed ones.
+3. Steps should be specific, actionable, and ordered logically.
+4. **DO NOT create, modify, or delete ANY other files.**
+5. **DO NOT run ANY shell commands.**
+6. **DO NOT write ANY code other than PLAN.md.**
+7. After creating PLAN.md, STOP. Do not continue with implementation.
+8. End your response with: "📋 Plan ready for review. Approve to begin implementation."
+
+### PHASE 2 — EXECUTE (only when user says to execute)
+When the user sends a message like "execute the plan", "approved", or "go ahead":
+1. Read the existing PLAN.md (the user may have modified it).
+2. Implement each step in order, creating/editing files and running commands as needed.
+3. After completing each step, update PLAN.md to mark it done: \`- [x] Step description\`
+4. Continue until all steps are marked complete.
 
 ### Example PLAN.md content:
 \`\`\`markdown
 # Plan
 
-- [x] Set up project structure
-- [x] Create main component
-- [ ] Add styling
-- [ ] Add tests
+- [ ] Set up project structure with Vite + React
+- [ ] Create main App component with counter state
+- [ ] Add increment, decrement, and reset buttons
+- [ ] Style the counter component
+- [ ] Add basic tests
 \`\`\`
 
-**REMEMBER: The user explicitly requested Plan Mode. Your FIRST file action MUST be creating/updating PLAN.md. Do NOT skip this step.**
+**REMEMBER: Right now you are in PHASE 1. Create PLAN.md ONLY. Do NOT implement anything yet.**
 </plan_mode>
 `;
   }
