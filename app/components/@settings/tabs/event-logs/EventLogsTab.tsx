@@ -253,7 +253,7 @@ const LogEntryItem = ({ log, isExpanded: forceExpanded, use24Hour, showTimestamp
               <>
                 <button
                   onClick={() => setLocalExpanded(!localExpanded)}
-                  className="inline-flex items-center gap-1 text-xs text-bolt-elements-item-contentAccent hover:underline transition-colors w-fit"
+                  className="inline-flex items-center gap-1 text-xs text-bolt-elements-item-contentAccent hover:underline transition-colors w-fit bg-transparent border-none p-0 cursor-pointer"
                 >
                   <span className={classNames('text-sm transition-transform', localExpanded ? 'i-ph:caret-down' : 'i-ph:caret-right')} />
                   {localExpanded ? 'Hide' : 'Show'} Details
