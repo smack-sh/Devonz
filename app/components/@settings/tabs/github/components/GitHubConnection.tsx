@@ -202,6 +202,7 @@ export function GitHubConnection({ connectionTest, onTestConnection }: GitHubCon
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
+                    type="button"
                     variant="outline"
                     onClick={() => window.open('https://github.com/dashboard', '_blank', 'noopener,noreferrer')}
                     className="flex items-center gap-2 hover:bg-bolt-elements-item-backgroundActive/10 hover:text-bolt-elements-textPrimary dark:hover:text-bolt-elements-textPrimary transition-colors"
@@ -210,6 +211,7 @@ export function GitHubConnection({ connectionTest, onTestConnection }: GitHubCon
                     Dashboard
                   </Button>
                   <Button
+                    type="button"
                     onClick={onTestConnection}
                     disabled={connectionTest?.status === 'testing'}
                     variant="outline"

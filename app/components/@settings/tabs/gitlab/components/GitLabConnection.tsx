@@ -199,6 +199,7 @@ export default function GitLabConnection({ connectionTest, onTestConnection }: G
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-4">
                     <button
+                      type="button"
                       onClick={handleDisconnect}
                       className={classNames(
                         'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
@@ -216,6 +217,7 @@ export default function GitLabConnection({ connectionTest, onTestConnection }: G
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
+                      type="button"
                       variant="outline"
                       onClick={() =>
                         window.open(
@@ -230,6 +232,7 @@ export default function GitLabConnection({ connectionTest, onTestConnection }: G
                       Dashboard
                     </Button>
                     <Button
+                      type="button"
                       onClick={onTestConnection}
                       disabled={connectionTest?.status === 'testing'}
                       variant="outline"
