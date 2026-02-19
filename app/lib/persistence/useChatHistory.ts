@@ -351,13 +351,30 @@ export function useChatHistory() {
       const { firstArtifact } = workbenchStore;
       messages = messages.filter((m) => !m.annotations?.includes('no-store'));
 
-      let _urlId = urlId;
+      /*
+       * Ensure chatId is set on the very first message.
+       * Always use a sequential numeric ID from getNextId() for consistency.
+       */
+      if (initialMessages.length === 0 && !chatId.get()) {
+        const nextId = await getNextId(db);
+        chatId.set(nextId);
+        versionsStore.setDBContext(db, nextId);
+      }
 
-      if (!urlId && firstArtifact?.id) {
-        const urlId = await getUrlId(db, firstArtifact.id);
-        _urlId = urlId;
-        navigateChat(urlId);
-        setUrlId(urlId);
+      /*
+       * Ensure urlId is set once and never changes.
+       * Derive it from the numeric chatId so URLs are always consistent
+       * (e.g. /chat/1, /chat/2) regardless of whether artifacts exist.
+       * Previously, artifact-based IDs like "2-1771470328283-0" were used
+       * when the AI generated artifacts, causing inconsistent URLs.
+       */
+      let resolvedUrlId = urlId;
+
+      if (!resolvedUrlId) {
+        const id = chatId.get()!;
+        resolvedUrlId = await getUrlId(db, id);
+        setUrlId(resolvedUrlId);
+        navigateChat(resolvedUrlId);
       }
 
       let chatSummary: string | undefined = undefined;
@@ -380,22 +397,10 @@ export function useChatHistory() {
       // Save params so debounced file-change subscriber can re-save with updated files
       lastSnapshotParamsRef.current = { chatIdx: messages[messages.length - 1].id, chatSummary };
 
-      takeSnapshot(messages[messages.length - 1].id, workbenchStore.files.get(), _urlId, chatSummary);
+      takeSnapshot(messages[messages.length - 1].id, workbenchStore.files.get(), resolvedUrlId, chatSummary);
 
       if (!description.get() && firstArtifact?.title) {
         description.set(firstArtifact?.title);
-      }
-
-      // Ensure chatId.get() is used here as well
-      if (initialMessages.length === 0 && !chatId.get()) {
-        const nextId = await getNextId(db);
-
-        chatId.set(nextId);
-        versionsStore.setDBContext(db, nextId);
-
-        if (!urlId) {
-          navigateChat(nextId);
-        }
       }
 
       // Ensure chatId.get() is used for the final setMessages call
@@ -410,9 +415,9 @@ export function useChatHistory() {
 
       await setMessages(
         db,
-        finalChatId, // Use the potentially updated chatId
+        finalChatId,
         [...archivedMessages, ...messages],
-        urlId,
+        resolvedUrlId, // Always use the resolved urlId, not stale useState
         description.get(),
         undefined,
         chatMetadata.get(),
