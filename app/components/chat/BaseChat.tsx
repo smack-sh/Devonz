@@ -32,7 +32,6 @@ import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
 import { ResizeHandle } from '~/components/ui/ResizeHandle';
-import { PlanApprovalAlert } from './PlanApprovalAlert';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('BaseChat');
@@ -469,8 +468,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       />
                     )}
                     {llmErrorAlert && <LlmErrorAlert alert={llmErrorAlert} clearAlert={() => clearLlmErrorAlert?.()} />}
-                    {/* Plan Approval Alert - shows when a plan is pending approval */}
-                    <PlanApprovalAlert />
                   </div>
                   {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
 

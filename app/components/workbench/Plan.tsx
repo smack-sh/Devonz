@@ -112,7 +112,8 @@ const PlanActions = memo(({ approvedByUser, progress }: { approvedByUser: boolea
     rejectPlan();
   }, []);
 
-  if (approvedByUser && progress >= 100) {
+  // All tasks done — show completion status, no buttons needed
+  if (progress >= 100) {
     return (
       <div className="flex items-center gap-2 text-sm text-green-500">
         <div className="i-ph:check-circle-fill" />
@@ -162,17 +163,18 @@ export const Plan = memo(({ className }: PlanProps) => {
   const state = useStore(planStore);
   const progress = useStore(planProgress);
 
-  const [isOpen, setIsOpen] = React.useState(true);
+  // Start collapsed if all tasks are already done (e.g. page reload)
+  const [isOpen, setIsOpen] = React.useState(progress < 100);
 
   // Auto-collapse the plan panel after all tasks complete
   useEffect(() => {
-    if (state.approvedByUser && progress >= 100) {
+    if (progress >= 100) {
       const timer = setTimeout(() => setIsOpen(false), 3000);
       return () => clearTimeout(timer);
     }
 
     return undefined;
-  }, [state.approvedByUser, progress]);
+  }, [progress]);
 
   if (!state.isActive || state.tasks.length === 0) {
     return null;
