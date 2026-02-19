@@ -64,9 +64,19 @@ const storage =
 const savedConnection = storage ? storage.getItem('supabase_connection') : null;
 const savedCredentials = storage ? storage.getItem('supabaseCredentials') : null;
 
-const initialState: SupabaseConnectionState = savedConnection
-  ? JSON.parse(savedConnection)
-  : {
+let initialState: SupabaseConnectionState;
+
+if (savedConnection) {
+  try {
+    initialState = JSON.parse(savedConnection);
+  } catch {
+    logger.error('Failed to parse stored Supabase connection, resetting');
+
+    if (storage) {
+      storage.removeItem('supabase_connection');
+    }
+
+    initialState = {
       user: null,
       token: '',
       stats: undefined,
@@ -74,6 +84,17 @@ const initialState: SupabaseConnectionState = savedConnection
       isConnected: false,
       project: undefined,
     };
+  }
+} else {
+  initialState = {
+    user: null,
+    token: '',
+    stats: undefined,
+    selectedProjectId: undefined,
+    isConnected: false,
+    project: undefined,
+  };
+}
 
 if (savedCredentials && !initialState.credentials) {
   try {

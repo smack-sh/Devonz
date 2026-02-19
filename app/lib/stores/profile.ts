@@ -8,13 +8,17 @@ interface Profile {
 
 // Initialize with stored profile or defaults
 const storedProfile = typeof window !== 'undefined' ? localStorage.getItem('devonz_profile') : null;
-const initialProfile: Profile = storedProfile
-  ? JSON.parse(storedProfile)
-  : {
-      username: '',
-      bio: '',
-      avatar: '',
-    };
+let initialProfile: Profile;
+
+if (storedProfile) {
+  try {
+    initialProfile = JSON.parse(storedProfile);
+  } catch {
+    initialProfile = { username: '', bio: '', avatar: '' };
+  }
+} else {
+  initialProfile = { username: '', bio: '', avatar: '' };
+}
 
 export const profileStore = atom<Profile>(initialProfile);
 

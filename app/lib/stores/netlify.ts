@@ -11,13 +11,23 @@ const storedConnection = typeof window !== 'undefined' ? localStorage.getItem('n
 const envToken = import.meta.env.VITE_NETLIFY_ACCESS_TOKEN;
 
 // If we have an environment token but no stored connection, initialize with the env token
-const initialConnection: NetlifyConnection = storedConnection
-  ? JSON.parse(storedConnection)
-  : {
-      user: null,
-      token: envToken || '',
-      stats: undefined,
-    };
+let initialConnection: NetlifyConnection;
+
+if (storedConnection) {
+  try {
+    initialConnection = JSON.parse(storedConnection);
+  } catch {
+    logger.error('Failed to parse stored Netlify connection, resetting');
+
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('netlify_connection');
+    }
+
+    initialConnection = { user: null, token: envToken || '', stats: undefined };
+  }
+} else {
+  initialConnection = { user: null, token: envToken || '', stats: undefined };
+}
 
 export const netlifyConnection = atom<NetlifyConnection>(initialConnection);
 export const isConnecting = atom<boolean>(false);
