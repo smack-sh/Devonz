@@ -239,6 +239,7 @@ const CloudProvidersTab = () => {
                         {editingProvider === provider.name ? (
                           <input
                             type="text"
+                            inputMode="url"
                             spellCheck={false}
                             defaultValue={provider.settings.baseUrl}
                             placeholder={`Enter ${provider.name} base URL`}

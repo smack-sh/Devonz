@@ -101,6 +101,7 @@ export default function GitLabConnection({ connectionTest, onTestConnection }: G
               <label className="block text-sm text-bolt-elements-textSecondary mb-2">GitLab URL</label>
               <input
                 type="text"
+                inputMode="url"
                 spellCheck={false}
                 value={gitlabUrl}
                 onChange={(e) => setGitlabUrl(e.target.value)}

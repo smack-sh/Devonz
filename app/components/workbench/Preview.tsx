@@ -1241,6 +1241,7 @@ Add these rules to style the elements as specified. The !important flags ensure 
             ref={inputRef}
             className="w-full bg-transparent outline-none text-xs font-mono truncate"
             type="text"
+            inputMode="url"
             spellCheck={false}
             value={localPreviewUrl || ''}
             onChange={(event) => {
