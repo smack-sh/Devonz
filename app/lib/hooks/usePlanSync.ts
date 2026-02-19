@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { FileMap } from '~/lib/stores/files';
-import { setPlan, resetPlan, type PlanTask } from '~/lib/stores/plan';
+import { setPlan, resetPlan, planStore, type PlanTask } from '~/lib/stores/plan';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('PlanSync');
@@ -92,7 +92,27 @@ export function usePlanSync(files: FileMap): void {
       return;
     }
 
-    logger.info(`PLAN.md updated — ${tasks.length} tasks, title: "${title ?? 'untitled'}"`);
-    setPlan(tasks, title);
+    const currentState = planStore.get();
+
+    /*
+     * If the plan was already approved, preserve the approval state.
+     * During execution the AI checks off tasks in PLAN.md ([ ] → [x]),
+     * which triggers this hook. Calling setPlan() would reset approvedByUser
+     * to false, breaking the auto-collapse and "Plan Complete" display.
+     */
+    if (currentState.approvedByUser) {
+      logger.info(`PLAN.md updated during execution — ${tasks.length} tasks (preserving approval)`);
+      planStore.set({
+        ...currentState,
+        tasks: tasks.map((task) => ({
+          ...task,
+          status: task.status || 'not-started',
+        })),
+        planTitle: title || currentState.planTitle,
+      });
+    } else {
+      logger.info(`PLAN.md updated — ${tasks.length} tasks, title: "${title ?? 'untitled'}"`);
+      setPlan(tasks, title);
+    }
   }, [files]);
 }
