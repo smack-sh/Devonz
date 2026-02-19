@@ -141,7 +141,7 @@ const NotificationsTab = () => {
               'mt-2 inline-flex items-center gap-2',
               'rounded-lg px-3 py-1.5',
               'text-sm font-medium',
-              'bg-bolt-elements-bg-depth-1',
+              'bg-transparent',
               'border border-bolt-elements-borderColor',
               'text-gray-900 dark:text-white',
               'hover:bg-bolt-elements-item-backgroundAccent',
@@ -179,7 +179,7 @@ const NotificationsTab = () => {
                 'flex items-center gap-2',
                 'rounded-lg px-3 py-1.5',
                 'text-sm text-gray-900 dark:text-white',
-                'bg-bolt-elements-bg-depth-1',
+                'bg-transparent',
                 'border border-bolt-elements-borderColor',
                 'hover:bg-bolt-elements-item-backgroundAccent',
                 'transition-all duration-200',
@@ -196,7 +196,8 @@ const NotificationsTab = () => {
 
           <DropdownMenu.Portal>
             <DropdownMenu.Content
-              className="min-w-[200px] bg-bolt-elements-bg-depth-1 rounded-lg shadow-lg py-1 z-[250] animate-in fade-in-0 zoom-in-95 border border-bolt-elements-borderColor"
+              className="min-w-[200px] rounded-lg shadow-lg py-1 z-[250] animate-in fade-in-0 zoom-in-95 border border-bolt-elements-borderColor"
+              style={{ backgroundColor: '#0f1219' }}
               sideOffset={5}
               align="start"
               side="bottom"
@@ -231,7 +232,7 @@ const NotificationsTab = () => {
             'group flex items-center gap-2',
             'rounded-lg px-3 py-1.5',
             'text-sm text-gray-900 dark:text-white',
-            'bg-bolt-elements-bg-depth-1',
+            'bg-transparent',
             'border border-bolt-elements-borderColor',
             'hover:bg-bolt-elements-item-backgroundAccent',
             'transition-all duration-200',

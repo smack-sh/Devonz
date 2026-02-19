@@ -24,7 +24,7 @@ const logLevelOptions: SelectOption[] = [
     value: 'all',
     label: 'All Types',
     icon: 'i-ph:funnel',
-    color: '#9333ea',
+    color: '#06B6D4',
   },
   {
     value: 'provider',
@@ -505,7 +505,7 @@ export function EventLogsTab() {
       };
 
       // Add title and header
-      doc.setFillColor('#6366F1');
+      doc.setFillColor('#06B6D4');
       doc.rect(0, 0, pageWidth, 50, 'F');
       doc.setTextColor('#FFFFFF');
       doc.setFontSize(24);
@@ -809,7 +809,7 @@ export function EventLogsTab() {
             'group flex items-center gap-2',
             'rounded-lg px-3 py-1.5',
             'text-sm text-gray-900 dark:text-white',
-            'bg-bolt-elements-bg-depth-1',
+            'bg-transparent',
             'border border-bolt-elements-borderColor',
             'hover:bg-bolt-elements-item-backgroundAccent',
             'transition-all duration-200',
@@ -871,7 +871,7 @@ export function EventLogsTab() {
                   'flex items-center gap-2',
                   'rounded-lg px-3 py-1.5',
                   'text-sm text-bolt-elements-textPrimary',
-                  'bg-bolt-elements-bg-depth-1',
+                  'bg-transparent',
                   'border border-bolt-elements-borderColor',
                   'hover:bg-bolt-elements-item-backgroundAccent',
                   'transition-all duration-200',
@@ -888,7 +888,8 @@ export function EventLogsTab() {
 
             <DropdownMenu.Portal>
               <DropdownMenu.Content
-                className="min-w-[200px] bg-bolt-elements-bg-depth-1 rounded-lg shadow-lg py-1 z-[250] animate-in fade-in-0 zoom-in-95 border border-bolt-elements-borderColor"
+                className="min-w-[200px] rounded-lg shadow-lg py-1 z-[250] animate-in fade-in-0 zoom-in-95 border border-bolt-elements-borderColor"
+                style={{ backgroundColor: '#0f1219' }}
                 sideOffset={5}
                 align="start"
                 side="bottom"
@@ -977,7 +978,7 @@ export function EventLogsTab() {
                 'group flex items-center gap-2',
                 'rounded-lg px-3 py-1.5',
                 'text-sm text-bolt-elements-textPrimary',
-                'bg-bolt-elements-bg-depth-1',
+                'bg-transparent',
                 'border border-bolt-elements-borderColor',
                 'hover:bg-bolt-elements-item-backgroundAccent',
                 'transition-all duration-200',
