@@ -133,6 +133,7 @@ export default function VercelConnection() {
               height="24"
               width="24"
               crossOrigin="anonymous"
+              alt="Vercel"
               src={`https://cdn.simpleicons.org/vercel/black`}
             />
             <h3 className="text-base font-medium text-bolt-elements-textPrimary">Vercel Connection</h3>

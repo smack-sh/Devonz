@@ -114,6 +114,7 @@ export function SupabaseConnection() {
                     height="24"
                     width="24"
                     crossOrigin="anonymous"
+                    alt="Supabase"
                     src="https://cdn.simpleicons.org/supabase"
                   />
                   Connect to Supabase
@@ -186,6 +187,7 @@ export function SupabaseConnection() {
                       height="24"
                       width="24"
                       crossOrigin="anonymous"
+                      alt="Supabase"
                       src="https://cdn.simpleicons.org/supabase"
                     />
                     Supabase Connection

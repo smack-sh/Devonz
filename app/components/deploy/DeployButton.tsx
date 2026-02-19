@@ -164,6 +164,7 @@ export const DeployButton = ({
                   height="24"
                   width="24"
                   crossOrigin="anonymous"
+                  alt="Netlify"
                   src="https://cdn.simpleicons.org/netlify"
                 />
                 <span className="mx-auto">
