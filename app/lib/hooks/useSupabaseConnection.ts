@@ -43,10 +43,24 @@ export function useSupabaseConnection() {
       if (savedConnection) {
         logger.debug('useSupabaseConnection: Loading from localStorage');
 
-        const parsed = JSON.parse(savedConnection);
+        let parsed;
+
+        try {
+          parsed = JSON.parse(savedConnection);
+        } catch {
+          logger.warn('Failed to parse stored Supabase connection');
+          localStorage.removeItem('supabase_connection');
+
+          return;
+        }
 
         if (savedCredentials && !parsed.credentials) {
-          parsed.credentials = JSON.parse(savedCredentials);
+          try {
+            parsed.credentials = JSON.parse(savedCredentials);
+          } catch {
+            logger.warn('Failed to parse stored Supabase credentials');
+            localStorage.removeItem('supabaseCredentials');
+          }
         }
 
         // Only update if we don't already have a connection from server-side

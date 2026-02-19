@@ -220,7 +220,16 @@ export class ImportExportService {
     // Get existing keys from cookies
     const existingKeys = (() => {
       const storedApiKeys = Cookies.get('apiKeys');
-      return storedApiKeys ? JSON.parse(storedApiKeys) : {};
+
+      if (!storedApiKeys) {
+        return {};
+      }
+
+      try {
+        return JSON.parse(storedApiKeys);
+      } catch {
+        return {};
+      }
     })();
 
     // Validate and save each key

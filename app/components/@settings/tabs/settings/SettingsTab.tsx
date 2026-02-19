@@ -27,13 +27,20 @@ export default function SettingsTab() {
   const [currentTimezone, setCurrentTimezone] = useState('');
   const [settings, setSettings] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('devonz_user_profile');
-    return saved
-      ? JSON.parse(saved)
-      : {
-          notifications: true,
-          language: 'en',
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        };
+
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        localStorage.removeItem('devonz_user_profile');
+      }
+    }
+
+    return {
+      notifications: true,
+      language: 'en',
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    };
   });
 
   useEffect(() => {
@@ -122,7 +129,14 @@ export default function SettingsTab() {
                 setSettings((prev) => ({ ...prev, notifications: checked }));
 
                 // Update localStorage immediately
-                const existingProfile = JSON.parse(localStorage.getItem('devonz_user_profile') || '{}');
+                let existingProfile = {};
+
+                try {
+                  existingProfile = JSON.parse(localStorage.getItem('devonz_user_profile') || '{}');
+                } catch {
+                  // Ignore corrupted data
+                }
+
                 const updatedProfile = {
                   ...existingProfile,
                   notifications: checked,

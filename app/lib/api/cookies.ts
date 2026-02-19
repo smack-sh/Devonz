@@ -24,10 +24,28 @@ export function parseCookies(cookieHeader: string | null) {
 
 export function getApiKeysFromCookie(cookieHeader: string | null): Record<string, string> {
   const cookies = parseCookies(cookieHeader);
-  return cookies.apiKeys ? JSON.parse(cookies.apiKeys) : {};
+
+  if (!cookies.apiKeys) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(cookies.apiKeys);
+  } catch {
+    return {};
+  }
 }
 
 export function getProviderSettingsFromCookie(cookieHeader: string | null): Record<string, any> {
   const cookies = parseCookies(cookieHeader);
-  return cookies.providers ? JSON.parse(cookies.providers) : {};
+
+  if (!cookies.providers) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(cookies.providers);
+  } catch {
+    return {};
+  }
 }

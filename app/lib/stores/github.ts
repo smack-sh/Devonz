@@ -7,13 +7,22 @@ const logger = createScopedLogger('GitHubStore');
 
 // Initialize with stored connection or defaults
 const storedConnection = typeof window !== 'undefined' ? localStorage.getItem('github_connection') : null;
-const initialConnection: GitHubConnection = storedConnection
-  ? JSON.parse(storedConnection)
-  : {
-      user: null,
-      token: '',
-      tokenType: 'classic',
-    };
+const defaultConnection: GitHubConnection = {
+  user: null,
+  token: '',
+  tokenType: 'classic',
+};
+
+let initialConnection: GitHubConnection = defaultConnection;
+
+if (storedConnection) {
+  try {
+    initialConnection = JSON.parse(storedConnection);
+  } catch {
+    console.warn('Failed to parse stored GitHub connection, using defaults');
+    localStorage.removeItem('github_connection');
+  }
+}
 
 export const githubConnection = atom<GitHubConnection>(initialConnection);
 export const isConnecting = atom<boolean>(false);
