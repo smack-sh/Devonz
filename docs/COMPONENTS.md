@@ -37,15 +37,15 @@ The primary user interaction surface. Handles message display, input, file uploa
 | `ImportFolderButton.tsx` | Import local folder |
 | `SendButton.client.tsx` | Send message button |
 | `SpeechRecognition.tsx` | Voice input |
-| `ThoughtBox.tsx` | AI thinking/reasoning display |
-| `ToolInvocations.tsx` | Agent tool call display |
+| `ThoughtBox.tsx` | AI thinking/reasoning display — renders extended thinking output with expandable/collapsible reasoning content |
+| `ToolInvocations.tsx` | Handles agent tool calls AND MCP tool results. Sub-components: `ToolCallsList` (pending calls with auto-approve logic and manual approve/reject buttons), `ToolResultsList` → `ToolResultItem` (tool results with formatted markdown view (default), raw JSON toggle, copy-to-clipboard, collapsible long outputs), `FormattedResultContent` (ReactMarkdown renderer for MCP text results), `extractMcpResultText()` (extracts readable text from MCP protocol results) |
 | `ProgressCompilation.tsx` | Build progress indicator |
 | `ChatAlert.tsx` | Chat error/warning alerts |
 | `LLMApiAlert.tsx` | LLM API error alerts |
 | `SupabaseAlert.tsx` | Supabase connection alerts |
 | `PlanApprovalAlert.tsx` | Plan approval UI |
 | `DicussMode.tsx` | Discuss (non-coding) mode |
-| `MCPTools.tsx` | MCP tool selection |
+| `MCPTools.tsx` | MCP tools indicator in the chat toolbar; MCP tool selection |
 | `chatExportAndImport/` | Chat export/import functionality |
 
 ### `workbench/` — Code Editor & Preview
@@ -94,6 +94,8 @@ Modular settings UI organized by concern.
 │   ├── vercel/        # Vercel settings
 │   ├── supabase/      # Supabase settings
 │   ├── mcp/           # MCP server config
+│   │   ├── McpServerList.tsx  # Server list with status badges and per-server auto-approve toggle
+│   │   └── McpTab.tsx         # MCP configuration tab with server management and auto-approve settings
 │   ├── notifications/ # Notification prefs
 │   ├── event-logs/    # Event log viewer
 │   ├── settings/      # General settings

@@ -65,7 +65,11 @@ Agent Mode enables Devonz to act as an **autonomous coding agent**. Instead of g
 
 ## Agent Tools
 
-The LLM can call these tools during agent mode execution:
+The LLM can call these tools during agent mode execution.
+
+> **MCP Tools**: In addition to the built-in `devonz_*` tools listed below, any MCP tools registered through `mcpService` are also available to the LLM during agent mode. MCP tools are registered alongside agent tools and appear in the same tool set passed to the model.
+
+> **Extended Thinking**: Extended thinking is fully compatible with agent mode. When enabled, the model's reasoning steps are shown before each tool call decision.
 
 | Tool | Purpose | Approval Required |
 | ---- | ------- | ----------------- |

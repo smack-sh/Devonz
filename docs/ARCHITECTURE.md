@@ -35,7 +35,11 @@
 │         │                 │                  │           │
 │  ┌──────▼─────────────────▼──────────────────▼────────┐  │
 │  │            External APIs (LLM Providers)            │  │
-│  │  OpenAI · Anthropic · Google · Ollama · 15 more     │  │
+│  │  OpenAI · Anthropic · Google · Ollama · 18 more     │  │
+│  │  (22 total: + Cerebras, Cohere, Deepseek, Fireworks,│  │
+│  │   Groq, HuggingFace, Hyperbolic, Mistral, Moonshot, │  │
+│  │   OpenRouter, OpenAILike, Perplexity, xAI, Together, │  │
+│  │   LMStudio, AmazonBedrock, Github, Z.ai)            │  │
 │  └────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────┘
 ```
@@ -65,7 +69,7 @@ Business logic separated from UI:
 | `agentOrchestratorService.ts` | Agent mode execution loop, iteration tracking, approval flows |
 | `agentToolsService.ts` | Agent tool definitions and execution |
 | `agentChatIntegration.ts` | Bridges agent mode with chat API |
-| `mcpService.ts` | MCP (Model Context Protocol) client management |
+| `mcpService.ts` | MCP (Model Context Protocol) client management — includes schema sanitization for Gemini compatibility (strips `anyOf`, `oneOf`, `allOf`, `additionalProperties`), auto-approve per-server toggle, and formatted markdown rendering of tool results |
 | `autoFixService.ts` | Auto-fix error detection and correction |
 | `githubApiService.ts` | GitHub API operations |
 | `gitlabApiService.ts` | GitLab API operations |
@@ -102,7 +106,7 @@ Handles LLM response parsing and action execution:
 
 ~36 Remix API routes. See [API Routes](API-ROUTES.md).
 
-**Key pattern**: Routes use Remix conventions — `action()` for POST/PUT/DELETE, `loader()` for GET. Server-only code lives in `app/lib/.server/`. All route handlers are wrapped with `withSecurity()` from `app/lib/security.ts`, which enforces CORS origin validation, SameSite cookie attributes, and request sanitization.
+**Key pattern**: Routes use Remix conventions — `action()` for POST/PUT/DELETE, `loader()` for GET. Server-only code lives in `app/lib/.server/`. All 35+ route handlers are wrapped with `withSecurity()` from `app/lib/security.ts`, which enforces CORS origin validation, SameSite cookie attributes, request sanitization, and a URL allowlist on the git proxy.
 
 ---
 
@@ -194,13 +198,15 @@ User enables Agent Mode + sends task
 
 5. **MCP for extensibility**: Model Context Protocol allows connecting external tools (databases, APIs, filesystems) to the AI assistant without modifying core code.
 
-6. **CSS custom properties for theming**: All theme colors flow through `--bolt-elements-*` variables, enabling runtime theme switching without rebuilds.
+6. **Extended Thinking**: Supported for Anthropic Claude and Google Gemini models. Allows models to expose their internal reasoning process before producing a final answer, with a configurable thinking budget per request.
 
-7. **Security by default** — Every API route is wrapped with `withSecurity()`, enforcing CORS, SameSite cookies, and a URL allowlist on the git proxy.
+7. **CSS custom properties for theming**: All theme colors flow through `--bolt-elements-*` variables, enabling runtime theme switching without rebuilds.
 
-8. **Docker-first deployment** — Multi-stage Dockerfile + docker-compose.yml with GHCR CI/CD and optional Watchtower auto-update enables one-command self-hosting.
+8. **Security by default** — Every API route (all 35+ handlers) is wrapped with `withSecurity()` from `app/lib/security.ts`, enforcing CORS origin validation, SameSite cookie attributes, request sanitization, and a URL allowlist on the git proxy.
 
-9. **Startup performance** — Vite `optimizeDeps` pre-bundles critical dependencies and unconfigured LLM providers are skipped during initialization.
+9. **Docker-first deployment** — Multi-stage Dockerfile + docker-compose.yml with GHCR CI/CD and optional Watchtower auto-update enables one-command self-hosting.
+
+10. **Startup performance** — Vite `optimizeDeps` pre-bundles critical dependencies and unconfigured LLM providers are skipped during initialization.
 
 ---
 

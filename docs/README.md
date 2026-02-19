@@ -21,6 +21,18 @@
 
 ---
 
+## What's New
+
+- **Extended Thinking** — AI reasoning visualization for Anthropic Claude and Google Gemini
+- **MCP Schema Sanitization** — Automatic schema compatibility for Google Gemini (strips unsupported constructs)
+- **MCP Auto-Approve** — Per-server auto-approve toggle for trusted MCP servers
+- **Formatted Tool Results** — MCP tool results render as formatted markdown instead of raw JSON
+- **Security Hardening** — `withSecurity()` on all 35+ API routes with input validation, rate limiting options, URL allowlisting
+- **511 Tests** — Across 25 test files for comprehensive coverage
+- **Z.ai Provider** — Integration with 10 static GLM models optimized for coding tasks
+
+---
+
 ## Tech Stack at a Glance
 
 | Layer | Technology |

@@ -49,6 +49,8 @@ Validated with Zod. Returns a data stream with:
 - Context annotations
 - Error information
 
+> **Extended Thinking**: The chat endpoint supports extended thinking via `thinkingBudget` in provider options. For Anthropic Claude, this uses the `thinking` provider option with a configurable budget (percentage of `maxTokens`). For Google Gemini, it uses `thinkingConfig` with a `thinkingBudget` token count.
+
 ---
 
 ## LLM Provider Management
@@ -69,6 +71,8 @@ Validated with Zod. Returns a data stream with:
 | -------- | ------ | ------- |
 | `/api/mcp-check` | GET | Check MCP server availability and health |
 | `/api/mcp-update-config` | POST | Update MCP server configuration |
+
+> **Schema Sanitization**: `mcpService.ts` performs automatic schema sanitization before registering MCP tools. It strips `anyOf`, `oneOf`, `allOf`, and `additionalProperties` constructs from tool input schemas to ensure compatibility with Google Gemini and other providers that don't support complex JSON Schema features.
 
 ---
 

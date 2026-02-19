@@ -80,7 +80,22 @@ PERPLEXITY_API_KEY=...
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 AWS_REGION=us-east-1
+
+# Z.ai
+ZAI_API_KEY=your-zai-key
 ```
+
+### MCP Setup
+
+MCP (Model Context Protocol) servers extend the agent with specialized tools:
+
+- Configure MCP servers in **Settings → MCP Servers** tab
+- Supports **streamable-http**, **SSE**, and **stdio** transports
+- **Auto-approve** can be toggled per server for trusted servers (skips tool call confirmation)
+
+### Extended Thinking
+
+Extended Thinking (AI reasoning visualization) is available for Anthropic Claude and Google Gemini. Configure it in **Settings → Features** tab.
 
 ### Local Model URLs
 

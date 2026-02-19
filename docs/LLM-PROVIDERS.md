@@ -32,8 +32,21 @@ Devonz supports **20 LLM providers** through a pluggable provider system built o
 | Hyperbolic | `HYPERBOLIC_API_KEY` | No | Hyperbolic inference |
 | Ollama | `OLLAMA_API_BASE_URL` | Yes | Local models (no API key) |
 | LM Studio | `LMSTUDIO_API_BASE_URL` | Yes | Local models (no API key) |
-| Z.ai | `ZAI_API_KEY` | No | GLM models (coding endpoint) |
+| Z.ai | `ZAI_API_KEY` | No | 10 static GLM models optimized for coding tasks |
 | OpenAI-Like | `OPENAI_LIKE_API_BASE_URL` | No | Any OpenAI-compatible API |
+
+---
+
+## Extended Thinking Support
+
+Some providers support **Extended Thinking**, which lets the LLM show its reasoning process before generating a response:
+
+| Provider | Mechanism | Configuration |
+| -------- | --------- | ------------- |
+| Anthropic Claude | `thinking` provider option | Configurable budget as a percentage of `maxTokens` |
+| Google Gemini | `thinkingConfig` with `thinkingBudget` | Budget specified in token count |
+
+Extended thinking can be enabled in **Settings → Features** tab. When active, the chat UI displays the model's reasoning steps in a collapsible section above the response.
 
 ---
 

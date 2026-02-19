@@ -56,7 +56,13 @@ The project publishes Docker images to GitHub Container Registry on every push t
 
 Set `RUNNING_IN_DOCKER=true` in your Docker environment (automatically set in docker-compose.yml). This adjusts Ollama and LMStudio base URLs to use `host.docker.internal` instead of `localhost`.
 
+Add `ZAI_API_KEY=your-zai-key` if using the Z.ai provider.
+
 See `.env.example` for the complete list of 55+ environment variables.
+
+### MCP Servers in Docker
+
+MCP servers configured in the UI persist to `localStorage` in the browser. However, any MCP servers requiring local **stdio** transport need the Docker container to have access to those binaries (e.g., mounted volumes or installed in the image). HTTP-based transports (streamable-http, SSE) work without additional container configuration as long as the container can reach the MCP server's URL.
 
 ---
 

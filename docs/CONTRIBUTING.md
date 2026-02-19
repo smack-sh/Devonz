@@ -138,7 +138,13 @@ describe('MyComponent', () => {
 });
 ```
 
-The project currently has 282 tests across 21 test files.
+The project currently has 511 tests across 25 test files.
+
+Recent test expansion areas include:
+
+- **MCP schema sanitization** — 11 tests in `mcpService.spec.ts` covering JSON Schema cleanup for Google Gemini compatibility (`anyOf`, `oneOf`, `allOf`, `additionalProperties` removal)
+- **MCP result text extraction** — 16 tests in `ToolInvocations.spec.ts` verifying correct rendering of MCP tool call results
+- **Auto-approve toggle** — tests for the MCP auto-approve UI toggle behaviour
 
 ### Test File Location
 
@@ -202,6 +208,8 @@ const cookieHeader = request.headers.get('Cookie') || '';
 
 See [LLM-PROVIDERS.md](LLM-PROVIDERS.md) — step-by-step guide.
 
+> **Extended thinking** is supported for **Anthropic Claude** and **Google Gemini** providers. When adding a new provider, check whether it supports extended/reasoning tokens and wire up the `thinkingBudget` parameter accordingly.
+
 ### New Component
 
 1. Create in the appropriate `components/` subdirectory
@@ -224,6 +232,10 @@ See [LLM-PROVIDERS.md](LLM-PROVIDERS.md) — step-by-step guide.
 4. Read credentials from cookies
 5. Return `json()` responses with proper status codes
 6. Wrap with `withSecurity()` — import from `~/lib/security` and wrap your handler function
+
+### MCP Tool Schema Sanitization
+
+New MCP tools must have JSON Schemas compatible with **Google Gemini**, which rejects `anyOf`, `oneOf`, `allOf`, and `additionalProperties` keywords. The `_sanitizeJsonSchema()` method in `mcpService.ts` handles this automatically at connection time — it recursively strips unsupported keywords and flattens composite schemas into a single `object` type. No manual cleanup is needed when adding MCP servers, but be aware of this constraint when debugging schema-related tool call failures.
 
 ---
 

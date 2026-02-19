@@ -65,6 +65,10 @@ pnpm run dev
 - MCP (Model Context Protocol) tool integration
 - Automatic error detection and auto-fix from terminal output
 - Attach images to prompts for visual context
+- **Extended Thinking** — AI reasoning visualization for Anthropic Claude and Google Gemini
+- **MCP Schema Sanitization** — Automatic schema compatibility for Google Gemini (strips unsupported constructs)
+- **MCP Auto-Approve** — Per-server auto-approve toggle for trusted MCP servers
+- **Formatted Tool Results** — MCP tool results render as formatted markdown instead of raw JSON
 
 **Development Environment**
 - In-browser code editor (CodeMirror) with syntax highlighting
@@ -72,6 +76,9 @@ pnpm run dev
 - Real-time application preview
 - Diff view for AI-generated changes
 - File locking to prevent conflicts during generation
+
+**Security & Reliability**
+- **Security Hardened** — `withSecurity()` on all 35+ API routes with input validation, rate limiting options, URL allowlisting
 
 **Deployment & Integrations**
 - GitHub / GitLab push and repo management
@@ -133,6 +140,7 @@ cp .env.example .env.local
 OPENAI_API_KEY=your_openai_key
 ANTHROPIC_API_KEY=your_anthropic_key
 GOOGLE_GENERATIVE_AI_API_KEY=your_google_key
+ZAI_API_KEY=your_zai_key
 
 # Local Provider URLs (optional)
 OLLAMA_BASE_URL=http://127.0.0.1:11434

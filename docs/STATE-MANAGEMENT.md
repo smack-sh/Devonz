@@ -50,7 +50,7 @@ All stores live in `app/lib/stores/`. Each file exports one or more stores.
 | `github.ts` | `map` | GitHub connection state |
 | `githubConnection.ts` | `map` | GitHub auth tokens and user info |
 | `gitlabConnection.ts` | `map` | GitLab auth tokens and user info |
-| `mcp.ts` | `map` | MCP server configurations |
+| `mcp.ts` | `map` | MCP server configurations (`mcpServers` map, `autoApproveServers: string[]`). Persisted to localStorage under `mcp_settings` |
 | `netlify.ts` | `map` | Netlify deployment state |
 | `vercel.ts` | `map` | Vercel deployment state |
 | `supabase.ts` | `map` | Supabase connection and project state |
@@ -202,7 +202,7 @@ All hooks live in `app/lib/hooks/`. They often wrap store access or provide data
 | ------- | ------------- | -------------- |
 | **IndexedDB** (`boltHistory`) | Chat messages, snapshots | `app/lib/persistence/db.ts` |
 | **Cookies** | API keys, provider settings | `js-cookie` library |
-| **localStorage** | Theme preference | Direct `localStorage` API |
+| **localStorage** | Theme preference, MCP settings (`mcp_settings`) | Direct `localStorage` API |
 | **URL Parameters** | Chat ID | Remix route params |
 
 ### IndexedDB Schema
