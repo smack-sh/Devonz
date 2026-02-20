@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { Checkbox } from '~/components/ui/Checkbox';
@@ -9,7 +9,7 @@ interface LockedItem {
   type: 'file' | 'folder';
 }
 
-export function LockManager() {
+export const LockManager = memo(function LockManager() {
   const [lockedItems, setLockedItems] = useState<LockedItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<'all' | 'files' | 'folders'>('all');
@@ -264,4 +264,4 @@ export function LockManager() {
       </div>
     </div>
   );
-}
+});

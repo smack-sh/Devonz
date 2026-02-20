@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, memo } from 'react';
 import type { TextSearchOptions, TextSearchOnProgressCallback, WebContainer } from '@webcontainer/api';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { webcontainer } from '~/lib/webcontainer';
@@ -96,7 +96,7 @@ function groupResultsByFile(results: DisplayMatch[]): Record<string, DisplayMatc
   );
 }
 
-export function Search() {
+export const Search = memo(function Search() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<DisplayMatch[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -262,4 +262,4 @@ export function Search() {
       </div>
     </div>
   );
-}
+});

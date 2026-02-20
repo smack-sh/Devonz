@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, memo } from 'react';
 
 interface BulkTarget {
   value: string;
@@ -79,7 +79,7 @@ const VALUE_TO_SELECTOR: Record<string, string> = {
   li: 'li',
 };
 
-export const BulkStyleSelector = ({
+export const BulkStyleSelector = memo(({
   currentTagName,
   selectedTarget,
   onSelectTarget,
@@ -192,4 +192,4 @@ export const BulkStyleSelector = ({
       )}
     </div>
   );
-};
+});

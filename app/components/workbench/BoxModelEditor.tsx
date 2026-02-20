@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, memo } from 'react';
 
 export interface BoxModelData {
   margin: { top: number; right: number; bottom: number; left: number };
@@ -16,7 +16,7 @@ interface BoxModelEditorProps {
   onValueChange?: (property: string, value: string) => void;
 }
 
-export const BoxModelEditor = ({ boxModel, onValueChange }: BoxModelEditorProps) => {
+export const BoxModelEditor = memo(({ boxModel, onValueChange }: BoxModelEditorProps) => {
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
 
@@ -219,4 +219,4 @@ export const BoxModelEditor = ({ boxModel, onValueChange }: BoxModelEditorProps)
       </p>
     </div>
   );
-};
+});
