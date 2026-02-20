@@ -9,7 +9,6 @@ import type { ToolSet, Message, DataStreamWriter } from 'ai';
 import { formatDataStreamPart, convertToCoreMessages } from 'ai';
 import { z } from 'zod';
 import { createScopedLogger } from '~/utils/logger';
-import { AGENT_SYSTEM_PROMPT, AGENT_SYSTEM_PROMPT_COMPACT } from '~/lib/agent/prompts';
 import { agentToolDefinitions, executeAgentTool, isAgentTool, getAgentToolNames } from './agentToolsService';
 import { getAgentOrchestrator } from './agentOrchestratorService';
 import { isAgentModeEnabled, getAgentModeSettings } from '~/lib/stores/agentMode';
@@ -143,27 +142,6 @@ export function shouldUseAgentMode(requestOptions?: { agentMode?: boolean }): bo
 
   // Fall back to settings
   return isAgentModeEnabled();
-}
-
-/**
- * Get the agent system prompt to append when agent mode is active
- */
-export function getAgentSystemPrompt(compact: boolean = false): string {
-  return compact ? AGENT_SYSTEM_PROMPT_COMPACT : AGENT_SYSTEM_PROMPT;
-}
-
-/**
- * Enhance system prompt with agent capabilities when agent mode is enabled
- */
-export function enhanceSystemPromptWithAgentMode(basePrompt: string, options?: { compact?: boolean }): string {
-  const agentPrompt = getAgentSystemPrompt(options?.compact);
-
-  return `${basePrompt}
-
-<!-- AGENT MODE ENABLED -->
-${agentPrompt}
-<!-- END AGENT MODE -->
-`;
 }
 
 /**

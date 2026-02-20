@@ -180,6 +180,12 @@ export interface SearchCodeParams {
 
   /** Regex pattern to exclude matching file paths */
   excludePattern?: string;
+
+  /** Comma-separated file extensions or patterns to search (e.g., ".tsx,.ts" or "*.css"). Defaults to common code extensions. */
+  filePattern?: string;
+
+  /** Whether the search is case-sensitive. Default false. */
+  caseSensitive?: boolean;
 }
 
 /**

@@ -28,10 +28,7 @@ vi.mock('~/utils/logger', () => ({
   }),
 }));
 
-vi.mock('~/lib/agent/prompts', () => ({
-  getAgentSystemPrompt: vi.fn(() => 'System prompt'),
-  AGENT_ITERATION_WARNING_PROMPT: 'Iteration warning',
-}));
+vi.mock('~/lib/agent/prompts', () => ({}));
 
 import {
   createAgentOrchestrator,
@@ -321,7 +318,7 @@ describe('AgentOrchestrator', () => {
       for (let i = 0; i < 21; i++) {
         orchestrator.incrementIteration();
       }
-      expect(orchestrator.getIterationWarningPrompt()).toBe('Iteration warning');
+      expect(orchestrator.getIterationWarningPrompt()).toContain('nearing the maximum number of iterations');
     });
   });
 

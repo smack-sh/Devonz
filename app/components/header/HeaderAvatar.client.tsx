@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { useStore } from '@nanostores/react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { motion } from 'framer-motion';
 import { profileStore } from '~/lib/stores/profile';
 import { classNames } from '~/utils/classNames';
-import { ControlPanel } from '~/components/@settings/core/ControlPanel';
 import type { TabType } from '~/components/@settings/core/types';
+
+const ControlPanel = lazy(() =>
+  import('~/components/@settings/core/ControlPanel').then((m) => ({ default: m.ControlPanel })),
+);
 
 export function HeaderAvatar() {
   const profile = useStore(profileStore);
@@ -115,7 +118,11 @@ export function HeaderAvatar() {
         </DropdownMenu.Portal>
       </DropdownMenu.Root>
 
-      <ControlPanel open={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} initialTab={initialTab} />
+      {isSettingsOpen && (
+        <Suspense>
+          <ControlPanel open={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} initialTab={initialTab} />
+        </Suspense>
+      )}
     </>
   );
 }

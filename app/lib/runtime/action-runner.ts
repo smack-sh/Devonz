@@ -548,11 +548,68 @@ export class ActionRunner {
     }
 
     try {
-      await webcontainer.fs.writeFile(relativePath, action.content);
+      let contentToWrite = action.content;
+
+      /*
+       * Safety net: When package.json is being overwritten, merge dependencies
+       * from the existing file to prevent the LLM from accidentally dropping
+       * critical deps (e.g. @radix-ui packages in shadcn templates).
+       */
+      if (relativePath === 'package.json') {
+        contentToWrite = await this.#mergePackageJsonDeps(webcontainer, relativePath, action.content);
+      }
+
+      await webcontainer.fs.writeFile(relativePath, contentToWrite);
       logger.debug(`File written ${relativePath}`);
     } catch (error) {
       logger.error('Failed to write file\n\n', error);
     }
+  }
+
+  /**
+   * Merge dependencies from an existing package.json into a new one.
+   * Preserves all existing dependencies while allowing new ones to be added.
+   * This prevents the LLM from accidentally dropping template dependencies
+   * when it rewrites package.json from scratch.
+   */
+  async #mergePackageJsonDeps(webcontainer: WebContainer, relativePath: string, newContent: string): Promise<string> {
+    try {
+      const existingContent = await webcontainer.fs.readFile(relativePath, 'utf-8');
+      const existingPkg = JSON.parse(existingContent);
+      const newPkg = JSON.parse(newContent);
+
+      const existingDeps = existingPkg.dependencies || {};
+      const newDeps = newPkg.dependencies || {};
+
+      // Count how many existing deps are missing from the new package.json
+      const missingDeps: Record<string, string> = {};
+
+      for (const [pkg, version] of Object.entries(existingDeps)) {
+        if (!newDeps[pkg]) {
+          missingDeps[pkg] = version as string;
+        }
+      }
+
+      const missingCount = Object.keys(missingDeps).length;
+      const existingCount = Object.keys(existingDeps).length;
+
+      /*
+       * Only merge if a significant number of deps were dropped (> 5 and > 30%).
+       * This avoids interfering with intentional dependency changes.
+       */
+      if (missingCount > 5 && missingCount / existingCount > 0.3) {
+        newPkg.dependencies = { ...missingDeps, ...newDeps };
+
+        const merged = JSON.stringify(newPkg, null, 2);
+        logger.info(`Merged ${missingCount} missing dependencies back into package.json (prevented dep loss)`);
+
+        return merged;
+      }
+    } catch {
+      // File doesn't exist yet or parse error — just use new content as-is
+    }
+
+    return newContent;
   }
 
   /**

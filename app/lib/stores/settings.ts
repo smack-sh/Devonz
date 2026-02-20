@@ -1,6 +1,7 @@
 import { atom, map } from 'nanostores';
+import Cookies from 'js-cookie';
 import { PROVIDER_LIST } from '~/utils/constants';
-import type { IProviderConfig } from '~/types/model';
+import type { IProviderConfig, IProviderSetting } from '~/types/model';
 import type { TabVisibilityConfig, TabWindowConfig, UserTabConfig } from '~/components/@settings/core/types';
 import { DEFAULT_TAB_CONFIG } from '~/components/@settings/core/constants';
 import { toggleTheme } from './theme';
@@ -136,6 +137,127 @@ interface ConfiguredProvider {
   configMethod: 'environment' | 'none';
 }
 
+// Env key status per provider (does the server have an env var for this provider?)
+export interface EnvKeyStatus {
+  hasEnvKey: boolean;
+  hasCookieKey: boolean;
+}
+
+// Store for env key status - tracks which providers have server-side API keys
+export const envKeyStatusStore = map<Record<string, EnvKeyStatus>>({});
+
+/*
+ * Preferred models store - maps provider name → preferred model name.
+ * Shared between CloudProviderCard (settings) and CombinedModelSelector (chat).
+ */
+const preferredModelsCookie = isBrowser ? Cookies.get('preferredModels') : undefined;
+const initialPreferredModels: Record<string, string> = preferredModelsCookie
+  ? (() => {
+      try {
+        return JSON.parse(preferredModelsCookie);
+      } catch {
+        return {};
+      }
+    })()
+  : {};
+
+export const preferredModelsStore = map<Record<string, string>>(initialPreferredModels);
+
+/**
+ * Update the preferred model for a provider.
+ * Syncs to both the nanostores map and the cookie.
+ */
+export function updatePreferredModel(providerName: string, modelName: string) {
+  if (modelName) {
+    preferredModelsStore.setKey(providerName, modelName);
+  } else {
+    // Remove the entry for this provider
+    const current = { ...preferredModelsStore.get() };
+    delete current[providerName];
+    preferredModelsStore.set(current);
+  }
+
+  if (isBrowser) {
+    Cookies.set('preferredModels', JSON.stringify(preferredModelsStore.get()), { expires: 30 });
+  }
+}
+
+const ENV_KEY_CACHE_KEY = 'envKeyStatusCache';
+
+/**
+ * Fetch env key status for all providers from the server.
+ * Uses sessionStorage to avoid redundant API calls within the same browser session.
+ * Populates envKeyStatusStore and auto-enables providers with server-side env keys.
+ */
+export const checkCloudProviderEnvKeys = async (forceRefresh = false) => {
+  if (!isBrowser) {
+    return;
+  }
+
+  // Check sessionStorage cache first (skip if force refreshing)
+  if (!forceRefresh) {
+    try {
+      const cached = sessionStorage.getItem(ENV_KEY_CACHE_KEY);
+
+      if (cached) {
+        const data = JSON.parse(cached) as Record<string, EnvKeyStatus>;
+        envKeyStatusStore.set(data);
+        logger.info('Loaded env key status from session cache');
+
+        return;
+      }
+    } catch {
+      // Ignore parse errors, proceed to fetch
+    }
+  }
+
+  try {
+    const response = await fetch('/api/check-env-keys');
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = (await response.json()) as Record<string, EnvKeyStatus>;
+    envKeyStatusStore.set(data);
+
+    // Cache in sessionStorage for this browser session
+    try {
+      sessionStorage.setItem(ENV_KEY_CACHE_KEY, JSON.stringify(data));
+    } catch {
+      // sessionStorage may be full or unavailable
+    }
+
+    // Auto-enable providers with server-side env keys (if no saved settings override)
+    const currentSettings = providersStore.get();
+    const savedSettings = localStorage.getItem(PROVIDER_SETTINGS_KEY);
+    let hasChanges = false;
+
+    Object.entries(data).forEach(([providerName, status]) => {
+      if (status.hasEnvKey && !LOCAL_PROVIDERS.includes(providerName)) {
+        const currentProvider = currentSettings[providerName];
+
+        if (currentProvider && !currentProvider.settings.enabled && !savedSettings) {
+          // Only auto-enable on first use (no saved settings)
+          currentSettings[providerName] = {
+            ...currentProvider,
+            settings: { ...currentProvider.settings, enabled: true },
+          };
+          hasChanges = true;
+        }
+      }
+    });
+
+    if (hasChanges) {
+      providersStore.set(currentSettings);
+      localStorage.setItem(PROVIDER_SETTINGS_KEY, JSON.stringify(currentSettings));
+      logger.info('Auto-enabled providers with server-side env keys');
+    }
+  } catch (error) {
+    logger.error('Error checking env keys:', error);
+  }
+};
+
 // Fetch configured providers from server
 const fetchConfiguredProviders = async (): Promise<ConfiguredProvider[]> => {
   try {
@@ -154,22 +276,47 @@ const fetchConfiguredProviders = async (): Promise<ConfiguredProvider[]> => {
   }
 };
 
+// Read API keys from the apiKeys cookie (shared with chat UI)
+const getApiKeysFromCookie = (): Record<string, string> => {
+  if (!isBrowser) {
+    return {};
+  }
+
+  try {
+    const raw = Cookies.get('apiKeys');
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
+
 // Initialize provider settings from both localStorage and server-detected configuration
 const getInitialProviderSettings = (): ProviderSetting => {
   const initialSettings: ProviderSetting = {};
 
-  // Start with default settings
+  // Read API keys from cookie for smart defaults
+  const apiKeys = getApiKeysFromCookie();
+
+  // Start with smart default settings
   PROVIDER_LIST.forEach((provider) => {
+    const isLocal = LOCAL_PROVIDERS.includes(provider.name);
+    const hasApiKey = Boolean(apiKeys[provider.name]?.trim());
+
     initialSettings[provider.name] = {
       ...provider,
       settings: {
-        // Local providers should be disabled by default
-        enabled: !LOCAL_PROVIDERS.includes(provider.name),
+        /*
+         * Smart defaults:
+         * - Local providers: always disabled by default
+         * - Cloud providers WITH a saved API key: enabled
+         * - Cloud providers WITHOUT a saved API key: disabled
+         */
+        enabled: isLocal ? false : hasApiKey,
       },
     };
   });
 
-  // Only try to load from localStorage in the browser
+  // Only try to load from localStorage in the browser (overrides smart defaults)
   if (isBrowser) {
     const savedSettings = localStorage.getItem(PROVIDER_SETTINGS_KEY);
 
@@ -265,11 +412,12 @@ if (isBrowser) {
   // Use a small delay to ensure DOM and other resources are ready
   setTimeout(() => {
     autoEnableConfiguredProviders();
+    checkCloudProviderEnvKeys();
   }, 100);
 }
 
 // Create a function to update provider settings that handles both store and persistence
-export const updateProviderSettings = (provider: string, settings: ProviderSetting) => {
+export const updateProviderSettings = (provider: string, settings: IProviderSetting) => {
   const currentSettings = providersStore.get();
 
   // Create new provider config with updated settings

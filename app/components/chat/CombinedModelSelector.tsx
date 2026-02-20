@@ -2,7 +2,15 @@ import type { ProviderInfo } from '~/types/model';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import type { KeyboardEvent } from 'react';
+import { useStore } from '@nanostores/react';
 import { classNames } from '~/utils/classNames';
+import {
+  envKeyStatusStore,
+  updateProviderSettings,
+  updatePreferredModel,
+  preferredModelsStore,
+} from '~/lib/stores/settings';
+import { PROVIDER_LIST } from '~/utils/constants';
 
 // Fuzzy search utilities (same as ModelSelector)
 const levenshteinDistance = (str1: string, str2: string): number => {
@@ -95,6 +103,21 @@ const isModelLikelyFree = (model: ModelInfo, providerName?: string): boolean => 
   return false;
 };
 
+/**
+ * Get the user's preferred model for a provider from the shared store.
+ * Returns the preferred model name if it exists in the available model list, otherwise undefined.
+ */
+const getPreferredModel = (providerName: string, availableModels: ModelInfo[]): string | undefined => {
+  const preferred = preferredModelsStore.get();
+  const preferredName = preferred[providerName];
+
+  if (preferredName && availableModels.some((m) => m.name === preferredName && m.provider === providerName)) {
+    return preferredName;
+  }
+
+  return undefined;
+};
+
 interface CombinedModelSelectorProps {
   model?: string;
   setModel?: (model: string) => void;
@@ -107,6 +130,7 @@ interface CombinedModelSelectorProps {
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
   hideTrigger?: boolean;
+  onOpenSettings?: (tab?: string) => void;
 }
 
 type DropdownSection = 'provider' | 'model';
@@ -118,13 +142,15 @@ export const CombinedModelSelector = ({
   setProvider,
   modelList,
   providerList,
-  apiKeys,
+  apiKeys: _apiKeys,
   modelLoading,
   isOpen,
   onOpenChange,
   hideTrigger = false,
+  onOpenSettings,
 }: CombinedModelSelectorProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
+  const envKeyStatus = useStore(envKeyStatusStore);
 
   // Use external control if provided, otherwise internal
   const isDropdownOpen = isOpen !== undefined ? isOpen : internalOpen;
@@ -135,6 +161,44 @@ export const CombinedModelSelector = ({
       setInternalOpen(open);
     }
   };
+
+  // Disabled providers that have env keys configured on the server
+  const envKeyDisabledProviders = useMemo(() => {
+    const enabledNames = new Set(providerList.map((p) => p.name));
+
+    return PROVIDER_LIST.filter((p) => {
+      const status = envKeyStatus[p.name];
+      return status?.hasEnvKey && !enabledNames.has(p.name);
+    });
+  }, [providerList, envKeyStatus]);
+
+  const handleOpenSettings = useCallback(
+    (tab?: string) => {
+      setIsDropdownOpen(false);
+      setSearchQuery('');
+      onOpenSettings?.(tab);
+    },
+    [onOpenSettings],
+  );
+
+  const handleQuickEnable = useCallback(
+    (p: ProviderInfo) => {
+      updateProviderSettings(p.name, { enabled: true });
+      setProvider?.(p);
+
+      const preferred = getPreferredModel(p.name, modelList);
+      const targetModel = preferred || modelList.find((m) => m.provider === p.name)?.name;
+
+      if (targetModel) {
+        setModel?.(targetModel);
+      }
+
+      setActiveSection('model');
+      setSearchQuery('');
+      setFocusedIndex(-1);
+    },
+    [modelList, setModel, setProvider],
+  );
 
   const [activeSection, setActiveSection] = useState<DropdownSection>('provider');
   const [searchQuery, setSearchQuery] = useState('');
@@ -295,10 +359,11 @@ export const CombinedModelSelector = ({
             const selectedProvider = filteredProviders[focusedIndex] as ProviderInfo;
             setProvider?.(selectedProvider);
 
-            const firstModel = modelList.find((m) => m.provider === selectedProvider.name);
+            const preferred = getPreferredModel(selectedProvider.name, modelList);
+            const targetModel = preferred || modelList.find((m) => m.provider === selectedProvider.name)?.name;
 
-            if (firstModel) {
-              setModel?.(firstModel.name);
+            if (targetModel) {
+              setModel?.(targetModel);
             }
 
             // Auto-switch to model selection after picking provider
@@ -308,6 +373,12 @@ export const CombinedModelSelector = ({
           } else {
             const selectedModel = filteredModels[focusedIndex];
             setModel?.(selectedModel.name);
+
+            // Sync preferred model to store so Settings CloudProviderCard stays in sync
+            if (provider?.name) {
+              updatePreferredModel(provider.name, selectedModel.name);
+            }
+
             setIsDropdownOpen(false);
             setSearchQuery('');
           }
@@ -358,10 +429,11 @@ export const CombinedModelSelector = ({
       const firstEnabledProvider = providerList[0];
       setProvider?.(firstEnabledProvider);
 
-      const firstModel = modelList.find((m) => m.provider === firstEnabledProvider.name);
+      const preferred = getPreferredModel(firstEnabledProvider.name, modelList);
+      const targetModel = preferred || modelList.find((m) => m.provider === firstEnabledProvider.name)?.name;
 
-      if (firstModel) {
-        setModel?.(firstModel.name);
+      if (targetModel) {
+        setModel?.(targetModel);
       }
     }
   }, [providerList, provider, setProvider, modelList, setModel]);
@@ -493,20 +565,20 @@ export const CombinedModelSelector = ({
               <span className="i-ph:brain-duotone" />
               Model
             </button>
-            {/* API Key Status Badge */}
+            {/* Settings Shortcut */}
             {provider && (
-              <div className="flex items-center px-3">
-                {apiKeys[provider.name] ? (
-                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-green-500/10 text-green-400 text-xs">
-                    <div className="i-ph:check-circle-fill text-sm" />
-                    <span className="whitespace-nowrap">API Key</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-green-500/10 text-green-400 text-xs">
-                    <div className="i-ph:check-circle-fill text-sm" />
-                    <span className="whitespace-nowrap">ENV Key</span>
-                  </div>
-                )}
+              <div className="flex items-center px-2">
+                <button
+                  type="button"
+                  className="flex items-center justify-center w-8 h-8 rounded-md text-[#6e7681] hover:text-[#e6edf3] hover:bg-[#1a2332] transition-colors"
+                  title="Open Cloud Providers settings"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenSettings('cloud-providers');
+                  }}
+                >
+                  <div className="i-ph:gear-six text-base" />
+                </button>
               </div>
             )}
           </div>
@@ -606,44 +678,76 @@ export const CombinedModelSelector = ({
                 {debouncedSearchQuery && <div className="text-xs text-[#6e7681]">Try a different search term</div>}
               </div>
             ) : activeSection === 'provider' ? (
-              filteredProviders.map((p, index) => (
-                <div
-                  ref={(el) => (optionsRef.current[index] = el)}
-                  key={p.name}
-                  role="option"
-                  aria-selected={provider?.name === p.name}
-                  className={classNames(
-                    'px-4 py-3 cursor-pointer transition-all',
-                    'flex items-center gap-3',
-                    provider?.name === p.name ? 'bg-[#1e3a5f]/20 text-[#8badd4]' : 'text-[#e6edf3] hover:bg-[#1a2332]',
-                    focusedIndex === index ? 'ring-1 ring-inset ring-[#4d6a8f]/50 bg-[#1a2332]' : '',
-                  )}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setProvider?.(p);
+              <>
+                {filteredProviders.map((p, index) => (
+                  <div
+                    ref={(el) => (optionsRef.current[index] = el)}
+                    key={p.name}
+                    role="option"
+                    aria-selected={provider?.name === p.name}
+                    className={classNames(
+                      'px-4 py-3 cursor-pointer transition-all',
+                      'flex items-center gap-3',
+                      provider?.name === p.name
+                        ? 'bg-[#1e3a5f]/20 text-[#8badd4]'
+                        : 'text-[#e6edf3] hover:bg-[#1a2332]',
+                      focusedIndex === index ? 'ring-1 ring-inset ring-[#4d6a8f]/50 bg-[#1a2332]' : '',
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setProvider?.(p);
 
-                    const firstModel = modelList.find((m) => m.provider === p.name);
+                      const preferred = getPreferredModel(p.name, modelList);
+                      const targetModel = preferred || modelList.find((m) => m.provider === p.name)?.name;
 
-                    if (firstModel) {
-                      setModel?.(firstModel.name);
-                    }
+                      if (targetModel) {
+                        setModel?.(targetModel);
+                      }
 
-                    setActiveSection('model');
-                    setSearchQuery('');
-                    setFocusedIndex(-1);
-                  }}
-                  tabIndex={focusedIndex === index ? 0 : -1}
-                >
-                  <span className="i-ph:cube text-lg" />
-                  <span
-                    className="text-sm"
-                    dangerouslySetInnerHTML={{
-                      __html: (p as { highlightedName?: string }).highlightedName || p.name,
+                      setActiveSection('model');
+                      setSearchQuery('');
+                      setFocusedIndex(-1);
                     }}
-                  />
-                  {provider?.name === p.name && <span className="i-ph:check ml-auto text-[#8badd4]" />}
-                </div>
-              ))
+                    tabIndex={focusedIndex === index ? 0 : -1}
+                  >
+                    <span className="i-ph:cube text-lg" />
+                    <span
+                      className="text-sm"
+                      dangerouslySetInnerHTML={{
+                        __html: (p as { highlightedName?: string }).highlightedName || p.name,
+                      }}
+                    />
+                    {provider?.name === p.name && <span className="i-ph:check ml-auto text-[#8badd4]" />}
+                  </div>
+                ))}
+                {/* Quick-enable: disabled providers that have server env keys */}
+                {!debouncedSearchQuery && envKeyDisabledProviders.length > 0 && (
+                  <>
+                    <div className="px-4 py-2 border-t border-white/[0.06]">
+                      <span className="text-xs text-[#6e7681]">Available via env key</span>
+                    </div>
+                    {envKeyDisabledProviders.map((ep) => (
+                      <div key={`env-${ep.name}`} className="px-4 py-3 flex items-center gap-3 text-[#6e7681]">
+                        <span className="relative flex-shrink-0">
+                          <span className="i-ph:cube text-lg" />
+                          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-blue-500" />
+                        </span>
+                        <span className="text-sm flex-1">{ep.name}</span>
+                        <button
+                          type="button"
+                          className="px-2.5 py-1 rounded-md text-xs font-medium bg-[#1e3a5f]/40 text-[#8badd4] hover:bg-[#1e3a5f]/70 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleQuickEnable(ep as unknown as ProviderInfo);
+                          }}
+                        >
+                          Enable
+                        </button>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </>
             ) : (
               filteredModels.map((m, index) => (
                 <div
@@ -659,6 +763,12 @@ export const CombinedModelSelector = ({
                   onClick={(e) => {
                     e.stopPropagation();
                     setModel?.(m.name);
+
+                    // Sync preferred model to store so Settings CloudProviderCard stays in sync
+                    if (provider?.name) {
+                      updatePreferredModel(provider.name, m.name);
+                    }
+
                     setIsDropdownOpen(false);
                     setSearchQuery('');
                   }}

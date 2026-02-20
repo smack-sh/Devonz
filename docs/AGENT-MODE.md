@@ -75,10 +75,12 @@ The LLM can call these tools during agent mode execution.
 | ---- | ------- | ----------------- |
 | `devonz_read_file` | Read file contents (with optional line range) | No |
 | `devonz_write_file` | Create or modify files | Configurable |
+| `devonz_delete_file` | Delete files or directories | Configurable |
+| `devonz_rename_file` | Rename or move files | Configurable |
 | `devonz_list_directory` | Explore project structure | No |
 | `devonz_run_command` | Execute shell commands (npm, node, etc.) | Configurable |
 | `devonz_get_errors` | Check for build/runtime/preview errors | No |
-| `devonz_search_code` | Search for code patterns across files | No |
+| `devonz_search_code` | Search for code patterns across files (supports regex) | No |
 
 ### Tool Parameters
 
@@ -98,6 +100,24 @@ The LLM can call these tools during agent mode execution.
 {
   path: string;    // File path relative to project root
   content: string; // Complete file content
+}
+```
+
+#### `devonz_delete_file`
+
+```typescript
+{
+  path: string;        // File or directory path relative to project root
+  recursive?: boolean; // Required for non-empty directories (default: false)
+}
+```
+
+#### `devonz_rename_file`
+
+```typescript
+{
+  oldPath: string; // Current file path relative to project root
+  newPath: string; // New file path (parent directories are auto-created)
 }
 ```
 
@@ -133,7 +153,7 @@ The LLM can call these tools during agent mode execution.
 
 ```typescript
 {
-  query: string;           // Search pattern (text or regex)
+  query: string;           // Search pattern — supports regex with automatic fallback to literal matching
   path?: string;           // Directory to search (default: "/")
   maxResults?: number;     // Max results (default: 50)
   includePattern?: string; // File path include filter
@@ -215,12 +235,19 @@ interface AgentExecutionState {
 
 ## System Prompt
 
-When agent mode is active, the standard system prompt is **replaced** with an agent-specific prompt that:
+When agent mode is active, the standard system prompt is **replaced** with a single unified prompt — `AGENT_MODE_FULL_SYSTEM_PROMPT` — exported from `app/lib/agent/prompts.ts`. This replaces the previous multi-prompt system (the legacy `AGENT_SYSTEM_PROMPT`, `AGENT_SYSTEM_PROMPT_COMPACT`, `AGENT_ERROR_CONTEXT_PROMPT`, `AGENT_ITERATION_WARNING_PROMPT`, and helper functions like `getAgentSystemPrompt()` / `enhanceSystemPromptWithAgentMode()` have all been removed).
+
+The prompt covers:
 
 1. Instructs the LLM to use `devonz_*` tools instead of artifact XML tags
 2. Defines WebContainer constraints (no native binaries, no git, etc.)
 3. Establishes a tool selection hierarchy (prefer `write_file` over shell commands)
 4. Forbids outputting file content in plain text (must use tools)
+5. **Mobile-first design mandate** — all UI must be responsive and mobile-first
+6. **Design system / semantic tokens** — enforces consistent use of design tokens
+7. **Technology preferences** — React 19, Tailwind v4, shadcn/ui
+8. **Response brevity guidelines** — keep responses concise and action-oriented
+9. **Self-validation checklist** — the agent validates its own output before finishing
 
 See `app/lib/agent/prompts.ts` for the complete prompt.
 
@@ -234,7 +261,6 @@ The `agentChatIntegration.ts` module bridges agent mode with the standard chat A
 | -------- | ------- |
 | `shouldUseAgentMode()` | Check if agent mode is enabled for the current request |
 | `getAgentToolSetWithoutExecute()` | Get tool definitions (without execute functions) for the AI SDK |
-| `getAgentSystemPrompt()` | Get the agent-specific system prompt |
 | `initializeAgentSession()` | Start a new agent session |
 | `incrementAgentIteration()` | Advance the iteration counter |
 | `getAgentIterationWarning()` | Get a warning prompt when nearing iteration limit |

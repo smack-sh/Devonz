@@ -6,7 +6,6 @@
  */
 
 import { createScopedLogger } from '~/utils/logger';
-import { AGENT_ITERATION_WARNING_PROMPT } from '~/lib/agent/prompts';
 import type {
   AgentExecutionState,
   AgentModeSettings,
@@ -228,7 +227,7 @@ export class AgentOrchestrator {
       return null;
     }
 
-    return AGENT_ITERATION_WARNING_PROMPT;
+    return `You are nearing the maximum number of iterations (${this._state.maxIterations}). Summarize progress, list remaining tasks, and leave the project in a stable state.`;
   }
 
   setError(message: string): void {

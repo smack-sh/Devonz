@@ -626,7 +626,25 @@ export class TerminalErrorDetector {
 
   #formatErrorContent(): string {
     if (this.#detectedErrors.length === 1) {
-      return this.#detectedErrors[0].details;
+      const error = this.#detectedErrors[0];
+
+      /*
+       * For module/import errors, add instruction to fix ALL similar issues at once.
+       * This prevents sequential auto-fix loops where each restart reveals one more missing dep.
+       */
+      if (error.type === 'module') {
+        return (
+          error.details +
+          '\n\nIMPORTANT: This is likely one of MULTIPLE missing dependencies. ' +
+          'Before fixing, scan ALL .tsx and .ts files for import statements and verify EVERY ' +
+          'imported package exists in package.json dependencies. Fix ALL missing packages in a ' +
+          'single package.json update, then run npm install once. Do NOT fix just this one package — ' +
+          'check for @radix-ui/*, class-variance-authority, clsx, tailwind-merge, lucide-react, ' +
+          'and any other imported packages that may be missing.'
+        );
+      }
+
+      return error.details;
     }
 
     // Multiple errors - format as list
@@ -644,6 +662,18 @@ export class TerminalErrorDetector {
 
     lines.push('\n\n--- Details ---\n');
     lines.push(this.#detectedErrors[0].details);
+
+    /*
+     * If any module errors present, add batch-fix instruction
+     */
+    const hasModuleErrors = this.#detectedErrors.some((e) => e.type === 'module');
+
+    if (hasModuleErrors) {
+      lines.push(
+        '\n\nIMPORTANT: Scan ALL .tsx and .ts files for import statements and verify EVERY ' +
+          'imported package exists in package.json. Fix ALL missing packages in a single update.',
+      );
+    }
 
     return lines.join('\n');
   }

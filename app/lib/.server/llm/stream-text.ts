@@ -31,7 +31,6 @@ export interface StreamingOptions extends Omit<Parameters<typeof _streamText>[0]
     };
   };
   agentMode?: boolean;
-  agentSystemPrompt?: string;
 }
 
 const logger = createScopedLogger('stream-text');
@@ -355,10 +354,16 @@ ${projectMemoryContent}
     logger.info('🤖 Agent Mode: Using agent-specific system prompt (replacing standard prompt)');
     systemPrompt = AGENT_MODE_FULL_SYSTEM_PROMPT(WORK_DIR);
 
-    // Add context files if available
+    // Add context files reference for agent mode
     if (chatMode === 'build' && contextFiles && contextOptimization) {
-      const codeContext = createFilesContext(contextFiles, true);
-      systemPrompt = `${systemPrompt}
+      // In agent mode, provide file paths as references instead of full content
+      // The agent can use devonz_read_file to read specific files when needed
+      const fileList = Object.keys(contextFiles);
+
+      if (fileList.length <= 5) {
+        // Few files — include full content for efficiency
+        const codeContext = createFilesContext(contextFiles, true);
+        systemPrompt = `${systemPrompt}
 
 <context_buffer>
 Below are the current project files loaded into context:
@@ -367,6 +372,16 @@ ${codeContext}
 ---
 </context_buffer>
 `;
+      } else {
+        // Many files — provide list only, agent can read as needed
+        systemPrompt = `${systemPrompt}
+
+<context_buffer>
+The following ${fileList.length} project files are available. Use devonz_read_file to read specific files as needed:
+${fileList.map((f) => `- ${f}`).join('\n')}
+</context_buffer>
+`;
+      }
     }
   }
 

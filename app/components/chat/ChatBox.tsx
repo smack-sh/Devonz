@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, lazy, Suspense } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST } from '~/utils/constants';
@@ -20,6 +20,13 @@ import type { ElementInfo } from '~/components/workbench/Inspector';
 import { McpTools } from './MCPTools';
 import { WebSearch } from './WebSearch.client';
 import { ChatModeSelector } from './ChatModeSelector';
+import { AgentToggle } from './AgentToggle';
+import { AnimatePresence, motion } from 'framer-motion';
+import type { TabType } from '~/components/@settings/core/types';
+
+const ControlPanel = lazy(() =>
+  import('~/components/@settings/core/ControlPanel').then((m) => ({ default: m.ControlPanel })),
+);
 
 interface ChatBoxProps {
   isModelSettingsCollapsed: boolean;
@@ -69,6 +76,15 @@ interface ChatBoxProps {
 
 export const ChatBox: React.FC<ChatBoxProps> = (props) => {
   const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<TabType | undefined>(undefined);
+  const [showMoreTools, setShowMoreTools] = useState(false);
+
+  const handleOpenSettings = useCallback((tab?: string) => {
+    setIsModelSelectorOpen(false);
+    setSettingsInitialTab(tab as TabType | undefined);
+    setIsSettingsOpen(true);
+  }, []);
 
   return (
     <div
@@ -107,6 +123,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             isOpen={isModelSelectorOpen}
             onOpenChange={setIsModelSelectorOpen}
             hideTrigger={true}
+            onOpenSettings={handleOpenSettings}
           />
         </Dialog>
       </DialogRoot>
@@ -260,64 +277,117 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             />
           )}
         </ClientOnly>
-        <div className="flex justify-between items-center text-sm p-4 pt-2">
-          <div className="flex gap-1 items-center">
-            <ColorSchemeDialog designScheme={props.designScheme} setDesignScheme={props.setDesignScheme} />
-            <McpTools />
-            <ChatModeSelector
-              chatMode={props.chatMode}
-              setChatMode={props.setChatMode}
-              planMode={props.planMode}
-              setPlanMode={props.setPlanMode}
-            />
-            <IconButton title="Upload file" className="transition-all" onClick={() => props.handleFileUpload()}>
-              <div className="i-ph:paperclip text-xl"></div>
-            </IconButton>
-            <WebSearch onSearchResult={(result) => props.onWebSearchResult?.(result)} disabled={props.isStreaming} />
-            <IconButton
-              title="Enhance prompt"
-              disabled={props.input.length === 0 || props.enhancingPrompt}
-              className={classNames('transition-all', props.enhancingPrompt ? 'opacity-100' : '')}
-              onClick={() => {
-                props.enhancePrompt?.();
-                toast.success('Prompt enhanced!');
-              }}
-            >
-              {props.enhancingPrompt ? (
-                <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
-              ) : (
-                <div className="i-bolt:stars text-xl"></div>
-              )}
-            </IconButton>
-
-            <SpeechRecognitionButton
-              isListening={props.isListening}
-              onStart={props.startListening}
-              onStop={props.stopListening}
-              disabled={props.isStreaming}
-            />
-
-            {/* Model Selector Button with Dropdown */}
-            <div className="relative">
+        <div className="flex flex-col text-sm p-4 pt-2 gap-1">
+          {/* Primary toolbar row */}
+          <div className="flex justify-between items-center">
+            <div className="flex gap-1 items-center">
+              <ChatModeSelector
+                chatMode={props.chatMode}
+                setChatMode={props.setChatMode}
+                planMode={props.planMode}
+                setPlanMode={props.setPlanMode}
+              />
+              <AgentToggle />
               <IconButton
-                title="Select Model"
-                className={classNames('transition-all flex items-center gap-1', {
-                  'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': isModelSelectorOpen,
-                  'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault':
-                    !isModelSelectorOpen,
-                })}
-                onClick={() => setIsModelSelectorOpen(!isModelSelectorOpen)}
-                disabled={!props.providerList || props.providerList.length === 0}
+                title="Enhance prompt"
+                disabled={props.input.length === 0 || props.enhancingPrompt}
+                className={classNames('transition-all', props.enhancingPrompt ? 'opacity-100' : '')}
+                onClick={() => {
+                  props.enhancePrompt?.();
+                  toast.success('Prompt enhanced!');
+                }}
               >
-                <div className="i-ph:robot text-lg" />
+                {props.enhancingPrompt ? (
+                  <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
+                ) : (
+                  <div className="i-bolt:stars text-xl"></div>
+                )}
+              </IconButton>
+
+              <SpeechRecognitionButton
+                isListening={props.isListening}
+                onStart={props.startListening}
+                onStop={props.stopListening}
+                disabled={props.isStreaming}
+              />
+
+              {/* Model Selector Button */}
+              <div className="relative">
+                <IconButton
+                  title="Select Model"
+                  className={classNames('transition-all flex items-center gap-1', {
+                    'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': isModelSelectorOpen,
+                    'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault':
+                      !isModelSelectorOpen,
+                  })}
+                  onClick={() => setIsModelSelectorOpen(!isModelSelectorOpen)}
+                  disabled={!props.providerList || props.providerList.length === 0}
+                >
+                  <div className="i-ph:robot text-lg" />
+                </IconButton>
+              </div>
+
+              {/* Divider */}
+              <div className="w-px h-4 bg-bolt-elements-borderColor mx-0.5" />
+
+              {/* More tools toggle */}
+              <IconButton
+                title={showMoreTools ? 'Hide tools' : 'More tools'}
+                className={classNames(
+                  'transition-all',
+                  showMoreTools
+                    ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent'
+                    : 'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault',
+                )}
+                onClick={() => setShowMoreTools((v) => !v)}
+              >
+                <div
+                  className={classNames(
+                    'text-lg transition-transform duration-200',
+                    showMoreTools ? 'i-ph:x' : 'i-bolt:expand',
+                  )}
+                />
               </IconButton>
             </div>
+
+            <SupabaseConnection />
+            <ExpoQrModal open={props.qrModalOpen} onClose={() => props.setQrModalOpen(false)} />
           </div>
 
-          <SupabaseConnection />
-          <ExpoQrModal open={props.qrModalOpen} onClose={() => props.setQrModalOpen(false)} />
+          {/* Secondary toolbar row — slides down below primary */}
+          <AnimatePresence>
+            {showMoreTools && (
+              <motion.div
+                className="flex gap-1 items-center overflow-hidden"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
+              >
+                <ColorSchemeDialog designScheme={props.designScheme} setDesignScheme={props.setDesignScheme} />
+                <McpTools />
+                <IconButton title="Upload file" className="transition-all" onClick={() => props.handleFileUpload()}>
+                  <div className="i-ph:paperclip text-xl"></div>
+                </IconButton>
+                <WebSearch
+                  onSearchResult={(result) => props.onWebSearchResult?.(result)}
+                  disabled={props.isStreaming}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
+
+      {isSettingsOpen && (
+        <Suspense>
+          <ControlPanel
+            open={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            initialTab={settingsInitialTab}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

@@ -19,7 +19,6 @@ import { withSecurity } from '~/lib/security';
 import {
   getAgentToolSetWithoutExecute,
   shouldUseAgentMode,
-  getAgentSystemPrompt,
   initializeAgentSession,
   incrementAgentIteration,
   getAgentIterationWarning,
@@ -380,7 +379,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           tools: combinedTools,
           maxSteps: maxLLMSteps,
           agentMode: useAgentMode,
-          agentSystemPrompt: useAgentMode ? getAgentSystemPrompt() : undefined,
           onStepFinish: ({ toolCalls }) => {
             // add tool call annotations for frontend processing
             toolCalls.forEach((toolCall) => {

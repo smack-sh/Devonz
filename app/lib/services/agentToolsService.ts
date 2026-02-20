@@ -348,7 +348,7 @@ async function getErrors(params: GetErrorsParams): Promise<ToolExecutionResult<G
  * Searches for a text pattern across files in the WebContainer.
  */
 async function searchCode(params: SearchCodeParams): Promise<ToolExecutionResult<SearchCodeResult>> {
-  const { query, path = '/', maxResults = 50, includePattern, excludePattern } = params;
+  const { query, path = '/', maxResults = 50, includePattern, excludePattern, filePattern, caseSensitive = false } = params;
 
   try {
     const container = await webcontainer;
@@ -389,7 +389,26 @@ async function searchCode(params: SearchCodeParams): Promise<ToolExecutionResult
           // Check if file should be searched
           const ext = item.name.substring(item.name.lastIndexOf('.'));
 
-          if (!codeExtensions.includes(ext)) {
+          // If filePattern is specified, only search files matching the pattern
+          if (filePattern) {
+            const matchesPattern = filePattern.split(',').some((p) => {
+              const trimmed = p.trim();
+
+              if (trimmed.startsWith('.')) {
+                return ext === trimmed;
+              }
+
+              if (trimmed.startsWith('*')) {
+                return item.name.endsWith(trimmed.slice(1));
+              }
+
+              return item.name === trimmed || item.name.endsWith(trimmed);
+            });
+
+            if (!matchesPattern) {
+              continue;
+            }
+          } else if (!codeExtensions.includes(ext)) {
             continue;
           }
 
@@ -412,13 +431,39 @@ async function searchCode(params: SearchCodeParams): Promise<ToolExecutionResult
                 break;
               }
 
-              if (lines[i].includes(query)) {
+              // Try regex first, fall back to literal match
+              let isMatch = false;
+
+              try {
+                isMatch = new RegExp(query, caseSensitive ? '' : 'i').test(lines[i]);
+              } catch {
+                // Invalid regex, fall back to literal match
+                isMatch = caseSensitive ? lines[i].includes(query) : lines[i].toLowerCase().includes(query.toLowerCase());
+              }
+
+              if (isMatch) {
+                // Calculate match positions
+                let matchStart = 0;
+                let matchEnd = 0;
+
+                try {
+                  const regexMatch = lines[i].match(new RegExp(query, caseSensitive ? '' : 'i'));
+
+                  if (regexMatch && regexMatch.index !== undefined) {
+                    matchStart = regexMatch.index;
+                    matchEnd = regexMatch.index + regexMatch[0].length;
+                  }
+                } catch {
+                  matchStart = lines[i].indexOf(query);
+                  matchEnd = matchStart + query.length;
+                }
+
                 results.push({
                   file: fullPath,
                   line: i + 1,
                   content: lines[i].trim(),
-                  matchStart: lines[i].indexOf(query),
-                  matchEnd: lines[i].indexOf(query) + query.length,
+                  matchStart,
+                  matchEnd,
                 });
                 totalMatches++;
               }
@@ -450,6 +495,166 @@ async function searchCode(params: SearchCodeParams): Promise<ToolExecutionResult
     return {
       success: false,
       error: `Failed to search code: ${errorMessage}`,
+    };
+  }
+}
+
+/**
+ * Delete File Tool
+ * Deletes a file or directory from the WebContainer filesystem.
+ */
+async function deleteFile(params: {
+  path: string;
+  recursive?: boolean;
+}): Promise<ToolExecutionResult<{ path: string; deleted: boolean }>> {
+  const { path, recursive = false } = params;
+
+  try {
+    const container = await webcontainer;
+
+    // Check if path exists and what type it is
+    try {
+      const stat = await container.fs.readdir(path, { withFileTypes: true });
+
+      // If readdir succeeds, it's a directory
+
+      if (recursive) {
+        await container.fs.rm(path, { recursive: true });
+      } else {
+        // Check if directory is empty
+        if (stat.length > 0) {
+          return {
+            success: false,
+            error: `Directory '${path}' is not empty. Use recursive: true to delete non-empty directories.`,
+          };
+        }
+
+        await container.fs.rm(path);
+      }
+    } catch {
+      // Not a directory, try to delete as file
+      await container.fs.rm(path);
+    }
+
+    logger.info(`Deleted: ${path}`, { recursive });
+
+    return {
+      success: true,
+      data: {
+        path,
+        deleted: true,
+      },
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(`Failed to delete: ${path}`, error);
+
+    return {
+      success: false,
+      error: `Failed to delete '${path}': ${errorMessage}`,
+    };
+  }
+}
+
+/**
+ * Rename/Move File Tool
+ * Renames or moves a file in the WebContainer filesystem.
+ */
+async function renameFile(params: {
+  oldPath: string;
+  newPath: string;
+}): Promise<ToolExecutionResult<{ oldPath: string; newPath: string; renamed: boolean }>> {
+  const { oldPath, newPath } = params;
+
+  try {
+    const container = await webcontainer;
+
+    // Read the source file
+    const content = await container.fs.readFile(oldPath, 'utf-8');
+
+    // Ensure parent directory of destination exists
+    const parentDir = newPath.substring(0, newPath.lastIndexOf('/'));
+
+    if (parentDir) {
+      await container.fs.mkdir(parentDir, { recursive: true });
+    }
+
+    // Write to new location
+    await container.fs.writeFile(newPath, content, 'utf-8');
+
+    // Delete old file
+    await container.fs.rm(oldPath);
+
+    logger.info(`Renamed: ${oldPath} → ${newPath}`);
+
+    return {
+      success: true,
+      data: {
+        oldPath,
+        newPath,
+        renamed: true,
+      },
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(`Failed to rename: ${oldPath} → ${newPath}`, error);
+
+    return {
+      success: false,
+      error: `Failed to rename '${oldPath}' to '${newPath}': ${errorMessage}`,
+    };
+  }
+}
+
+/**
+ * Patch File Tool
+ * Makes targeted text replacements in a file without rewriting the entire content.
+ * More efficient than devonz_write_file for small changes.
+ */
+async function patchFile(params: {
+  path: string;
+  replacements: Array<{ oldText: string; newText: string }>;
+}): Promise<ToolExecutionResult<{ path: string; replacementsApplied: number; totalReplacements: number }>> {
+  const { path, replacements } = params;
+
+  try {
+    const container = await webcontainer;
+    let content = await container.fs.readFile(path, 'utf-8');
+    let applied = 0;
+
+    for (const { oldText, newText } of replacements) {
+      if (content.includes(oldText)) {
+        content = content.replace(oldText, newText);
+        applied++;
+      }
+    }
+
+    if (applied === 0) {
+      return {
+        success: false,
+        error: `No replacements matched in '${path}'. Verify the oldText strings are exact matches.`,
+      };
+    }
+
+    await container.fs.writeFile(path, content, 'utf-8');
+
+    logger.info(`Patched file: ${path}`, { applied, total: replacements.length });
+
+    return {
+      success: true,
+      data: {
+        path,
+        replacementsApplied: applied,
+        totalReplacements: replacements.length,
+      },
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(`Failed to patch file: ${path}`, error);
+
+    return {
+      success: false,
+      error: `Failed to patch file '${path}': ${errorMessage}`,
     };
   }
 }
@@ -606,10 +811,96 @@ export const agentToolDefinitions: Record<string, AgentToolDefinition> = {
           type: 'string',
           description: 'Regex pattern to exclude matching file paths',
         },
+        filePattern: {
+          type: 'string',
+          description:
+            'Comma-separated file extensions or patterns to search (e.g., ".tsx,.ts" or "*.css"). Defaults to common code extensions.',
+        },
+        caseSensitive: {
+          type: 'boolean',
+          description: 'Whether the search is case-sensitive (default: false)',
+        },
       },
       required: ['query'],
     },
     execute: searchCode as unknown as (args: Record<string, unknown>) => Promise<ToolExecutionResult<unknown>>,
+  },
+
+  devonz_delete_file: {
+    name: 'devonz_delete_file',
+    description:
+      'Delete a file or directory from the project. Use this to remove files that are no longer needed. For non-empty directories, set recursive to true.',
+    parameters: {
+      type: 'object',
+      properties: {
+        path: {
+          type: 'string',
+          description: 'The absolute path to the file or directory to delete (e.g., "/src/old-component.tsx")',
+        },
+        recursive: {
+          type: 'boolean',
+          description: 'Whether to recursively delete directory contents (default: false)',
+        },
+      },
+      required: ['path'],
+    },
+    execute: deleteFile as unknown as (args: Record<string, unknown>) => Promise<ToolExecutionResult<unknown>>,
+  },
+
+  devonz_rename_file: {
+    name: 'devonz_rename_file',
+    description:
+      'Rename or move a file to a new location. Creates parent directories automatically. Use this instead of shell mv commands.',
+    parameters: {
+      type: 'object',
+      properties: {
+        oldPath: {
+          type: 'string',
+          description: 'The current absolute path of the file (e.g., "/src/OldName.tsx")',
+        },
+        newPath: {
+          type: 'string',
+          description: 'The new absolute path for the file (e.g., "/src/NewName.tsx")',
+        },
+      },
+      required: ['oldPath', 'newPath'],
+    },
+    execute: renameFile as unknown as (args: Record<string, unknown>) => Promise<ToolExecutionResult<unknown>>,
+  },
+
+  devonz_patch_file: {
+    name: 'devonz_patch_file',
+    description:
+      'Make targeted text replacements in a file without rewriting the entire content. More efficient than devonz_write_file for small changes. Each replacement finds the exact oldText and replaces it with newText.',
+    parameters: {
+      type: 'object',
+      properties: {
+        path: {
+          type: 'string',
+          description: 'The absolute path to the file to patch (e.g., "/src/App.tsx")',
+        },
+        replacements: {
+          type: 'array',
+          description: 'Array of {oldText, newText} objects. Each oldText must be an exact match in the file.',
+          items: {
+            type: 'object',
+            properties: {
+              oldText: {
+                type: 'string',
+                description: 'The exact text to find and replace',
+              },
+              newText: {
+                type: 'string',
+                description: 'The replacement text',
+              },
+            },
+            required: ['oldText', 'newText'],
+          },
+        },
+      },
+      required: ['path', 'replacements'],
+    },
+    execute: patchFile as unknown as (args: Record<string, unknown>) => Promise<ToolExecutionResult<unknown>>,
   },
 };
 

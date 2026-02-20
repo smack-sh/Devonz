@@ -1,13 +1,15 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useStore } from '@nanostores/react';
 import { Switch } from '~/components/ui/Switch';
 import { useSettings } from '~/lib/hooks/useSettings';
-import { URL_CONFIGURABLE_PROVIDERS } from '~/lib/stores/settings';
 import type { IProviderConfig } from '~/types/model';
 import { logStore } from '~/lib/stores/logs';
 import { motion } from 'framer-motion';
 import { classNames } from '~/utils/classNames';
 import { toast } from 'react-toastify';
-import { providerBaseUrlEnvKeys } from '~/utils/constants';
+import { getApiKeysFromCookies } from '~/components/chat/APIKeyManager';
+import { envKeyStatusStore, checkCloudProviderEnvKeys } from '~/lib/stores/settings';
+import { CloudProviderCard } from './CloudProviderCard';
 
 // Add type for provider names to ensure type safety
 type ProviderName =
@@ -25,39 +27,68 @@ type ProviderName =
   | 'OpenRouter'
   | 'Perplexity'
   | 'Together'
-  | 'XAI';
+  | 'XAI'
+  | 'Cerebras'
+  | 'Fireworks'
+  | 'Moonshot'
+  | 'Zai';
 
 // Phosphor UnoCSS icon classes for each provider
 const PROVIDER_ICONS: Record<ProviderName, string> = {
   AmazonBedrock: 'i-ph:amazon-logo',
   Anthropic: 'i-ph:brain',
+  Cerebras: 'i-ph:cpu',
   Cohere: 'i-ph:cpu',
   Deepseek: 'i-ph:code',
+  Fireworks: 'i-ph:fire',
   Github: 'i-ph:github-logo',
   Google: 'i-ph:google-logo',
-  Groq: 'i-ph:cloud',
+  Groq: 'i-ph:lightning',
   HuggingFace: 'i-ph:robot',
-  Hyperbolic: 'i-ph:cloud',
-  Mistral: 'i-ph:brain',
+  Hyperbolic: 'i-ph:infinity',
+  Mistral: 'i-ph:wind',
+  Moonshot: 'i-ph:moon',
   OpenAI: 'i-ph:brain',
-  OpenRouter: 'i-ph:cloud',
+  OpenRouter: 'i-ph:signpost',
   Perplexity: 'i-ph:sparkle',
-  Together: 'i-ph:cloud',
-  XAI: 'i-ph:robot',
+  Together: 'i-ph:users-three',
+  XAI: 'i-ph:atom',
+  Zai: 'i-ph:robot',
 };
 
-// Update PROVIDER_DESCRIPTIONS to use the same type
+// Provider descriptions
 const PROVIDER_DESCRIPTIONS: Partial<Record<ProviderName, string>> = {
+  AmazonBedrock: 'Access AI models through AWS Bedrock',
   Anthropic: 'Access Claude and other Anthropic models',
-  Github: 'Use OpenAI models hosted through GitHub infrastructure',
-  OpenAI: 'Use GPT-4, GPT-3.5, and other OpenAI models',
+  Cerebras: 'Ultra-fast inference with Cerebras hardware',
+  Cohere: 'NLP and generation models by Cohere',
+  Deepseek: 'Advanced reasoning and coding models',
+  Fireworks: 'Fast inference on open-source models',
+  Github: 'Use OpenAI models hosted through GitHub',
+  Google: 'Gemini and other Google AI models',
+  Groq: 'Ultra-low latency LLM inference',
+  HuggingFace: 'Open-source models from HuggingFace',
+  Hyperbolic: 'Scalable AI model serving',
+  Mistral: 'European AI models by Mistral AI',
+  Moonshot: 'Chinese and multilingual AI models',
+  OpenAI: 'GPT-4, GPT-3.5, and other OpenAI models',
+  OpenRouter: 'Unified gateway to 100+ AI models',
+  Perplexity: 'AI-powered search and generation',
+  Together: 'Run open-source models at scale',
+  XAI: 'Grok models from xAI',
+  Zai: 'AI models and services',
 };
 
 const CloudProvidersTab = () => {
   const settings = useSettings();
-  const [editingProvider, setEditingProvider] = useState<string | null>(null);
   const [filteredProviders, setFilteredProviders] = useState<IProviderConfig[]>([]);
   const [categoryEnabled, setCategoryEnabled] = useState<boolean>(false);
+  const envKeyStatus = useStore(envKeyStatusStore);
+
+  // Refresh env key status when tab mounts (force refresh to get latest)
+  useEffect(() => {
+    checkCloudProviderEnvKeys(true);
+  }, []);
 
   // Load and filter providers
   useEffect(() => {
@@ -83,15 +114,38 @@ const CloudProvidersTab = () => {
 
   const handleToggleCategory = useCallback(
     (enabled: boolean) => {
-      // Update all providers
-      filteredProviders.forEach((provider) => {
-        settings.updateProviderSettings(provider.name, { ...provider.settings, enabled });
-      });
+      if (enabled) {
+        // Only enable providers that have API keys set (cookie or env)
+        const keys = getApiKeysFromCookies();
+        let enabledCount = 0;
 
-      setCategoryEnabled(enabled);
-      toast.success(enabled ? 'All cloud providers enabled' : 'All cloud providers disabled');
+        filteredProviders.forEach((provider) => {
+          const hasCookieKey = Boolean(keys[provider.name]?.trim());
+          const hasEnvKey = envKeyStatus[provider.name]?.hasEnvKey ?? false;
+
+          if (hasCookieKey || hasEnvKey) {
+            settings.updateProviderSettings(provider.name, { ...provider.settings, enabled: true });
+            enabledCount++;
+          }
+        });
+
+        if (enabledCount > 0) {
+          setCategoryEnabled(true);
+          toast.success(`Enabled ${enabledCount} provider(s) with API keys`);
+        } else {
+          toast.info('No providers have API keys configured. Add keys first, then enable.');
+        }
+      } else {
+        // Disable all providers
+        filteredProviders.forEach((provider) => {
+          settings.updateProviderSettings(provider.name, { ...provider.settings, enabled: false });
+        });
+
+        setCategoryEnabled(false);
+        toast.success('All cloud providers disabled');
+      }
     },
-    [filteredProviders, settings],
+    [filteredProviders, settings, envKeyStatus],
   );
 
   const handleToggleProvider = useCallback(
@@ -106,23 +160,6 @@ const CloudProvidersTab = () => {
         logStore.logProvider(`Provider ${provider.name} disabled`, { provider: provider.name });
         toast.success(`${provider.name} disabled`);
       }
-    },
-    [settings],
-  );
-
-  const handleUpdateBaseUrl = useCallback(
-    (provider: IProviderConfig, baseUrl: string) => {
-      const newBaseUrl: string | undefined = baseUrl.trim() || undefined;
-
-      // Update the provider settings in the store
-      settings.updateProviderSettings(provider.name, { ...provider.settings, baseUrl: newBaseUrl });
-
-      logStore.logProvider(`Base URL updated for ${provider.name}`, {
-        provider: provider.name,
-        baseUrl: newBaseUrl,
-      });
-      toast.success(`${provider.name} base URL updated`);
-      setEditingProvider(null);
     },
     [settings],
   );
@@ -160,146 +197,14 @@ const CloudProvidersTab = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredProviders.map((provider, index) => (
-            <motion.div
+            <CloudProviderCard
               key={provider.name}
-              className={classNames(
-                'rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background text-bolt-elements-textPrimary shadow-sm',
-                'bg-bolt-elements-background-depth-2',
-                'hover:bg-bolt-elements-background-depth-3',
-                'transition-all duration-200',
-                'relative overflow-hidden group',
-                'flex flex-col',
-              )}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              whileHover={{ scale: 1.02 }}
-            >
-              <div className="absolute top-0 right-0 p-2 flex gap-1">
-                {URL_CONFIGURABLE_PROVIDERS.includes(provider.name) && (
-                  <motion.span
-                    className="px-2 py-0.5 text-xs rounded-full bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent font-medium"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    Configurable
-                  </motion.span>
-                )}
-              </div>
-
-              <div className="flex items-start gap-4 p-4">
-                <motion.div
-                  className={classNames(
-                    'w-10 h-10 flex items-center justify-center rounded-xl',
-                    'bg-bolt-elements-background-depth-3 group-hover:bg-bolt-elements-background-depth-4',
-                    'transition-all duration-200',
-                    provider.settings.enabled
-                      ? 'text-bolt-elements-item-contentAccent'
-                      : 'text-bolt-elements-textSecondary',
-                  )}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <div
-                    className={classNames(
-                      PROVIDER_ICONS[provider.name as ProviderName] || 'i-ph:robot',
-                      'w-6 h-6',
-                      'transition-transform duration-200',
-                      'group-hover:rotate-12',
-                    )}
-                    aria-label={`${provider.name} logo`}
-                  />
-                </motion.div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-4 mb-2">
-                    <div>
-                      <h4 className="text-sm font-medium text-bolt-elements-textPrimary group-hover:text-bolt-elements-item-contentAccent transition-colors">
-                        {provider.name}
-                      </h4>
-                      <p className="text-xs text-bolt-elements-textSecondary mt-0.5">
-                        {PROVIDER_DESCRIPTIONS[provider.name as keyof typeof PROVIDER_DESCRIPTIONS] ||
-                          (URL_CONFIGURABLE_PROVIDERS.includes(provider.name)
-                            ? 'Configure custom endpoint for this provider'
-                            : 'Standard AI provider integration')}
-                      </p>
-                    </div>
-                    <Switch
-                      checked={provider.settings.enabled}
-                      onCheckedChange={(checked) => handleToggleProvider(provider, checked)}
-                    />
-                  </div>
-
-                  {provider.settings.enabled && URL_CONFIGURABLE_PROVIDERS.includes(provider.name) && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <div className="flex items-center gap-2 mt-4">
-                        {editingProvider === provider.name ? (
-                          <input
-                            type="text"
-                            inputMode="url"
-                            autoComplete="url"
-                            spellCheck={false}
-                            defaultValue={provider.settings.baseUrl}
-                            placeholder={`Enter ${provider.name} base URL`}
-                            className={classNames(
-                              'flex-1 px-3 py-1.5 rounded-lg text-sm',
-                              'bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor',
-                              'text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary',
-                              'focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive',
-                              'transition-all duration-200',
-                            )}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                handleUpdateBaseUrl(provider, e.currentTarget.value);
-                              } else if (e.key === 'Escape') {
-                                setEditingProvider(null);
-                              }
-                            }}
-                            onBlur={(e) => handleUpdateBaseUrl(provider, e.target.value)}
-                            autoFocus
-                          />
-                        ) : (
-                          <div
-                            className="flex-1 px-3 py-1.5 rounded-lg text-sm cursor-pointer group/url"
-                            onClick={() => setEditingProvider(provider.name)}
-                          >
-                            <div className="flex items-center gap-2 text-bolt-elements-textSecondary">
-                              <div className="i-ph:link text-sm" />
-                              <span className="group-hover/url:text-bolt-elements-item-contentAccent transition-colors">
-                                {provider.settings.baseUrl || 'Click to set base URL'}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {providerBaseUrlEnvKeys[provider.name]?.baseUrlKey && (
-                        <div className="mt-2 text-xs text-green-500">
-                          <div className="flex items-center gap-1">
-                            <div className="i-ph:info" />
-                            <span>Environment URL set in .env file</span>
-                          </div>
-                        </div>
-                      )}
-                    </motion.div>
-                  )}
-                </div>
-              </div>
-
-              <motion.div
-                className="absolute inset-0 border-2 rounded-lg pointer-events-none"
-                animate={{
-                  borderColor: provider.settings.enabled ? 'rgba(6, 182, 212, 0.2)' : 'rgba(6, 182, 212, 0)',
-                  scale: provider.settings.enabled ? 1 : 0.98,
-                }}
-                transition={{ duration: 0.2 }}
-              />
-            </motion.div>
+              provider={provider}
+              index={index}
+              onToggle={handleToggleProvider}
+              iconClass={PROVIDER_ICONS[provider.name as ProviderName] || 'i-ph:robot'}
+              description={PROVIDER_DESCRIPTIONS[provider.name as ProviderName] || 'AI provider integration'}
+            />
           ))}
         </div>
       </motion.div>

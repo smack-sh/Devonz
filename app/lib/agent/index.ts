@@ -8,13 +8,7 @@
 export * from './types';
 
 // Prompts
-export {
-  AGENT_SYSTEM_PROMPT,
-  AGENT_SYSTEM_PROMPT_COMPACT,
-  AGENT_ERROR_CONTEXT_PROMPT,
-  AGENT_ITERATION_WARNING_PROMPT,
-  getAgentSystemPrompt,
-} from './prompts';
+export { AGENT_MODE_FULL_SYSTEM_PROMPT } from './prompts';
 
 /*
  * Re-export orchestrator and tools from services

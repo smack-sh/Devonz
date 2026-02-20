@@ -37,22 +37,41 @@ pnpm run dev
 # Open http://localhost:5173
 ```
 
+> [!note]
 > First load can take up to 2 minutes while dependencies compile.
+> 
+> <a href="docs/">Full Project Documentation</a>
 
 ---
 
 ## Why Devonz?
 
-- **22 AI providers** — OpenAI, Anthropic, Google, Groq, Z.ai, Ollama, and more. Swap models mid-conversation.
-- **Full dev environment in the browser** — editor, terminal, live preview, all powered by WebContainers.
-- **One-click deploy** — push to GitHub, GitLab, Netlify, or Vercel directly from the UI.
-- **MCP tools** — extend the agent with Model Context Protocol servers for specialized workflows.
-- **Auto-fix** — terminal error detection catches failures and patches them automatically.
-- **Image context** — attach screenshots or design files to prompts for visual understanding.
-- **Design Palette** — pick custom color themes that get injected into AI-generated apps.
-- **3D support** — generate React Three Fiber apps with automatic version pinning and peer dependency resolution.
-- **Template gallery** — start from popular frameworks and boilerplates, then customize with AI.
-- **State-of-the-art AI SDK** — built on the Vercel AI SDK for best-in-class LLM performance and reliability.
+- **22 AI providers** ➺ OpenAI, Anthropic, Google, Groq, Z.ai, Ollama, and more. Swap models mid-conversation.
+- **Full dev environment in the browser** ➺ editor, terminal, live preview, all powered by WebContainers.
+- **One-click deploy** ➺ push to GitHub, GitLab, Netlify, or Vercel directly from the UI.
+- **MCP tools** ➺ extend the agent with Model Context Protocol servers for specialized workflows.
+- **Auto-fix** ➺ terminal error detection catches failures and patches them automatically.
+- **Image context** ➺ attach screenshots or design files to prompts for visual understanding.
+- **Design Palette** ➺ pick custom color themes that get injected into AI-generated apps.
+- **3D support** ➺ generate React Three Fiber apps with automatic version pinning and peer dependency resolution.
+- **Template gallery** ➺ start from popular frameworks and boilerplates, then customize with AI.
+- **State-of-the-art AI SDK** ➺ built on the Vercel AI SDK for best-in-class LLM performance and reliability.
+
+> [!important]
+>
+> Agent Mode VS Standard Mode
+> 
+> **Agent Mode** is built for tasks that require context before action — complex multi-step workflows
+> (research → plan → execute), operations where each step depends on prior results, or any task where
+> you'd want to inspect files before modifying them. It's especially powerful when paired with
+> `devonz_search_in_files` to verify patterns before committing changes. Expect higher token usage
+> in exchange for more deliberate, accurate execution.
+> 
+> **Standard Mode** is the right call when you can describe the full output upfront. Single-shot
+> website generation, simple file creation tasks, and straightforward prompts all benefit from
+> Standard Mode's lower latency and reduced token overhead.
+> 
+> If the task requires *knowing something before doing something* — Agent Mode. Everything else — Standard Mode.
 
 ---
 
@@ -62,14 +81,13 @@ pnpm run dev
 - Natural language to full-stack apps (Node.js-based)
 - 22 LLM providers with hot-swappable model selection
 - MCP (Model Context Protocol) tool integration
+- MCP Schema Sanitization ➺ Automatic schema compatibility for Google Gemini (strips unsupported constructs)
 - Automatic error detection and auto-fix from terminal output
 - Attach images to prompts for visual context
-- **Extended Thinking** — AI reasoning visualization for Anthropic Claude and Google Gemini
-- **MCP Schema Sanitization** — Automatic schema compatibility for Google Gemini (strips unsupported constructs)
-- **MCP Auto-Approve** — Per-server auto-approve toggle for trusted MCP servers
-- **Formatted Tool Results** — MCP tool results render as formatted markdown instead of raw JSON
-- **Design Palette** — UI for picking custom color themes injected into generated code
-- **3D App Generation** — React Three Fiber support with automatic version pinning for React 18/19
+- **Extended Thinking** ➺ AI reasoning visualization for Anthropic Claude and Google Gemini
+- **Formatted Tool Results** ➺ MCP tool results render as formatted markdown instead of raw JSON
+- **Design Palette** ➺ UI for picking custom color themes injected into generated code
+- **3D App Generation** ➺ React Three Fiber support with automatic version pinning for React 18/19
 
 **Development Environment**
 - In-browser code editor (CodeMirror) with syntax highlighting
@@ -79,7 +97,7 @@ pnpm run dev
 - File locking to prevent conflicts during generation
 
 **Security & Reliability**
-- **Security Hardened** — `withSecurity()` on all 35+ API routes with input validation, rate limiting options, URL allowlisting
+- **Security Hardened** ➺ `withSecurity()` on all 35+ API routes with input validation, rate limiting options, URL allowlisting
 
 **Deployment & Integrations**
 - GitHub / GitLab push and repo management
@@ -284,9 +302,9 @@ See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for detailed guidelines.
 
 ## Acknowledgments
 
-- [bolt.diy](https://github.com/stackblitz-labs/bolt.diy) — original project foundation
-- [StackBlitz WebContainers](https://webcontainers.io/) — in-browser dev environment
-- [Vercel AI SDK](https://sdk.vercel.ai/) — AI capabilities
+- [bolt.diy](https://github.com/stackblitz-labs/bolt.diy) ➺ original project foundation
+- [StackBlitz WebContainers](https://webcontainers.io/) ➺ in-browser dev environment
+- [Vercel AI SDK](https://sdk.vercel.ai/) ➺ AI capabilities
 
 ---
 

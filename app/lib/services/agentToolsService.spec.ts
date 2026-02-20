@@ -20,6 +20,7 @@ const mockReadFile = vi.fn();
 const mockWriteFile = vi.fn();
 const mockMkdir = vi.fn();
 const mockReaddir = vi.fn();
+const mockRm = vi.fn();
 
 // Mock shell functions for run_command
 const mockExecuteCommand = vi.fn();
@@ -33,6 +34,7 @@ vi.mock('~/lib/webcontainer', () => ({
       writeFile: (...args: unknown[]) => mockWriteFile(...args),
       mkdir: (...args: unknown[]) => mockMkdir(...args),
       readdir: (...args: unknown[]) => mockReaddir(...args),
+      rm: (...args: unknown[]) => mockRm(...args),
     },
   }),
 }));
@@ -495,17 +497,147 @@ describe('executeAgentTool', () => {
   });
 });
 
+describe('devonz_delete_file', () => {
+  const deleteFileTool = agentToolDefinitions.devonz_delete_file;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('should delete a file successfully', async () => {
+    // readdir throws for files (not a directory)
+    mockReaddir.mockRejectedValue(new Error('ENOTDIR'));
+    mockRm.mockResolvedValue(undefined);
+
+    const result = await deleteFileTool.execute({ path: '/src/old-file.ts' });
+
+    expect(result.success).toBe(true);
+    expect((result.data as { path: string; deleted: boolean }).path).toBe('/src/old-file.ts');
+    expect((result.data as { path: string; deleted: boolean }).deleted).toBe(true);
+    expect(mockRm).toHaveBeenCalledWith('/src/old-file.ts');
+  });
+
+  it('should delete an empty directory', async () => {
+    // readdir succeeds with empty array (empty directory)
+    mockReaddir.mockResolvedValue([]);
+    mockRm.mockResolvedValue(undefined);
+
+    const result = await deleteFileTool.execute({ path: '/src/empty-dir' });
+
+    expect(result.success).toBe(true);
+    expect((result.data as { path: string; deleted: boolean }).deleted).toBe(true);
+    expect(mockRm).toHaveBeenCalledWith('/src/empty-dir');
+  });
+
+  it('should delete a non-empty directory with recursive=true', async () => {
+    // readdir succeeds with items (non-empty directory)
+    mockReaddir.mockResolvedValue([
+      { name: 'file1.ts', isDirectory: () => false },
+      { name: 'file2.ts', isDirectory: () => false },
+    ]);
+    mockRm.mockResolvedValue(undefined);
+
+    const result = await deleteFileTool.execute({ path: '/src/components', recursive: true });
+
+    expect(result.success).toBe(true);
+    expect((result.data as { path: string; deleted: boolean }).deleted).toBe(true);
+    expect(mockRm).toHaveBeenCalledWith('/src/components', { recursive: true });
+  });
+
+  it('should fail to delete non-empty directory without recursive flag', async () => {
+    // readdir succeeds with items (non-empty directory)
+    mockReaddir.mockResolvedValue([
+      { name: 'file1.ts', isDirectory: () => false },
+    ]);
+
+    const result = await deleteFileTool.execute({ path: '/src/components' });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('not empty');
+    expect(mockRm).not.toHaveBeenCalled();
+  });
+
+  it('should return error for non-existent file', async () => {
+    // readdir throws (not a directory)
+    mockReaddir.mockRejectedValue(new Error('ENOENT'));
+    // rm also throws (file doesn't exist)
+    mockRm.mockRejectedValue(new Error('ENOENT: no such file or directory'));
+
+    const result = await deleteFileTool.execute({ path: '/nonexistent.txt' });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Failed to delete');
+  });
+});
+
+describe('devonz_rename_file', () => {
+  const renameFileTool = agentToolDefinitions.devonz_rename_file;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('should rename a file successfully', async () => {
+    const fileContent = 'export const Component = () => <div />;';
+    mockReadFile.mockResolvedValue(fileContent);
+    mockMkdir.mockResolvedValue(undefined);
+    mockWriteFile.mockResolvedValue(undefined);
+    mockRm.mockResolvedValue(undefined);
+
+    const result = await renameFileTool.execute({ oldPath: '/src/OldName.tsx', newPath: '/src/NewName.tsx' });
+
+    expect(result.success).toBe(true);
+    expect((result.data as { oldPath: string; newPath: string; renamed: boolean }).oldPath).toBe('/src/OldName.tsx');
+    expect((result.data as { oldPath: string; newPath: string; renamed: boolean }).newPath).toBe('/src/NewName.tsx');
+    expect((result.data as { oldPath: string; newPath: string; renamed: boolean }).renamed).toBe(true);
+    expect(mockReadFile).toHaveBeenCalledWith('/src/OldName.tsx', 'utf-8');
+    expect(mockWriteFile).toHaveBeenCalledWith('/src/NewName.tsx', fileContent, 'utf-8');
+    expect(mockRm).toHaveBeenCalledWith('/src/OldName.tsx');
+  });
+
+  it('should create parent directories for destination', async () => {
+    mockReadFile.mockResolvedValue('content');
+    mockMkdir.mockResolvedValue(undefined);
+    mockWriteFile.mockResolvedValue(undefined);
+    mockRm.mockResolvedValue(undefined);
+
+    await renameFileTool.execute({ oldPath: '/src/file.ts', newPath: '/src/deep/nested/dir/file.ts' });
+
+    expect(mockMkdir).toHaveBeenCalledWith('/src/deep/nested/dir', { recursive: true });
+  });
+
+  it('should return error when source does not exist', async () => {
+    mockReadFile.mockRejectedValue(new Error('ENOENT: no such file or directory'));
+
+    const result = await renameFileTool.execute({ oldPath: '/nonexistent.ts', newPath: '/new.ts' });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Failed to rename');
+  });
+});
+
 describe('getAgentToolNames', () => {
-  it('should return all 6 tool names', () => {
+  it('should return all 9 tool names', () => {
     const names = getAgentToolNames();
 
-    expect(names).toHaveLength(6);
+    expect(names).toHaveLength(9);
     expect(names).toContain('devonz_read_file');
     expect(names).toContain('devonz_write_file');
     expect(names).toContain('devonz_list_directory');
     expect(names).toContain('devonz_run_command');
     expect(names).toContain('devonz_get_errors');
     expect(names).toContain('devonz_search_code');
+    expect(names).toContain('devonz_delete_file');
+    expect(names).toContain('devonz_rename_file');
+    expect(names).toContain('devonz_patch_file');
   });
 });
 
