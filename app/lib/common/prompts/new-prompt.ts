@@ -418,6 +418,11 @@ export const getFineTunedPrompt = (
         Command, DropdownMenu, AlertDialog, ContextMenu, HoverCard, Menubar,
         NavigationMenu, RadioGroup, ScrollArea, Collapsible, Resizable
       If a name could be either an icon or a UI component, import it from '@/components/ui/' — NOT from 'lucide-react'
+    - PER-FILE ICON VERIFICATION (MANDATORY — do this BEFORE closing each file):
+      1. Scan ALL JSX in the file for PascalCase components that look like icons (e.g., <Search />, <Users />, <Mail />)
+      2. Cross-reference each one against the file's import statements
+      3. If ANY icon is used in JSX but NOT imported, ADD it to the lucide-react import IMMEDIATELY
+      4. Common missed icons: Users, CloudSun, Package, Loader2, ChevronDown, ChevronRight, X, Check, Star, Heart, Eye, EyeOff, Copy, ExternalLink, Info, AlertCircle, AlertTriangle
 
   CRITICAL RULES - MANDATORY:
 
@@ -854,8 +859,9 @@ The todo app is running with local storage persistence.</assistant_response>
   [ ] Every utility function used in a file is explicitly imported (e.g., \`cn\` from \`@/lib/utils\`, \`clsx\` from \`clsx\`)
   [ ] No undefined references — if a function/component is used, it MUST be imported or defined in that file
   [ ] All companion/peer dependencies listed in package.json (e.g., zustand+immer, react-hook-form+zod)
-  [ ] LUCIDE ICONS: Every \`<IconName />\` in JSX has a matching \`import { IconName } from 'lucide-react'\` — scan ALL files for icon usage
+  [ ] LUCIDE ICONS: Every \`<IconName />\` in JSX has a matching \`import { IconName } from 'lucide-react'\` — scan ALL files for icon usage. COUNT: for each file, count icon usages in JSX vs. icon names in the import statement. If counts differ, you missed one.
   [ ] NO UI COMPONENTS FROM LUCIDE: Tooltip, Dialog, Sheet, Popover, Select, Accordion, etc. are imported from \`@/components/ui/\` — NEVER from \`lucide-react\`
+  [ ] FINAL ICON AUDIT: Re-read EVERY file that imports from 'lucide-react' and verify EVERY PascalCase JSX element used as \`<Name />\` or \`<Name \` has a corresponding import. Pay special attention to icons used inside .map() callbacks, conditional renders, and nested components.
   
   Artifact Completeness:
   [ ] All referenced files are included in the artifact
