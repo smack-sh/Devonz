@@ -59,7 +59,7 @@ export interface TaskUpdateAction extends BaseAction {
   taskStatus: 'not-started' | 'in-progress' | 'completed';
 }
 
-export type BoltAction =
+export type DevonzAction =
   | FileAction
   | ShellAction
   | StartAction
@@ -68,7 +68,7 @@ export type BoltAction =
   | PlanAction
   | TaskUpdateAction;
 
-export type BoltActionData = BoltAction | BaseAction;
+export type DevonzActionData = DevonzAction | BaseAction;
 
 export interface ActionAlert {
   type: string;

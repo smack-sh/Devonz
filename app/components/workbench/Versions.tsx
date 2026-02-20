@@ -23,7 +23,7 @@ const VersionCard = memo(({ version, onRestore, onRevert }: VersionCardProps) =>
       onMouseLeave={() => setIsHovered(false)}
       className="flex gap-4 p-4 rounded-xl transition-colors"
       style={{
-        background: isHovered ? 'var(--bolt-elements-bg-depth-4)' : 'transparent',
+        background: isHovered ? 'var(--devonz-elements-bg-depth-4)' : 'transparent',
       }}
     >
       {/* Thumbnail placeholder */}
@@ -31,14 +31,14 @@ const VersionCard = memo(({ version, onRestore, onRevert }: VersionCardProps) =>
         className="w-32 h-20 rounded-lg flex-shrink-0 overflow-hidden"
         style={{
           background:
-            'linear-gradient(135deg, var(--bolt-elements-bg-depth-3) 0%, var(--bolt-elements-bg-depth-1) 100%)',
+            'linear-gradient(135deg, var(--devonz-elements-bg-depth-3) 0%, var(--devonz-elements-bg-depth-1) 100%)',
           border: '1px solid rgba(255,255,255,0.1)',
         }}
       >
         {version.thumbnail ? (
           <img loading="lazy" src={version.thumbnail} alt="Version preview" className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-bolt-elements-textTertiary">
+          <div className="w-full h-full flex items-center justify-center text-devonz-elements-textTertiary">
             <div className="i-ph:image text-2xl" />
           </div>
         )}
@@ -51,8 +51,8 @@ const VersionCard = memo(({ version, onRestore, onRevert }: VersionCardProps) =>
           <span
             className="px-2 py-0.5 rounded text-xs font-mono"
             style={{
-              background: 'var(--bolt-elements-button-secondary-background)',
-              color: 'var(--bolt-elements-textSecondary)',
+              background: 'var(--devonz-elements-button-secondary-background)',
+              color: 'var(--devonz-elements-textSecondary)',
             }}
           >
             {version.id}
@@ -63,8 +63,8 @@ const VersionCard = memo(({ version, onRestore, onRevert }: VersionCardProps) =>
             <span
               className="px-2 py-0.5 rounded text-xs font-medium"
               style={{
-                background: 'var(--bolt-elements-button-primary-background)',
-                color: 'var(--bolt-elements-button-primary-text)',
+                background: 'var(--devonz-elements-button-primary-background)',
+                color: 'var(--devonz-elements-button-primary-text)',
               }}
             >
               Latest
@@ -78,8 +78,8 @@ const VersionCard = memo(({ version, onRestore, onRevert }: VersionCardProps) =>
                 onClick={() => onRestore(version.id)}
                 className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs transition-colors"
                 style={{
-                  background: 'var(--bolt-elements-button-primary-background)',
-                  color: 'var(--bolt-elements-button-primary-text)',
+                  background: 'var(--devonz-elements-button-primary-background)',
+                  color: 'var(--devonz-elements-button-primary-text)',
                 }}
               >
                 <div className="i-ph:arrow-counter-clockwise text-sm" />
@@ -90,8 +90,8 @@ const VersionCard = memo(({ version, onRestore, onRevert }: VersionCardProps) =>
               onClick={() => onRevert(version.id)}
               className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs transition-colors"
               style={{
-                background: 'var(--bolt-elements-button-secondary-background)',
-                color: 'var(--bolt-elements-textSecondary)',
+                background: 'var(--devonz-elements-button-secondary-background)',
+                color: 'var(--devonz-elements-textSecondary)',
               }}
             >
               <div className="i-ph:arrow-u-up-left text-sm" />
@@ -101,11 +101,11 @@ const VersionCard = memo(({ version, onRestore, onRevert }: VersionCardProps) =>
         </div>
 
         {/* Title and description */}
-        <h3 className="text-sm font-medium text-bolt-elements-textPrimary truncate mb-0.5">{version.title}</h3>
-        <p className="text-xs text-bolt-elements-textTertiary line-clamp-2 mb-1">{version.description}</p>
+        <h3 className="text-sm font-medium text-devonz-elements-textPrimary truncate mb-0.5">{version.title}</h3>
+        <p className="text-xs text-devonz-elements-textTertiary line-clamp-2 mb-1">{version.description}</p>
 
         {/* Timestamp */}
-        <div className="flex items-center gap-1 text-xs text-bolt-elements-textTertiary">
+        <div className="flex items-center gap-1 text-xs text-devonz-elements-textTertiary">
           <div className="i-ph:clock text-xs" />
           <span>Saved {versionsStore.formatRelativeTime(version.timestamp)}</span>
         </div>
@@ -162,31 +162,31 @@ export const Versions = memo(() => {
   };
 
   return (
-    <div className="h-full flex flex-col" style={{ background: 'var(--bolt-elements-bg-depth-1)' }}>
+    <div className="h-full flex flex-col" style={{ background: 'var(--devonz-elements-bg-depth-1)' }}>
       {/* Header */}
-      <div className="p-4 border-b border-bolt-elements-borderColor">
+      <div className="p-4 border-b border-devonz-elements-borderColor">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-bolt-elements-textPrimary">Versions</h2>
-          <span className="text-sm text-bolt-elements-textTertiary">
+          <h2 className="text-lg font-semibold text-devonz-elements-textPrimary">Versions</h2>
+          <span className="text-sm text-devonz-elements-textTertiary">
             {filteredVersions.length} of {allVersions.length}
           </span>
         </div>
-        <p className="text-sm text-bolt-elements-textTertiary mb-4">
+        <p className="text-sm text-devonz-elements-textTertiary mb-4">
           View and restore previous versions of your project.
         </p>
 
         {/* Search */}
         <div className="relative">
-          <div className="i-ph:magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-bolt-elements-textTertiary" />
+          <div className="i-ph:magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-devonz-elements-textTertiary" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search versions by description or ID..."
-            className="w-full pl-9 pr-4 py-2 rounded-lg text-sm text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary outline-none"
+            className="w-full pl-9 pr-4 py-2 rounded-lg text-sm text-devonz-elements-textPrimary placeholder-devonz-elements-textTertiary outline-none"
             style={{
-              background: 'var(--bolt-elements-button-secondary-background)',
-              border: '1px solid var(--bolt-elements-borderColor)',
+              background: 'var(--devonz-elements-button-secondary-background)',
+              border: '1px solid var(--devonz-elements-borderColor)',
             }}
           />
         </div>
@@ -207,9 +207,9 @@ export const Versions = memo(() => {
           </AnimatePresence>
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-center p-8">
-            <div className="i-ph:clock-clockwise text-4xl text-bolt-elements-textTertiary mb-4" />
-            <h3 className="text-sm font-medium text-bolt-elements-textSecondary mb-1">No versions yet</h3>
-            <p className="text-xs text-bolt-elements-textTertiary max-w-xs">
+            <div className="i-ph:clock-clockwise text-4xl text-devonz-elements-textTertiary mb-4" />
+            <h3 className="text-sm font-medium text-devonz-elements-textSecondary mb-1">No versions yet</h3>
+            <p className="text-xs text-devonz-elements-textTertiary max-w-xs">
               Versions are automatically created when the AI makes changes to your project.
             </p>
           </div>

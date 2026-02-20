@@ -252,7 +252,7 @@ docker compose --profile auto-update up -d
 <summary>Expand file tree</summary>
 
 ```
-bolt.diy/
+devonz.diy/
 ├── app/
 │   ├── components/         # React components
 │   │   ├── @settings/      # Settings panel (14 tabs)
@@ -302,7 +302,7 @@ See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for detailed guidelines.
 
 ## Acknowledgments
 
-- [bolt.diy](https://github.com/stackblitz-labs/bolt.diy) ➺ original project foundation
+- [devonz.diy](https://github.com/stackblitz-labs/devonz.diy) ➺ original project foundation
 - [StackBlitz WebContainers](https://webcontainers.io/) ➺ in-browser dev environment
 - [Vercel AI SDK](https://sdk.vercel.ai/) ➺ AI capabilities
 

@@ -107,7 +107,7 @@ export function useChatHistory() {
 
           /*
            * SKIP SNAPSHOT MODE: Always load full message history
-           * This avoids the "Bolt Restored your chat" message that requires manual "Revert" click
+           * This avoids the "Devonz Restored your chat" message that requires manual "Revert" click
            * and prevents jsh command not found errors since we don't intercept command execution
            */
           const filteredMessages = storedMessages.messages.slice(0, endingIdx);
@@ -307,7 +307,7 @@ export function useChatHistory() {
       // Fire-and-forget: wait for terminal → install → start dev server
       (async () => {
         try {
-          const shell = workbenchStore.boltTerminal;
+          const shell = workbenchStore.devonzTerminal;
           await shell.ready();
 
           logger.info('Auto-rebuild: Installing dependencies...');

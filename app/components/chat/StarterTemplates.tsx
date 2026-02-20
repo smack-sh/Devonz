@@ -70,12 +70,12 @@ const StarterTemplates: React.FC = () => {
           onClick={() => scroll('left')}
           className={`absolute left-0 top-1/2 -translate-y-1/2 z-10
             w-8 h-8 flex items-center justify-center
-            bg-bolt-elements-bg-depth-3/90 backdrop-blur-sm rounded-full
-            border border-bolt-elements-borderColor
-            text-bolt-elements-textSecondary hover:text-purple-400
+            bg-devonz-elements-bg-depth-3/90 backdrop-blur-sm rounded-full
+            border border-devonz-elements-borderColor
+            text-devonz-elements-textSecondary hover:text-purple-400
             transition-all duration-300
             ${canScrollLeft && isHovered ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 pointer-events-none'}
-            hover:bg-bolt-elements-bg-depth-4 hover:border-purple-500/50`}
+            hover:bg-devonz-elements-bg-depth-4 hover:border-purple-500/50`}
           aria-label="Scroll left"
         >
           <span className="i-ph:caret-left text-lg" />
@@ -83,7 +83,7 @@ const StarterTemplates: React.FC = () => {
 
         {/* Left Fade Gradient */}
         <div
-          className={`absolute left-8 top-0 bottom-0 w-8 bg-gradient-to-r from-bolt-elements-background-depth-1 to-transparent z-[1] pointer-events-none transition-opacity duration-300
+          className={`absolute left-8 top-0 bottom-0 w-8 bg-gradient-to-r from-devonz-elements-background-depth-1 to-transparent z-[1] pointer-events-none transition-opacity duration-300
             ${canScrollLeft ? 'opacity-100' : 'opacity-0'}`}
         />
 
@@ -101,7 +101,7 @@ const StarterTemplates: React.FC = () => {
 
         {/* Right Fade Gradient */}
         <div
-          className={`absolute right-8 top-0 bottom-0 w-8 bg-gradient-to-l from-bolt-elements-background-depth-1 to-transparent z-[1] pointer-events-none transition-opacity duration-300
+          className={`absolute right-8 top-0 bottom-0 w-8 bg-gradient-to-l from-devonz-elements-background-depth-1 to-transparent z-[1] pointer-events-none transition-opacity duration-300
             ${canScrollRight ? 'opacity-100' : 'opacity-0'}`}
         />
 
@@ -111,12 +111,12 @@ const StarterTemplates: React.FC = () => {
           onClick={() => scroll('right')}
           className={`absolute right-0 top-1/2 -translate-y-1/2 z-10
             w-8 h-8 flex items-center justify-center
-            bg-bolt-elements-bg-depth-3/90 backdrop-blur-sm rounded-full
-            border border-bolt-elements-borderColor
-            text-bolt-elements-textSecondary hover:text-purple-400
+            bg-devonz-elements-bg-depth-3/90 backdrop-blur-sm rounded-full
+            border border-devonz-elements-borderColor
+            text-devonz-elements-textSecondary hover:text-purple-400
             transition-all duration-300
             ${canScrollRight && isHovered ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2 pointer-events-none'}
-            hover:bg-bolt-elements-bg-depth-4 hover:border-purple-500/50`}
+            hover:bg-devonz-elements-bg-depth-4 hover:border-purple-500/50`}
           aria-label="Scroll right"
         >
           <span className="i-ph:caret-right text-lg" />

@@ -3,7 +3,7 @@ import { path as nodePath } from '~/utils/path';
 import { atom, map, type MapStore } from 'nanostores';
 import type {
   ActionAlert,
-  BoltAction,
+  DevonzAction,
   DeployAlert,
   FileHistory,
   SupabaseAction,
@@ -17,7 +17,7 @@ import { rewriteUnsupportedCommand } from '~/utils/command-rewriter';
 import { repairMalformedCommand } from '~/utils/command-repair';
 import { unreachable } from '~/utils/unreachable';
 import type { ActionCallbackData } from './message-parser';
-import type { BoltShell } from '~/utils/shell';
+import type { DevonzShell } from '~/utils/shell';
 import { setPlan, updateTaskStatus, type PlanTask } from '~/lib/stores/plan';
 import {
   stagingStore,
@@ -31,7 +31,7 @@ const logger = createScopedLogger('ActionRunner');
 
 export type ActionStatus = 'pending' | 'running' | 'complete' | 'aborted' | 'failed';
 
-export type BaseActionState = BoltAction & {
+export type BaseActionState = DevonzAction & {
   status: Exclude<ActionStatus, 'failed'>;
   abort: () => void;
   executed: boolean;
@@ -41,7 +41,7 @@ export type BaseActionState = BoltAction & {
   messageId?: string;
 };
 
-export type FailedActionState = BoltAction &
+export type FailedActionState = DevonzAction &
   Omit<BaseActionState, 'status'> & {
     status: Extract<ActionStatus, 'failed'>;
     error: string;
@@ -97,7 +97,7 @@ class ActionCommandError extends Error {
 export class ActionRunner {
   #webcontainer: Promise<WebContainer>;
   #currentExecutionPromise: Promise<void> = Promise.resolve();
-  #shellTerminal: () => BoltShell;
+  #shellTerminal: () => DevonzShell;
   runnerId = atom<string>(`${Date.now()}`);
   actions: ActionsMap = map({});
   onAlert?: (alert: ActionAlert) => void;
@@ -108,7 +108,7 @@ export class ActionRunner {
 
   constructor(
     webcontainerPromise: Promise<WebContainer>,
-    getShellTerminal: () => BoltShell,
+    getShellTerminal: () => DevonzShell,
     onAlert?: (alert: ActionAlert) => void,
     onSupabaseAlert?: (alert: SupabaseAlert) => void,
     onDeployAlert?: (alert: DeployAlert) => void,
@@ -573,11 +573,11 @@ export class ActionRunner {
       let contentToWrite = action.content;
 
       /*
-       * Safety net: Strip any leaked bolt XML tags from file content.
+       * Safety net: Strip any leaked devonz XML tags from file content.
        * This can happen when the LLM omits closing tags and the parser's
        * streaming path accidentally includes artifact/action markup.
        */
-      contentToWrite = contentToWrite.replace(/<\/?boltArtifact[^>]*>/g, '').replace(/<\/?boltAction[^>]*>/g, '');
+      contentToWrite = contentToWrite.replace(/<\/?devonzArtifact[^>]*>/g, '').replace(/<\/?devonzAction[^>]*>/g, '');
 
       /*
        * Safety net: When package.json is being overwritten, merge dependencies

@@ -36,7 +36,7 @@ const ProjectMemoryTab = lazy(() => import('~/components/@settings/tabs/project-
 // Loading fallback for lazy-loaded tabs
 const TabLoadingFallback = () => (
   <div className="flex items-center justify-center h-64">
-    <div className="animate-spin w-8 h-8 border-2 border-bolt-elements-item-contentAccent border-t-transparent rounded-full" />
+    <div className="animate-spin w-8 h-8 border-2 border-devonz-elements-item-contentAccent border-t-transparent rounded-full" />
   </div>
 );
 
@@ -222,17 +222,17 @@ export const ControlPanel = ({ open, onClose, initialTab }: ControlPanelProps) =
           <RadixDialog.Content
             aria-describedby={undefined}
             onEscapeKeyDown={handleClose}
-            className="dark relative z-[101] w-[1000px] h-[80vh] rounded-xl shadow-2xl border border-bolt-elements-borderColor flex overflow-hidden"
+            className="dark relative z-[101] w-[1000px] h-[80vh] rounded-xl shadow-2xl border border-devonz-elements-borderColor flex overflow-hidden"
             style={{ backgroundColor: '#0f1219' }}
           >
             {/* Sidebar */}
             <div
-              className="w-52 border-r border-bolt-elements-borderColor flex flex-col"
+              className="w-52 border-r border-devonz-elements-borderColor flex flex-col"
               style={{ backgroundColor: '#0b0d13' }}
             >
               {/* Header */}
-              <div className="px-4 py-4 border-b border-bolt-elements-borderColor">
-                <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">Settings</h2>
+              <div className="px-4 py-4 border-b border-devonz-elements-borderColor">
+                <h2 className="text-sm font-semibold text-devonz-elements-textPrimary">Settings</h2>
               </div>
 
               {/* Categorized Nav */}
@@ -246,8 +246,8 @@ export const ControlPanel = ({ open, onClose, initialTab }: ControlPanelProps) =
                   <div key={category.id} className={classNames(catIndex > 0 ? 'mt-3' : '')}>
                     {/* Category Header */}
                     <div className="flex items-center gap-2 px-4 py-1.5 mb-0.5">
-                      <div className={classNames(category.icon, 'w-3.5 h-3.5 text-bolt-elements-textTertiary')} />
-                      <span className="text-[11px] font-medium uppercase tracking-wider text-bolt-elements-textTertiary">
+                      <div className={classNames(category.icon, 'w-3.5 h-3.5 text-devonz-elements-textTertiary')} />
+                      <span className="text-[11px] font-medium uppercase tracking-wider text-devonz-elements-textTertiary">
                         {category.label}
                       </span>
                     </div>
@@ -272,8 +272,8 @@ export const ControlPanel = ({ open, onClose, initialTab }: ControlPanelProps) =
                           className={classNames(
                             'w-full flex items-center gap-3 px-4 py-2 text-left text-sm transition-colors duration-150',
                             isActive
-                              ? 'text-bolt-elements-textPrimary border-l-2 border-bolt-elements-item-contentAccent'
-                              : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary border-l-2 border-transparent',
+                              ? 'text-devonz-elements-textPrimary border-l-2 border-devonz-elements-item-contentAccent'
+                              : 'text-devonz-elements-textSecondary hover:text-devonz-elements-textPrimary border-l-2 border-transparent',
                           )}
                           style={{
                             backgroundColor: isActive ? '#1a1f2e' : 'transparent',
@@ -283,10 +283,10 @@ export const ControlPanel = ({ open, onClose, initialTab }: ControlPanelProps) =
                           <IconComponent className="w-4 h-4 shrink-0" />
                           <span className="truncate">{TAB_LABELS[tabId]}</span>
                           {hasUpdate && (
-                            <span className="ml-auto w-2 h-2 rounded-full bg-bolt-elements-item-contentAccent shrink-0" />
+                            <span className="ml-auto w-2 h-2 rounded-full bg-devonz-elements-item-contentAccent shrink-0" />
                           )}
                           {BETA_TABS.has(tabId) && (
-                            <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent shrink-0">
+                            <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-devonz-elements-item-backgroundAccent text-devonz-elements-item-contentAccent shrink-0">
                               BETA
                             </span>
                           )}
@@ -301,17 +301,17 @@ export const ControlPanel = ({ open, onClose, initialTab }: ControlPanelProps) =
             {/* Main Content */}
             <div className="flex-1 flex flex-col min-w-0" style={{ backgroundColor: '#0f1219' }}>
               {/* Content Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-bolt-elements-borderColor">
-                <DialogTitle className="text-sm font-semibold text-bolt-elements-textPrimary">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-devonz-elements-borderColor">
+                <DialogTitle className="text-sm font-semibold text-devonz-elements-textPrimary">
                   {activeTab ? TAB_LABELS[activeTab] : 'Settings'}
                 </DialogTitle>
                 <button
                   onClick={handleClose}
                   aria-label="Close settings"
-                  className="p-1.5 rounded transition-colors hover:bg-bolt-elements-bg-depth-4"
+                  className="p-1.5 rounded transition-colors hover:bg-devonz-elements-bg-depth-4"
                   style={{ backgroundColor: '#1a1f2e' }}
                 >
-                  <div className="i-ph:x w-4 h-4 text-bolt-elements-textSecondary" />
+                  <div className="i-ph:x w-4 h-4 text-devonz-elements-textSecondary" />
                 </button>
               </div>
 
@@ -326,10 +326,10 @@ export const ControlPanel = ({ open, onClose, initialTab }: ControlPanelProps) =
                   getTabComponent(activeTab)
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full gap-6">
-                    <div className="i-ph:gear w-12 h-12 text-bolt-elements-textTertiary" />
+                    <div className="i-ph:gear w-12 h-12 text-devonz-elements-textTertiary" />
                     <div className="text-center">
-                      <p className="text-sm text-bolt-elements-textSecondary mb-1">Select a setting from the sidebar</p>
-                      <p className="text-xs text-bolt-elements-textTertiary">
+                      <p className="text-sm text-devonz-elements-textSecondary mb-1">Select a setting from the sidebar</p>
+                      <p className="text-xs text-devonz-elements-textTertiary">
                         Configure providers, services, and preferences
                       </p>
                     </div>
@@ -342,7 +342,7 @@ export const ControlPanel = ({ open, onClose, initialTab }: ControlPanelProps) =
                             <button
                               key={tabId}
                               onClick={() => handleTabClick(tabId)}
-                              className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-bolt-elements-textSecondary transition-colors hover:text-bolt-elements-textPrimary"
+                              className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-devonz-elements-textSecondary transition-colors hover:text-devonz-elements-textPrimary"
                               style={{ backgroundColor: '#1a1f2e' }}
                             >
                               <IconComponent className="w-3.5 h-3.5" />

@@ -34,12 +34,12 @@ export function HeaderAvatar() {
               <img
                 src={profile.avatar}
                 alt={profile?.username || 'Profile'}
-                className="w-full h-full rounded-full object-cover ring-2 ring-bolt-elements-borderColor"
+                className="w-full h-full rounded-full object-cover ring-2 ring-devonz-elements-borderColor"
                 loading="eager"
                 decoding="sync"
               />
             ) : (
-              <div className="w-full h-full rounded-full flex items-center justify-center bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary ring-2 ring-bolt-elements-borderColor">
+              <div className="w-full h-full rounded-full flex items-center justify-center bg-devonz-elements-background-depth-3 text-devonz-elements-textSecondary ring-2 ring-devonz-elements-borderColor">
                 <div className="i-ph:user w-4 h-4" />
               </div>
             )}
@@ -50,17 +50,17 @@ export function HeaderAvatar() {
           <DropdownMenu.Content
             className={classNames(
               'min-w-[180px] z-[9999]',
-              'bg-bolt-elements-background-depth-2',
+              'bg-devonz-elements-background-depth-2',
               'rounded-lg shadow-lg',
-              'border border-bolt-elements-borderColor',
+              'border border-devonz-elements-borderColor',
               'animate-in fade-in-0 zoom-in-95',
               'py-1',
             )}
             sideOffset={5}
             align="end"
           >
-            <div className="px-3 py-2 border-b border-bolt-elements-borderColor">
-              <p className="text-sm font-medium text-bolt-elements-textPrimary truncate">
+            <div className="px-3 py-2 border-b border-devonz-elements-borderColor">
+              <p className="text-sm font-medium text-devonz-elements-textPrimary truncate">
                 {profile?.username || 'Guest User'}
               </p>
             </div>
@@ -68,38 +68,38 @@ export function HeaderAvatar() {
             <DropdownMenu.Item
               className={classNames(
                 'flex items-center gap-2 px-3 py-2',
-                'text-sm text-bolt-elements-textPrimary',
-                'hover:bg-bolt-elements-item-backgroundActive',
+                'text-sm text-devonz-elements-textPrimary',
+                'hover:bg-devonz-elements-item-backgroundActive',
                 'cursor-pointer transition-colors',
                 'outline-none',
               )}
               onClick={() => handleOpenSettings('profile')}
             >
-              <div className="i-ph:user-circle w-4 h-4 text-bolt-elements-textSecondary" />
+              <div className="i-ph:user-circle w-4 h-4 text-devonz-elements-textSecondary" />
               Edit Profile
             </DropdownMenu.Item>
 
             <DropdownMenu.Item
               className={classNames(
                 'flex items-center gap-2 px-3 py-2',
-                'text-sm text-bolt-elements-textPrimary',
-                'hover:bg-bolt-elements-item-backgroundActive',
+                'text-sm text-devonz-elements-textPrimary',
+                'hover:bg-devonz-elements-item-backgroundActive',
                 'cursor-pointer transition-colors',
                 'outline-none',
               )}
               onClick={() => handleOpenSettings()}
             >
-              <div className="i-ph:gear-six w-4 h-4 text-bolt-elements-textSecondary" />
+              <div className="i-ph:gear-six w-4 h-4 text-devonz-elements-textSecondary" />
               Settings
             </DropdownMenu.Item>
 
-            <div className="my-1 border-t border-bolt-elements-borderColor" />
+            <div className="my-1 border-t border-devonz-elements-borderColor" />
 
             <DropdownMenu.Item
               className={classNames(
                 'flex items-center gap-2 px-3 py-2',
-                'text-sm text-bolt-elements-textPrimary',
-                'hover:bg-bolt-elements-item-backgroundActive',
+                'text-sm text-devonz-elements-textPrimary',
+                'hover:bg-devonz-elements-item-backgroundActive',
                 'cursor-pointer transition-colors',
                 'outline-none',
               )}
@@ -111,7 +111,7 @@ export function HeaderAvatar() {
                 )
               }
             >
-              <div className="i-ph:bug w-4 h-4 text-bolt-elements-textSecondary" />
+              <div className="i-ph:bug w-4 h-4 text-devonz-elements-textSecondary" />
               Report Bug
             </DropdownMenu.Item>
           </DropdownMenu.Content>

@@ -200,7 +200,7 @@ User enables Agent Mode + sends task
 
 6. **Extended Thinking**: Supported for Anthropic Claude and Google Gemini models. Allows models to expose their internal reasoning process before producing a final answer, with a configurable thinking budget per request.
 
-7. **CSS custom properties for theming**: All theme colors flow through `--bolt-elements-*` variables, enabling runtime theme switching without rebuilds.
+7. **CSS custom properties for theming**: All theme colors flow through `--devonz-elements-*` variables, enabling runtime theme switching without rebuilds.
 
 8. **Security by default** — Every API route (all 35+ handlers) is wrapped with `withSecurity()` from `app/lib/security.ts`, enforcing CORS origin validation, SameSite cookie attributes, request sanitization, and a URL allowlist on the git proxy.
 

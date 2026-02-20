@@ -82,15 +82,15 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
             className={classNames(
               'flex items-center gap-2 px-4 py-2.5',
               'text-sm text-gray-700 dark:text-gray-200',
-              'hover:bg-bolt-elements-item-backgroundAccent',
-              'hover:text-bolt-elements-item-contentAccent',
+              'hover:bg-devonz-elements-item-backgroundAccent',
+              'hover:text-devonz-elements-item-contentAccent',
               'cursor-pointer transition-all duration-200',
               'outline-none',
               'group',
             )}
             onClick={() => onSelectTab('profile')}
           >
-            <div className="i-ph:user-circle w-4 h-4 text-gray-400 group-hover:text-bolt-elements-item-contentAccent transition-colors" />
+            <div className="i-ph:user-circle w-4 h-4 text-gray-400 group-hover:text-devonz-elements-item-contentAccent transition-colors" />
             Edit Profile
           </DropdownMenu.Item>
 
@@ -98,15 +98,15 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
             className={classNames(
               'flex items-center gap-2 px-4 py-2.5',
               'text-sm text-gray-700 dark:text-gray-200',
-              'hover:bg-bolt-elements-item-backgroundAccent',
-              'hover:text-bolt-elements-item-contentAccent',
+              'hover:bg-devonz-elements-item-backgroundAccent',
+              'hover:text-devonz-elements-item-contentAccent',
               'cursor-pointer transition-all duration-200',
               'outline-none',
               'group',
             )}
             onClick={() => onSelectTab('settings')}
           >
-            <div className="i-ph:gear-six w-4 h-4 text-gray-400 group-hover:text-bolt-elements-item-contentAccent transition-colors" />
+            <div className="i-ph:gear-six w-4 h-4 text-gray-400 group-hover:text-devonz-elements-item-contentAccent transition-colors" />
             Settings
           </DropdownMenu.Item>
 
@@ -116,8 +116,8 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
             className={classNames(
               'flex items-center gap-2 px-4 py-2.5',
               'text-sm text-gray-700 dark:text-gray-200',
-              'hover:bg-bolt-elements-item-backgroundAccent',
-              'hover:text-bolt-elements-item-contentAccent',
+              'hover:bg-devonz-elements-item-backgroundAccent',
+              'hover:text-devonz-elements-item-contentAccent',
               'cursor-pointer transition-all duration-200',
               'outline-none',
               'group',
@@ -130,7 +130,7 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
               )
             }
           >
-            <div className="i-ph:bug w-4 h-4 text-gray-400 group-hover:text-bolt-elements-item-contentAccent transition-colors" />
+            <div className="i-ph:bug w-4 h-4 text-gray-400 group-hover:text-devonz-elements-item-contentAccent transition-colors" />
             Report Bug
           </DropdownMenu.Item>
         </DropdownMenu.Content>

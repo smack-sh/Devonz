@@ -22,12 +22,12 @@ export function LoadingState({ message = 'Loading...', size = 'md', className = 
   return (
     <div
       className={classNames(
-        'flex flex-col items-center justify-center py-8 text-bolt-elements-textSecondary',
+        'flex flex-col items-center justify-center py-8 text-devonz-elements-textSecondary',
         className,
       )}
     >
       <div className={classNames('i-ph:spinner animate-spin mb-2', sizeClasses[size])} />
-      <p className={classNames('text-bolt-elements-textSecondary', textSizeClasses[size])}>{message}</p>
+      <p className={classNames('text-devonz-elements-textSecondary', textSizeClasses[size])}>{message}</p>
     </div>
   );
 }
@@ -64,12 +64,12 @@ export function ErrorState({
   return (
     <div className={classNames('flex flex-col items-center justify-center py-8 text-center', className)}>
       <div className={classNames('i-ph:warning-circle text-red-500 mb-2', sizeClasses[size])} />
-      <h3 className={classNames('font-medium text-bolt-elements-textPrimary mb-1', textSizeClasses[size])}>{title}</h3>
-      <p className={classNames('text-bolt-elements-textSecondary mb-4', textSizeClasses[size])}>{message}</p>
+      <h3 className={classNames('font-medium text-devonz-elements-textPrimary mb-1', textSizeClasses[size])}>{title}</h3>
+      <p className={classNames('text-devonz-elements-textSecondary mb-4', textSizeClasses[size])}>{message}</p>
       {onRetry && (
         <button
           onClick={onRetry}
-          className="px-4 py-2 bg-bolt-elements-item-contentAccent text-white rounded-lg hover:bg-bolt-elements-item-contentAccent/90 transition-colors"
+          className="px-4 py-2 bg-devonz-elements-item-contentAccent text-white rounded-lg hover:bg-devonz-elements-item-contentAccent/90 transition-colors"
         >
           {retryLabel}
         </button>
@@ -110,12 +110,12 @@ export function SuccessState({
   return (
     <div className={classNames('flex flex-col items-center justify-center py-8 text-center', className)}>
       <div className={classNames('i-ph:check-circle text-green-500 mb-2', sizeClasses[size])} />
-      <h3 className={classNames('font-medium text-bolt-elements-textPrimary mb-1', textSizeClasses[size])}>{title}</h3>
-      <p className={classNames('text-bolt-elements-textSecondary mb-4', textSizeClasses[size])}>{message}</p>
+      <h3 className={classNames('font-medium text-devonz-elements-textPrimary mb-1', textSizeClasses[size])}>{title}</h3>
+      <p className={classNames('text-devonz-elements-textSecondary mb-4', textSizeClasses[size])}>{message}</p>
       {onAction && (
         <button
           onClick={onAction}
-          className="px-4 py-2 bg-bolt-elements-item-contentAccent text-white rounded-lg hover:bg-bolt-elements-item-contentAccent/90 transition-colors"
+          className="px-4 py-2 bg-devonz-elements-item-contentAccent text-white rounded-lg hover:bg-devonz-elements-item-contentAccent/90 transition-colors"
         >
           {actionLabel}
         </button>
@@ -132,16 +132,16 @@ interface GitHubConnectionRequiredProps {
 export function GitHubConnectionRequired({ onConnect, className = '' }: GitHubConnectionRequiredProps) {
   return (
     <div className={classNames('flex flex-col items-center justify-center py-12 text-center', className)}>
-      <div className="i-ph:github-logo size-12 text-bolt-elements-textTertiary mb-4" />
-      <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-2">GitHub Connection Required</h3>
-      <p className="text-sm text-bolt-elements-textSecondary mb-6 max-w-md">
+      <div className="i-ph:github-logo size-12 text-devonz-elements-textTertiary mb-4" />
+      <h3 className="text-lg font-medium text-devonz-elements-textPrimary mb-2">GitHub Connection Required</h3>
+      <p className="text-sm text-devonz-elements-textSecondary mb-6 max-w-md">
         Please connect your GitHub account to access this feature. You'll be able to browse repositories, push code, and
         manage your GitHub integration.
       </p>
       {onConnect && (
         <button
           onClick={onConnect}
-          className="px-6 py-3 bg-bolt-elements-item-contentAccent text-white rounded-lg hover:bg-bolt-elements-item-contentAccent/90 transition-colors flex items-center gap-2"
+          className="px-6 py-3 bg-devonz-elements-item-contentAccent text-white rounded-lg hover:bg-devonz-elements-item-contentAccent/90 transition-colors flex items-center gap-2"
         >
           <div className="i-ph:github-logo size-4" />
           Connect GitHub
@@ -185,12 +185,12 @@ export function InformationState({
   return (
     <div className={classNames('flex flex-col items-center justify-center py-8 text-center', className)}>
       <div className={classNames(iconClass, 'text-blue-500 mb-2', sizeClasses[size])} />
-      <h3 className={classNames('font-medium text-bolt-elements-textPrimary mb-1', textSizeClasses[size])}>{title}</h3>
-      <p className={classNames('text-bolt-elements-textSecondary mb-4', textSizeClasses[size])}>{message}</p>
+      <h3 className={classNames('font-medium text-devonz-elements-textPrimary mb-1', textSizeClasses[size])}>{title}</h3>
+      <p className={classNames('text-devonz-elements-textSecondary mb-4', textSizeClasses[size])}>{message}</p>
       {onAction && (
         <button
           onClick={onAction}
-          className="px-4 py-2 bg-bolt-elements-item-contentAccent text-white rounded-lg hover:bg-bolt-elements-item-contentAccent/90 transition-colors"
+          className="px-4 py-2 bg-devonz-elements-item-contentAccent text-white rounded-lg hover:bg-devonz-elements-item-contentAccent/90 transition-colors"
         >
           {actionLabel}
         </button>

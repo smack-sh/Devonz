@@ -72,7 +72,7 @@ export class EnhancedStreamingMessageParser extends StreamingMessageParser {
   }
 
   private _hasDetectedArtifacts(input: string): boolean {
-    return input.includes('<boltArtifact') || input.includes('</boltArtifact>');
+    return input.includes('<devonzArtifact') || input.includes('</devonzArtifact>');
   }
 
   private _detectAndWrapCodeBlocks(messageId: string, input: string): string {
@@ -225,21 +225,21 @@ export class EnhancedStreamingMessageParser extends StreamingMessageParser {
   private _wrapInArtifact(artifactId: string, filePath: string, content: string): string {
     const title = filePath.split('/').pop() || 'File';
 
-    return `<boltArtifact id="${artifactId}" title="${title}" type="bundled">
-<boltAction type="file" filePath="${filePath}">
+    return `<devonzArtifact id="${artifactId}" title="${title}" type="bundled">
+<devonzAction type="file" filePath="${filePath}">
 ${content}
-</boltAction>
-</boltArtifact>`;
+</devonzAction>
+</devonzArtifact>`;
   }
 
   private _wrapInShellAction(content: string, messageId: string): string {
     const artifactId = `artifact-${messageId}-${this._artifactCounter++}`;
 
-    return `<boltArtifact id="${artifactId}" title="Shell Command" type="shell">
-<boltAction type="shell">
+    return `<devonzArtifact id="${artifactId}" title="Shell Command" type="shell">
+<devonzAction type="shell">
 ${content.trim()}
-</boltAction>
-</boltArtifact>`;
+</devonzAction>
+</devonzArtifact>`;
   }
 
   private _normalizeFilePath(filePath: string): string {

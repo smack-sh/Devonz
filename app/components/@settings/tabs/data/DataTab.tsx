@@ -13,8 +13,8 @@ import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('DataTab');
 
-// Create a custom hook to connect to the boltHistory database
-function useBoltHistoryDB() {
+// Create a custom hook to connect to the devonzHistory database
+function useDevonzHistoryDB() {
   const [db, setDb] = useState<IDBDatabase | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -77,8 +77,8 @@ interface ChatItem {
 }
 
 export function DataTab() {
-  // Use our custom hook for the boltHistory database
-  const { db, isLoading: dbLoading } = useBoltHistoryDB();
+  // Use our custom hook for the devonzHistory database
+  const { db, isLoading: dbLoading } = useDevonzHistoryDB();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const apiKeyFileInputRef = useRef<HTMLInputElement>(null);
   const chatFileInputRef = useRef<HTMLInputElement>(null);
@@ -103,7 +103,7 @@ export function DataTab() {
   const [availableChats, setAvailableChats] = useState<ExtendedChat[]>([]);
   const [chatItems, setChatItems] = useState<ChatItem[]>([]);
 
-  // Data operations hook with boltHistory database
+  // Data operations hook with devonzHistory database
   const {
     isExporting,
     isImporting,
@@ -120,7 +120,7 @@ export function DataTab() {
     handleDownloadTemplate,
     handleImportAPIKeys,
   } = useDataOperations({
-    customDb: db || undefined, // Pass the boltHistory database, converting null to undefined
+    customDb: db || undefined, // Pass the devonzHistory database, converting null to undefined
     onReloadSettings: () => window.location.reload(),
     onReloadChats: () => {
       // Reload chats after reset
@@ -160,7 +160,7 @@ export function DataTab() {
   // Load available chats
   useEffect(() => {
     if (db) {
-      logger.debug('Loading chats from boltHistory database', {
+      logger.debug('Loading chats from devonzHistory database', {
         name: db.name,
         version: db.version,
         objectStoreNames: Array.from(db.objectStoreNames),
@@ -235,16 +235,16 @@ export function DataTab() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-2 border-b border-bolt-elements-borderColor pb-2 mb-6">
+      <div className="flex gap-2 border-b border-devonz-elements-borderColor pb-2 mb-6">
         {tabSections.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveSection(tab.id)}
             className="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors"
             style={{
-              backgroundColor: activeSection === tab.id ? 'var(--bolt-elements-bg-depth-3)' : 'transparent',
+              backgroundColor: activeSection === tab.id ? 'var(--devonz-elements-bg-depth-3)' : 'transparent',
               color:
-                activeSection === tab.id ? 'var(--bolt-elements-textPrimary)' : 'var(--bolt-elements-textTertiary)',
+                activeSection === tab.id ? 'var(--devonz-elements-textPrimary)' : 'var(--devonz-elements-textTertiary)',
               borderBottom: activeSection === tab.id ? '2px solid #06B6D4' : '2px solid transparent',
             }}
           >
@@ -322,7 +322,7 @@ export function DataTab() {
                     <motion.div className="text-accent-500 mr-2" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                       <div className="i-ph-download-duotone w-5 h-5" />
                     </motion.div>
-                    <CardTitle className="text-lg group-hover:text-bolt-elements-item-contentAccent transition-colors">
+                    <CardTitle className="text-lg group-hover:text-devonz-elements-item-contentAccent transition-colors">
                       Export All Chats
                     </CardTitle>
                   </div>
@@ -361,7 +361,7 @@ export function DataTab() {
                       variant="outline"
                       size="sm"
                       className={classNames(
-                        'hover:text-bolt-elements-item-contentAccent hover:border-bolt-elements-item-backgroundAccent hover:bg-bolt-elements-item-backgroundAccent transition-colors w-full justify-center',
+                        'hover:text-devonz-elements-item-contentAccent hover:border-devonz-elements-item-backgroundAccent hover:bg-devonz-elements-item-backgroundAccent transition-colors w-full justify-center',
                         isExporting || availableChats.length === 0 ? 'cursor-not-allowed' : '',
                       )}
                     >
@@ -386,7 +386,7 @@ export function DataTab() {
                     <motion.div className="text-accent-500 mr-2" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                       <div className="i-ph:list-checks w-5 h-5" />
                     </motion.div>
-                    <CardTitle className="text-lg group-hover:text-bolt-elements-item-contentAccent transition-colors">
+                    <CardTitle className="text-lg group-hover:text-devonz-elements-item-contentAccent transition-colors">
                       Export Selected Chats
                     </CardTitle>
                   </div>
@@ -400,7 +400,7 @@ export function DataTab() {
                       variant="outline"
                       size="sm"
                       className={classNames(
-                        'hover:text-bolt-elements-item-contentAccent hover:border-bolt-elements-item-backgroundAccent hover:bg-bolt-elements-item-backgroundAccent transition-colors w-full justify-center',
+                        'hover:text-devonz-elements-item-contentAccent hover:border-devonz-elements-item-backgroundAccent hover:bg-devonz-elements-item-backgroundAccent transition-colors w-full justify-center',
                         isExporting || chatItems.length === 0 ? 'cursor-not-allowed' : '',
                       )}
                     >
@@ -423,7 +423,7 @@ export function DataTab() {
                     <motion.div className="text-accent-500 mr-2" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                       <div className="i-ph-upload-duotone w-5 h-5" />
                     </motion.div>
-                    <CardTitle className="text-lg group-hover:text-bolt-elements-item-contentAccent transition-colors">
+                    <CardTitle className="text-lg group-hover:text-devonz-elements-item-contentAccent transition-colors">
                       Import Chats
                     </CardTitle>
                   </div>
@@ -437,7 +437,7 @@ export function DataTab() {
                       variant="outline"
                       size="sm"
                       className={classNames(
-                        'hover:text-bolt-elements-item-contentAccent hover:border-bolt-elements-item-backgroundAccent hover:bg-bolt-elements-item-backgroundAccent transition-colors w-full justify-center',
+                        'hover:text-devonz-elements-item-contentAccent hover:border-devonz-elements-item-backgroundAccent hover:bg-devonz-elements-item-backgroundAccent transition-colors w-full justify-center',
                         isImporting ? 'cursor-not-allowed' : '',
                       )}
                     >
@@ -464,7 +464,7 @@ export function DataTab() {
                     >
                       <div className="i-ph-trash-duotone w-5 h-5" />
                     </motion.div>
-                    <CardTitle className="text-lg group-hover:text-bolt-elements-item-contentAccent transition-colors">
+                    <CardTitle className="text-lg group-hover:text-devonz-elements-item-contentAccent transition-colors">
                       Delete All Chats
                     </CardTitle>
                   </div>
@@ -478,7 +478,7 @@ export function DataTab() {
                       variant="outline"
                       size="sm"
                       className={classNames(
-                        'hover:text-bolt-elements-item-contentAccent hover:border-bolt-elements-item-backgroundAccent hover:bg-bolt-elements-item-backgroundAccent transition-colors w-full justify-center',
+                        'hover:text-devonz-elements-item-contentAccent hover:border-devonz-elements-item-backgroundAccent hover:bg-devonz-elements-item-backgroundAccent transition-colors w-full justify-center',
                         isDeleting || chatItems.length === 0 ? 'cursor-not-allowed' : '',
                       )}
                     >
@@ -510,7 +510,7 @@ export function DataTab() {
                   <motion.div className="text-accent-500 mr-2" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                     <div className="i-ph-download-duotone w-5 h-5" />
                   </motion.div>
-                  <CardTitle className="text-lg group-hover:text-bolt-elements-item-contentAccent transition-colors">
+                  <CardTitle className="text-lg group-hover:text-devonz-elements-item-contentAccent transition-colors">
                     Export All Settings
                   </CardTitle>
                 </div>
@@ -524,7 +524,7 @@ export function DataTab() {
                     variant="outline"
                     size="sm"
                     className={classNames(
-                      'hover:text-bolt-elements-item-contentAccent hover:border-bolt-elements-item-backgroundAccent hover:bg-bolt-elements-item-backgroundAccent transition-colors w-full justify-center',
+                      'hover:text-devonz-elements-item-contentAccent hover:border-devonz-elements-item-backgroundAccent hover:bg-devonz-elements-item-backgroundAccent transition-colors w-full justify-center',
                       isExporting ? 'cursor-not-allowed' : '',
                     )}
                   >
@@ -547,7 +547,7 @@ export function DataTab() {
                   <motion.div className="text-accent-500 mr-2" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                     <div className="i-ph-filter-duotone w-5 h-5" />
                   </motion.div>
-                  <CardTitle className="text-lg group-hover:text-bolt-elements-item-contentAccent transition-colors">
+                  <CardTitle className="text-lg group-hover:text-devonz-elements-item-contentAccent transition-colors">
                     Export Selected Settings
                   </CardTitle>
                 </div>
@@ -561,7 +561,7 @@ export function DataTab() {
                     variant="outline"
                     size="sm"
                     className={classNames(
-                      'hover:text-bolt-elements-item-contentAccent hover:border-bolt-elements-item-backgroundAccent hover:bg-bolt-elements-item-backgroundAccent transition-colors w-full justify-center',
+                      'hover:text-devonz-elements-item-contentAccent hover:border-devonz-elements-item-backgroundAccent hover:bg-devonz-elements-item-backgroundAccent transition-colors w-full justify-center',
                       isExporting || settingsCategories.length === 0 ? 'cursor-not-allowed' : '',
                     )}
                   >
@@ -584,7 +584,7 @@ export function DataTab() {
                   <motion.div className="text-accent-500 mr-2" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                     <div className="i-ph-upload-duotone w-5 h-5" />
                   </motion.div>
-                  <CardTitle className="text-lg group-hover:text-bolt-elements-item-contentAccent transition-colors">
+                  <CardTitle className="text-lg group-hover:text-devonz-elements-item-contentAccent transition-colors">
                     Import Settings
                   </CardTitle>
                 </div>
@@ -598,7 +598,7 @@ export function DataTab() {
                     variant="outline"
                     size="sm"
                     className={classNames(
-                      'hover:text-bolt-elements-item-contentAccent hover:border-bolt-elements-item-backgroundAccent hover:bg-bolt-elements-item-backgroundAccent transition-colors w-full justify-center',
+                      'hover:text-devonz-elements-item-contentAccent hover:border-devonz-elements-item-backgroundAccent hover:bg-devonz-elements-item-backgroundAccent transition-colors w-full justify-center',
                       isImporting ? 'cursor-not-allowed' : '',
                     )}
                   >
@@ -625,7 +625,7 @@ export function DataTab() {
                   >
                     <div className="i-ph-arrow-counter-clockwise-duotone w-5 h-5" />
                   </motion.div>
-                  <CardTitle className="text-lg group-hover:text-bolt-elements-item-contentAccent transition-colors">
+                  <CardTitle className="text-lg group-hover:text-devonz-elements-item-contentAccent transition-colors">
                     Reset All Settings
                   </CardTitle>
                 </div>
@@ -639,7 +639,7 @@ export function DataTab() {
                     variant="outline"
                     size="sm"
                     className={classNames(
-                      'hover:text-bolt-elements-item-contentAccent hover:border-bolt-elements-item-backgroundAccent hover:bg-bolt-elements-item-backgroundAccent transition-colors w-full justify-center',
+                      'hover:text-devonz-elements-item-contentAccent hover:border-devonz-elements-item-backgroundAccent hover:bg-devonz-elements-item-backgroundAccent transition-colors w-full justify-center',
                       isResetting ? 'cursor-not-allowed' : '',
                     )}
                   >
@@ -670,7 +670,7 @@ export function DataTab() {
                   <motion.div className="text-accent-500 mr-2" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                     <div className="i-ph-file-text-duotone w-5 h-5" />
                   </motion.div>
-                  <CardTitle className="text-lg group-hover:text-bolt-elements-item-contentAccent transition-colors">
+                  <CardTitle className="text-lg group-hover:text-devonz-elements-item-contentAccent transition-colors">
                     Download Template
                   </CardTitle>
                 </div>
@@ -684,7 +684,7 @@ export function DataTab() {
                     variant="outline"
                     size="sm"
                     className={classNames(
-                      'hover:text-bolt-elements-item-contentAccent hover:border-bolt-elements-item-backgroundAccent hover:bg-bolt-elements-item-backgroundAccent transition-colors w-full justify-center',
+                      'hover:text-devonz-elements-item-contentAccent hover:border-devonz-elements-item-backgroundAccent hover:bg-devonz-elements-item-backgroundAccent transition-colors w-full justify-center',
                       isDownloadingTemplate ? 'cursor-not-allowed' : '',
                     )}
                   >
@@ -707,7 +707,7 @@ export function DataTab() {
                   <motion.div className="text-accent-500 mr-2" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                     <div className="i-ph-upload-duotone w-5 h-5" />
                   </motion.div>
-                  <CardTitle className="text-lg group-hover:text-bolt-elements-item-contentAccent transition-colors">
+                  <CardTitle className="text-lg group-hover:text-devonz-elements-item-contentAccent transition-colors">
                     Import API Keys
                   </CardTitle>
                 </div>
@@ -721,7 +721,7 @@ export function DataTab() {
                     variant="outline"
                     size="sm"
                     className={classNames(
-                      'hover:text-bolt-elements-item-contentAccent hover:border-bolt-elements-item-backgroundAccent hover:bg-bolt-elements-item-backgroundAccent transition-colors w-full justify-center',
+                      'hover:text-devonz-elements-item-contentAccent hover:border-devonz-elements-item-backgroundAccent hover:bg-devonz-elements-item-backgroundAccent transition-colors w-full justify-center',
                       isImportingKeys ? 'cursor-not-allowed' : '',
                     )}
                   >

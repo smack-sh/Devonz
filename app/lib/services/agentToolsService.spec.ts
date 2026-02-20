@@ -42,7 +42,7 @@ vi.mock('~/lib/webcontainer', () => ({
 // Mock the workbench store for run_command
 vi.mock('~/lib/stores/workbench', () => ({
   workbenchStore: {
-    boltTerminal: {
+    devonzTerminal: {
       ready: () => mockShellReady(),
       terminal: { cols: 80, rows: 24 },
       process: {},

@@ -542,7 +542,7 @@ export const ChatImpl = memo(
       if (selectedElement) {
         logger.debug('Selected Element:', selectedElement);
 
-        const elementInfo = `<div class=\"__boltSelectedElement__\" data-element='${JSON.stringify(selectedElement)}'>${JSON.stringify(`${selectedElement.displayText}`)}</div>`;
+        const elementInfo = `<div class=\"__devonzSelectedElement__\" data-element='${JSON.stringify(selectedElement)}'>${JSON.stringify(`${selectedElement.displayText}`)}</div>`;
         finalMessageContent = messageContent + elementInfo;
       }
 
@@ -745,7 +745,7 @@ export const ChatImpl = memo(
         resetTerminalErrorDetector();
         resetPreviewErrorHandler();
 
-        // Build the message in same format as ChatAlert's handleAskBolt
+        // Build the message in same format as ChatAlert's handleAskDevonz
         const messageText = `[Model: ${modelRef.current}]\n\n[Provider: ${providerRef.current.name}]\n\n${message}`;
 
         // Use append to send the message

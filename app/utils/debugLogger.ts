@@ -3,10 +3,10 @@ import { isMobile } from './mobile';
 import { PROVIDER_LIST, DEFAULT_MODEL } from './constants';
 import { logger } from './logger';
 
-/** Augment Window with bolt-specific globals */
+/** Augment Window with devonz-specific globals */
 declare global {
   interface Window {
-    __bolt_workbench_store?: { get?: () => Record<string, unknown> };
+    __devonz_workbench_store?: { get?: () => Record<string, unknown> };
   }
 
   interface Performance {
@@ -838,7 +838,7 @@ class DebugLogger {
     try {
       if (typeof window !== 'undefined') {
         // Access stores if available
-        const workbenchStore = window.__bolt_workbench_store;
+        const workbenchStore = window.__devonz_workbench_store;
 
         if (workbenchStore) {
           const state = workbenchStore.get?.() || {};
@@ -1046,7 +1046,7 @@ class DebugLogger {
 
     try {
       if (typeof window !== 'undefined') {
-        const workbenchStore = window.__bolt_workbench_store;
+        const workbenchStore = window.__devonz_workbench_store;
 
         if (workbenchStore) {
           const state = workbenchStore.get?.() || {};

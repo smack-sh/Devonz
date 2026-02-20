@@ -29,7 +29,7 @@ export const loader = () => json({});
  */
 export default function Index() {
   return (
-    <main id="main-content" className="flex flex-col h-full w-full bg-bolt-elements-background-depth-1">
+    <main id="main-content" className="flex flex-col h-full w-full bg-devonz-elements-background-depth-1">
       <ClientOnly>{() => <UpdateBanner />}</ClientOnly>
       <Header />
       <ClientOnly fallback={<BaseChat />}>{() => <Chat />}</ClientOnly>

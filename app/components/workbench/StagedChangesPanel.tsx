@@ -117,7 +117,7 @@ function getChangeTypeColor(type: ChangeType): string {
     case 'delete':
       return 'text-red-400';
     default:
-      return 'text-bolt-elements-textSecondary';
+      return 'text-devonz-elements-textSecondary';
   }
 }
 
@@ -170,7 +170,7 @@ const ChangeItem = memo(({ change, onAccept, onReject, onPreview }: ChangeItemPr
       initial="hidden"
       animate="visible"
       exit="exit"
-      className="flex items-center gap-2 px-3 py-2 hover:bg-bolt-elements-background-depth-2 rounded-md group cursor-pointer"
+      className="flex items-center gap-2 px-3 py-2 hover:bg-devonz-elements-background-depth-2 rounded-md group cursor-pointer"
       onClick={() => onPreview(change.filePath)}
     >
       {/* File icon */}
@@ -179,10 +179,10 @@ const ChangeItem = memo(({ change, onAccept, onReject, onPreview }: ChangeItemPr
       {/* File info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-bolt-elements-textPrimary truncate">{name}</span>
+          <span className="text-sm font-medium text-devonz-elements-textPrimary truncate">{name}</span>
           <span className={classNames('w-4 h-4', getChangeTypeIcon(change.type), getChangeTypeColor(change.type))} />
         </div>
-        {dir && <span className="text-xs text-bolt-elements-textTertiary truncate block">{dir}</span>}
+        {dir && <span className="text-xs text-devonz-elements-textTertiary truncate block">{dir}</span>}
       </div>
 
       {/* Action buttons */}
@@ -195,7 +195,7 @@ const ChangeItem = memo(({ change, onAccept, onReject, onPreview }: ChangeItemPr
             onPreview(change.filePath);
           }}
           title="Preview diff"
-          className="text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary"
+          className="text-devonz-elements-textTertiary hover:text-devonz-elements-textSecondary"
         />
         <IconButton
           icon="i-ph:check"
@@ -243,8 +243,8 @@ const ChangeGroup = memo(({ title, icon, iconColor, changes, onAccept, onReject,
     <div className="mb-2">
       <div className="flex items-center gap-2 px-3 py-1">
         <span className={classNames('w-4 h-4', icon, iconColor)} />
-        <span className="text-xs font-medium text-bolt-elements-textSecondary uppercase tracking-wide">{title}</span>
-        <span className="text-xs text-bolt-elements-textTertiary">({changes.length})</span>
+        <span className="text-xs font-medium text-devonz-elements-textSecondary uppercase tracking-wide">{title}</span>
+        <span className="text-xs text-devonz-elements-textTertiary">({changes.length})</span>
       </div>
       <AnimatePresence mode="sync">
         {changes.map((change) => (
@@ -289,7 +289,7 @@ export const StagedChangesPanel = memo(() => {
 
     toast.info(`Executing ${commands.length} queued command(s)...`);
 
-    const shell = workbenchStore.boltTerminal;
+    const shell = workbenchStore.devonzTerminal;
 
     await shell.ready();
 
@@ -617,27 +617,27 @@ export const StagedChangesPanel = memo(() => {
   return (
     <Collapsible.Root open={isOpen} onOpenChange={setIsOpen}>
       <div
-        className="border-b border-bolt-elements-borderColor"
-        style={{ background: 'var(--bolt-elements-bg-depth-1)' }}
+        className="border-b border-devonz-elements-borderColor"
+        style={{ background: 'var(--devonz-elements-bg-depth-1)' }}
       >
         {/* Header */}
         <Collapsible.Trigger asChild>
-          <button className="w-full flex items-center justify-between px-4 py-3 bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 transition-colors">
+          <button className="w-full flex items-center justify-between px-4 py-3 bg-devonz-elements-background-depth-2 hover:bg-devonz-elements-background-depth-3 transition-colors">
             <div className="flex items-center gap-3">
               <motion.span
-                className="i-ph:caret-right w-4 h-4 text-bolt-elements-textSecondary"
+                className="i-ph:caret-right w-4 h-4 text-devonz-elements-textSecondary"
                 animate={{ rotate: isOpen ? 90 : 0 }}
                 transition={{ duration: 0.15 }}
               />
-              <span className="i-ph:git-diff w-5 h-5 text-bolt-elements-textSecondary" />
-              <span className="text-sm font-medium text-bolt-elements-textPrimary">Pending Changes</span>
+              <span className="i-ph:git-diff w-5 h-5 text-devonz-elements-textSecondary" />
+              <span className="text-sm font-medium text-devonz-elements-textPrimary">Pending Changes</span>
               <span className="px-2 py-0.5 text-xs font-medium bg-yellow-500/20 text-yellow-400 rounded-full">
                 {count + cmdCount}
               </span>
             </div>
 
             {/* Quick stats */}
-            <div className="flex items-center gap-3 text-xs text-bolt-elements-textTertiary">
+            <div className="flex items-center gap-3 text-xs text-devonz-elements-textTertiary">
               {byType.create.length > 0 && (
                 <span className="flex items-center gap-1 text-green-400">
                   <span className="i-ph:plus-circle w-3.5 h-3.5" />
@@ -678,7 +678,7 @@ export const StagedChangesPanel = memo(() => {
             {/* Change list */}
             <div
               className="max-h-64 overflow-y-auto py-2 dark-scrollbar"
-              style={{ scrollbarColor: 'var(--bolt-elements-borderColor) var(--bolt-elements-bg-depth-2)' }}
+              style={{ scrollbarColor: 'var(--devonz-elements-borderColor) var(--devonz-elements-bg-depth-2)' }}
             >
               <ChangeGroup
                 title="New Files"
@@ -710,18 +710,18 @@ export const StagedChangesPanel = memo(() => {
 
               {/* Pending Commands Section */}
               {hasCmds && (
-                <div className="mb-2 mt-2 border-t border-bolt-elements-borderColor pt-2">
+                <div className="mb-2 mt-2 border-t border-devonz-elements-borderColor pt-2">
                   <div className="flex items-center gap-2 px-3 py-1">
                     <span className="i-ph:terminal w-4 h-4 text-blue-400" />
-                    <span className="text-xs font-medium text-bolt-elements-textSecondary uppercase tracking-wide">
+                    <span className="text-xs font-medium text-devonz-elements-textSecondary uppercase tracking-wide">
                       Queued Commands
                     </span>
-                    <span className="text-xs text-bolt-elements-textTertiary">({cmdCount})</span>
+                    <span className="text-xs text-devonz-elements-textTertiary">({cmdCount})</span>
                   </div>
                   {pendingCmds.map((cmd) => (
                     <div
                       key={cmd.id}
-                      className="flex items-center gap-2 px-3 py-2 hover:bg-bolt-elements-background-depth-2 rounded-md"
+                      className="flex items-center gap-2 px-3 py-2 hover:bg-devonz-elements-background-depth-2 rounded-md"
                     >
                       <span
                         className={classNames(
@@ -730,10 +730,10 @@ export const StagedChangesPanel = memo(() => {
                         )}
                       />
                       <div className="flex-1 min-w-0">
-                        <span className="text-sm font-mono text-bolt-elements-textPrimary truncate block">
+                        <span className="text-sm font-mono text-devonz-elements-textPrimary truncate block">
                           {cmd.command.length > 50 ? `${cmd.command.substring(0, 50)}...` : cmd.command}
                         </span>
-                        <span className="text-xs text-bolt-elements-textTertiary">{cmd.type} command</span>
+                        <span className="text-xs text-devonz-elements-textTertiary">{cmd.type} command</span>
                       </div>
                     </div>
                   ))}
@@ -757,8 +757,8 @@ export const StagedChangesPanel = memo(() => {
             )}
 
             {/* Footer actions */}
-            <div className="flex items-center justify-between px-4 py-3 border-t border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
-              <span className="text-xs text-bolt-elements-textTertiary">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-devonz-elements-borderColor bg-devonz-elements-background-depth-2">
+              <span className="text-xs text-devonz-elements-textTertiary">
                 {stats.reviewed > 0 && `${stats.reviewed} reviewed • `}
                 {count} pending{cmdCount > 0 && ` • ${cmdCount} commands`}
               </span>
@@ -772,7 +772,7 @@ export const StagedChangesPanel = memo(() => {
                     'disabled:opacity-50',
                     isPreviewMode
                       ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
-                      : 'bg-bolt-elements-button-secondary-background hover:bg-bolt-elements-button-secondary-backgroundHover text-bolt-elements-button-secondary-text',
+                      : 'bg-devonz-elements-button-secondary-background hover:bg-devonz-elements-button-secondary-backgroundHover text-devonz-elements-button-secondary-text',
                   )}
                 >
                   <span className="i-ph:eye mr-1.5" />

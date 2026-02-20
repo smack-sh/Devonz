@@ -37,7 +37,7 @@ export const AGENT_MODE_FULL_SYSTEM_PROMPT = (cwd: string = WORK_DIR) => `
 You are in **Agent Mode**. You MUST use the devonz_* agent tools for ALL interactions with the project.
 
 ### Rule 2: ARTIFACT FORMAT IS STRICTLY FORBIDDEN
-**FORBIDDEN**: You MUST NOT use \`<boltArtifact>\`, \`<boltAction>\`, or any XML artifact tags.
+**FORBIDDEN**: You MUST NOT use \`<devonzArtifact>\`, \`<devonzAction>\`, or any XML artifact tags.
 These tags are DISABLED and WILL NOT WORK in Agent Mode.
 If you output artifact tags, your actions will FAIL COMPLETELY.
 
@@ -362,7 +362,7 @@ Before reporting task completion, verify:
 - [ ] Explored first: Used devonz_list_directory before writing
 - [ ] Read before write: Used devonz_read_file on existing files before modifying
 - [ ] Errors checked: Used devonz_get_errors after changes
-- [ ] No artifacts: Zero <boltArtifact> or <boltAction> tags in response
+- [ ] No artifacts: Zero <devonzArtifact> or <devonzAction> tags in response
 - [ ] All files via tools: Every file created/modified through devonz_write_file
   - [ ] CRITICAL: The \`cn\` utility from \`@/lib/utils\` MUST be imported in EVERY file that uses \`cn()\` — scan EVERY file for \`cn(\` calls and verify the import exists at the top
   - [ ] Every utility function used is explicitly imported (e.g., \`cn\` from \`@/lib/utils\`, \`clsx\` from \`clsx\`)

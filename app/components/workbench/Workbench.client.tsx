@@ -166,13 +166,13 @@ export const Workbench = memo(
           style={fullWidth ? undefined : { width: width || 'var(--workbench-width)' }}
         >
           <div
-            className={classNames('h-full flex flex-col bg-bolt-elements-background-depth-2 overflow-hidden', {
-              'border-l border-bolt-elements-borderColor': !fullWidth,
+            className={classNames('h-full flex flex-col bg-devonz-elements-background-depth-2 overflow-hidden', {
+              'border-l border-devonz-elements-borderColor': !fullWidth,
             })}
           >
-            <div className="flex items-center px-3 py-2.5 border-b border-bolt-elements-borderColor gap-2 bg-bolt-elements-background-depth-2/80">
+            <div className="flex items-center px-3 py-2.5 border-b border-devonz-elements-borderColor gap-2 bg-devonz-elements-background-depth-2/80">
               <button
-                className={`${showChat ? 'i-ph:sidebar-simple-fill' : 'i-ph:sidebar-simple'} text-lg text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors mr-1`}
+                className={`${showChat ? 'i-ph:sidebar-simple-fill' : 'i-ph:sidebar-simple'} text-lg text-devonz-elements-textSecondary hover:text-devonz-elements-textPrimary transition-colors mr-1`}
                 disabled={!canHideChat || isSmallViewport}
                 onClick={() => {
                   if (canHideChat) {
@@ -189,11 +189,11 @@ export const Workbench = memo(
                   <ExportChatButton exportChat={exportChat} />
 
                   {/* Sync Button */}
-                  <div className="flex border border-bolt-elements-borderColor rounded-lg overflow-hidden ml-1">
+                  <div className="flex border border-devonz-elements-borderColor rounded-lg overflow-hidden ml-1">
                     <DropdownMenu.Root>
                       <DropdownMenu.Trigger
                         disabled={isSyncing || streaming}
-                        className="rounded-lg items-center justify-center [&:is(:disabled,.disabled)]:cursor-not-allowed [&:is(:disabled,.disabled)]:opacity-60 px-3 py-1.5 text-xs bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-4 [&:not(:disabled,.disabled)]:hover:text-accent-400 outline-accent-500 flex gap-1.5 transition-colors"
+                        className="rounded-lg items-center justify-center [&:is(:disabled,.disabled)]:cursor-not-allowed [&:is(:disabled,.disabled)]:opacity-60 px-3 py-1.5 text-xs bg-devonz-elements-background-depth-3 text-devonz-elements-textPrimary border border-devonz-elements-borderColor hover:bg-devonz-elements-background-depth-4 [&:not(:disabled,.disabled)]:hover:text-accent-400 outline-accent-500 flex gap-1.5 transition-colors"
                       >
                         {isSyncing ? 'Syncing...' : 'Sync'}
                         <span className={classNames('i-ph:caret-down transition-transform')} />
@@ -202,9 +202,9 @@ export const Workbench = memo(
                         <DropdownMenu.Content
                           className={classNames(
                             'min-w-[240px] z-[9999]',
-                            'bg-bolt-elements-background-depth-2',
+                            'bg-devonz-elements-background-depth-2',
                             'rounded-lg shadow-lg',
-                            'border border-bolt-elements-borderColor',
+                            'border border-devonz-elements-borderColor',
                             'animate-in fade-in-0 zoom-in-95',
                             'py-1',
                           )}
@@ -213,7 +213,7 @@ export const Workbench = memo(
                         >
                           <DropdownMenu.Item
                             className={classNames(
-                              'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative',
+                              'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-devonz-elements-textPrimary hover:bg-devonz-elements-item-backgroundActive gap-2 rounded-md group relative',
                             )}
                             onClick={handleSyncFiles}
                             disabled={isSyncing}
@@ -229,12 +229,12 @@ export const Workbench = memo(
                   </div>
 
                   {/* Toggle Terminal Button */}
-                  <div className="flex border border-bolt-elements-borderColor rounded-md overflow-hidden ml-1">
+                  <div className="flex border border-devonz-elements-borderColor rounded-md overflow-hidden ml-1">
                     <button
                       onClick={() => {
                         workbenchStore.toggleTerminal(!workbenchStore.showTerminal.get());
                       }}
-                      className="rounded-md items-center justify-center [&:is(:disabled,.disabled)]:cursor-not-allowed [&:is(:disabled,.disabled)]:opacity-60 px-3 py-1.5 text-xs bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-4 [&:not(:disabled,.disabled)]:hover:text-accent-400 outline-accent-500 flex gap-1.7"
+                      className="rounded-md items-center justify-center [&:is(:disabled,.disabled)]:cursor-not-allowed [&:is(:disabled,.disabled)]:opacity-60 px-3 py-1.5 text-xs bg-devonz-elements-background-depth-3 text-devonz-elements-textPrimary border border-devonz-elements-borderColor hover:bg-devonz-elements-background-depth-4 [&:not(:disabled,.disabled)]:hover:text-accent-400 outline-accent-500 flex gap-1.7"
                     >
                       <div className="i-ph:terminal" />
                       Toggle Terminal

@@ -56,7 +56,7 @@
 ## Project Structure
 
 ```
-bolt.diy/
+devonz.diy/
 ├── app/
 │   ├── components/       # React components (9 groups)
 │   ├── lib/              # Core logic (stores, services, agent, LLM)
@@ -83,4 +83,4 @@ bolt.diy/
 - **Client-only files**: `.client.tsx` suffix for browser-only components
 - **Scoped logging**: `createScopedLogger('Name')` used throughout
 - **Validation**: Zod schemas for all API request bodies
-- **Theming**: CSS custom properties (`--bolt-elements-*`) + `data-theme` attribute
+- **Theming**: CSS custom properties (`--devonz-elements-*`) + `data-theme` attribute

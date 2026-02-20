@@ -121,7 +121,7 @@ export const BulkStyleSelector = ({
         className={`w-full flex items-center justify-between gap-2 px-2 py-1.5 text-xs font-medium rounded border transition-colors ${
           isBulkMode
             ? 'bg-purple-500/20 border-purple-500/50 text-purple-300 hover:bg-purple-500/30'
-            : 'bg-bolt-elements-background-depth-3 border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-4'
+            : 'bg-devonz-elements-background-depth-3 border-devonz-elements-borderColor text-devonz-elements-textSecondary hover:bg-devonz-elements-background-depth-4'
         }`}
       >
         <div className="flex items-center gap-1.5">
@@ -140,20 +140,20 @@ export const BulkStyleSelector = ({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-devonz-elements-background-depth-2 border border-devonz-elements-borderColor rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
           {ELEMENT_CATEGORIES.map((category) => (
             <div key={category.category}>
-              <div className="px-2 py-1 text-[10px] font-semibold text-bolt-elements-textTertiary uppercase bg-bolt-elements-background-depth-3 sticky top-0">
+              <div className="px-2 py-1 text-[10px] font-semibold text-devonz-elements-textTertiary uppercase bg-devonz-elements-background-depth-3 sticky top-0">
                 {category.category}
               </div>
               {category.targets.map((target) => (
                 <button
                   key={target.value}
                   onClick={() => handleSelect(target.value, target.label)}
-                  className={`w-full text-left px-3 py-1.5 text-xs hover:bg-bolt-elements-background-depth-3 transition-colors ${
+                  className={`w-full text-left px-3 py-1.5 text-xs hover:bg-devonz-elements-background-depth-3 transition-colors ${
                     selectedTarget?.value === target.value || (target.value === 'current' && !selectedTarget)
                       ? 'bg-accent-500/20 text-accent-400'
-                      : 'text-bolt-elements-textPrimary'
+                      : 'text-devonz-elements-textPrimary'
                   }`}
                 >
                   {target.label}
@@ -165,15 +165,15 @@ export const BulkStyleSelector = ({
           {/* Dynamic "Same Tag" Option */}
           {currentTagName && !['html', 'body', 'head'].includes(currentTagName.toLowerCase()) && (
             <div>
-              <div className="px-2 py-1 text-[10px] font-semibold text-bolt-elements-textTertiary uppercase bg-bolt-elements-background-depth-3 sticky top-0">
+              <div className="px-2 py-1 text-[10px] font-semibold text-devonz-elements-textTertiary uppercase bg-devonz-elements-background-depth-3 sticky top-0">
                 Same Type
               </div>
               <button
                 onClick={() => handleSelect('same-tag', `All <${currentTagName}>`)}
-                className={`w-full text-left px-3 py-1.5 text-xs hover:bg-bolt-elements-background-depth-3 transition-colors ${
+                className={`w-full text-left px-3 py-1.5 text-xs hover:bg-devonz-elements-background-depth-3 transition-colors ${
                   selectedTarget?.value === 'same-tag'
                     ? 'bg-accent-500/20 text-accent-400'
-                    : 'text-bolt-elements-textPrimary'
+                    : 'text-devonz-elements-textPrimary'
                 }`}
               >
                 All &lt;{currentTagName.toLowerCase()}&gt; elements

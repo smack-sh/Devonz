@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Cross-platform update script for Devonz (bolt.diy).
+ * Cross-platform update script for Devonz (devonz.diy).
  * Pulls latest from main, installs deps, and rebuilds.
  *
  * Usage:

@@ -351,7 +351,7 @@ class VersionsStore {
     this.versions.set({});
     this.currentVersionId.set(null);
 
-    const artifactRegex = /<boltArtifact[^>]*title="([^"]*)"[^>]*>/gi;
+    const artifactRegex = /<devonzArtifact[^>]*title="([^"]*)"[^>]*>/gi;
 
     let latestVersionId: string | null = null;
 

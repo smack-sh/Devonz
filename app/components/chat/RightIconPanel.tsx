@@ -122,7 +122,7 @@ const RightIconPanel: React.FC = () => {
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Left fade gradient */}
-      <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-bolt-elements-bg-depth-1 via-bolt-elements-bg-depth-1/80 to-transparent z-[1] pointer-events-none" />
+      <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-devonz-elements-bg-depth-1 via-devonz-elements-bg-depth-1/80 to-transparent z-[1] pointer-events-none" />
 
       <div ref={scrollerRef} className="flex items-center gap-6 py-3" style={{ willChange: 'transform' }}>
         {triplicatedTemplates.map((template, index) => (
@@ -135,7 +135,7 @@ const RightIconPanel: React.FC = () => {
       </div>
 
       {/* Right fade gradient */}
-      <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-bolt-elements-bg-depth-1 via-bolt-elements-bg-depth-1/80 to-transparent z-[1] pointer-events-none" />
+      <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-devonz-elements-bg-depth-1 via-devonz-elements-bg-depth-1/80 to-transparent z-[1] pointer-events-none" />
     </div>
   );
 };

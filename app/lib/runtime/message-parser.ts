@@ -1,27 +1,27 @@
 import type {
   ActionType,
-  BoltAction,
-  BoltActionData,
+  DevonzAction,
+  DevonzActionData,
   FileAction,
   ShellAction,
   SupabaseAction,
   PlanAction,
   TaskUpdateAction,
 } from '~/types/actions';
-import type { BoltArtifactData } from '~/types/artifact';
+import type { DevonzArtifactData } from '~/types/artifact';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 
-const ARTIFACT_TAG_OPEN = '<boltArtifact';
-const ARTIFACT_TAG_CLOSE = '</boltArtifact>';
-const ARTIFACT_ACTION_TAG_OPEN = '<boltAction';
-const ARTIFACT_ACTION_TAG_CLOSE = '</boltAction>';
-const BOLT_QUICK_ACTIONS_OPEN = '<bolt-quick-actions>';
-const BOLT_QUICK_ACTIONS_CLOSE = '</bolt-quick-actions>';
+const ARTIFACT_TAG_OPEN = '<devonzArtifact';
+const ARTIFACT_TAG_CLOSE = '</devonzArtifact>';
+const ARTIFACT_ACTION_TAG_OPEN = '<devonzAction';
+const ARTIFACT_ACTION_TAG_CLOSE = '</devonzAction>';
+const DEVONZ_QUICK_ACTIONS_OPEN = '<devonz-quick-actions>';
+const DEVONZ_QUICK_ACTIONS_CLOSE = '</devonz-quick-actions>';
 
 const logger = createScopedLogger('MessageParser');
 
-export interface ArtifactCallbackData extends BoltArtifactData {
+export interface ArtifactCallbackData extends DevonzArtifactData {
   messageId: string;
   artifactId?: string;
 }
@@ -30,7 +30,7 @@ export interface ActionCallbackData {
   artifactId: string;
   messageId: string;
   actionId: string;
-  action: BoltAction;
+  action: DevonzAction;
 }
 
 export type ArtifactCallback = (data: ArtifactCallbackData) => void;
@@ -61,8 +61,8 @@ interface MessageState {
   insideArtifact: boolean;
   insideAction: boolean;
   artifactCounter: number;
-  currentArtifact?: BoltArtifactData;
-  currentAction: BoltActionData;
+  currentArtifact?: DevonzArtifactData;
+  currentAction: DevonzActionData;
   actionId: number;
 }
 
@@ -107,14 +107,14 @@ export class StreamingMessageParser {
     let earlyBreak = false;
 
     while (i < input.length) {
-      if (input.startsWith(BOLT_QUICK_ACTIONS_OPEN, i)) {
-        const actionsBlockEnd = input.indexOf(BOLT_QUICK_ACTIONS_CLOSE, i);
+      if (input.startsWith(DEVONZ_QUICK_ACTIONS_OPEN, i)) {
+        const actionsBlockEnd = input.indexOf(DEVONZ_QUICK_ACTIONS_CLOSE, i);
 
         if (actionsBlockEnd !== -1) {
-          const actionsBlockContent = input.slice(i + BOLT_QUICK_ACTIONS_OPEN.length, actionsBlockEnd);
+          const actionsBlockContent = input.slice(i + DEVONZ_QUICK_ACTIONS_OPEN.length, actionsBlockEnd);
 
-          // Find all <bolt-quick-action ...>label</bolt-quick-action> inside
-          const quickActionRegex = /<bolt-quick-action([^>]*)>([\s\S]*?)<\/bolt-quick-action>/g;
+          // Find all <devonz-quick-action ...>label</devonz-quick-action> inside
+          const quickActionRegex = /<devonz-quick-action([^>]*)>([\s\S]*?)<\/devonz-quick-action>/g;
           let match;
           const buttons = [];
 
@@ -133,7 +133,7 @@ export class StreamingMessageParser {
             );
           }
           output += createQuickActionGroup(buttons);
-          i = actionsBlockEnd + BOLT_QUICK_ACTIONS_CLOSE.length;
+          i = actionsBlockEnd + DEVONZ_QUICK_ACTIONS_CLOSE.length;
           continue;
         }
       }
@@ -178,7 +178,7 @@ export class StreamingMessageParser {
                */
               actionId: String(state.actionId - 1),
 
-              action: currentAction as BoltAction,
+              action: currentAction as DevonzAction,
             });
 
             state.insideAction = false;
@@ -187,15 +187,15 @@ export class StreamingMessageParser {
             i = closeIndex + ARTIFACT_ACTION_TAG_CLOSE.length;
           } else {
             /*
-             * No </boltAction> found yet. Check if </boltArtifact> exists — if so,
-             * the LLM omitted the closing </boltAction> tag. We treat
-             * </boltArtifact> as the implicit action boundary to prevent the
+             * No </devonzAction> found yet. Check if </devonzArtifact> exists — if so,
+             * the LLM omitted the closing </devonzAction> tag. We treat
+             * </devonzArtifact> as the implicit action boundary to prevent the
              * raw tag from leaking into file content.
              */
             const potentialArtifactClose = input.indexOf(ARTIFACT_TAG_CLOSE, i);
 
             if (potentialArtifactClose !== -1) {
-              // Implicit close: LLM omitted </boltAction> for the last action
+              // Implicit close: LLM omitted </devonzAction> for the last action
               currentAction.content += input.slice(i, potentialArtifactClose);
 
               let content = currentAction.content.trim();
@@ -215,13 +215,13 @@ export class StreamingMessageParser {
                 artifactId: currentArtifact.id,
                 messageId,
                 actionId: String(state.actionId - 1),
-                action: currentAction as BoltAction,
+                action: currentAction as DevonzAction,
               });
 
               state.insideAction = false;
               state.currentAction = { content: '' };
 
-              // Also close the artifact since the </boltArtifact> tag is what we found
+              // Also close the artifact since the </devonzArtifact> tag is what we found
               this._options.callbacks?.onArtifactClose?.({
                 messageId,
                 artifactId: currentArtifact.id,
@@ -238,10 +238,10 @@ export class StreamingMessageParser {
                 let content = input.slice(i);
 
                 /*
-                 * Strip any partial bolt closing tags at the tail of the stream
-                 * (e.g. "</bolt", "</boltArti") that haven't fully arrived yet.
+                 * Strip any partial devonz closing tags at the tail of the stream
+                 * (e.g. "</devonz", "</devonzArti") that haven't fully arrived yet.
                  */
-                content = content.replace(/<\/bolt[A-Za-z]*$/g, '');
+                content = content.replace(/<\/devonz[A-Za-z]*$/g, '');
 
                 if (!currentAction.filePath.endsWith('.md')) {
                   content = cleanoutMarkdownSyntax(content);
@@ -279,7 +279,7 @@ export class StreamingMessageParser {
                 artifactId: currentArtifact.id,
                 messageId,
                 actionId: String(state.actionId++),
-                action: state.currentAction as BoltAction,
+                action: state.currentAction as DevonzAction,
               });
 
               i = actionEndIndex + 1;
@@ -342,7 +342,7 @@ export class StreamingMessageParser {
                 id: artifactId,
                 title: artifactTitle,
                 type,
-              } satisfies BoltArtifactData;
+              } satisfies DevonzArtifactData;
 
               state.currentArtifact = currentArtifact;
 
@@ -472,7 +472,7 @@ export class StreamingMessageParser {
 
 const createArtifactElement: ElementFactory = (props) => {
   const elementProps = [
-    'class="__boltArtifact__"',
+    'class="__devonzArtifact__"',
     ...Object.entries(props).map(([key, value]) => {
       return `data-${camelToDashCase(key)}=${JSON.stringify(value)}`;
     }),
@@ -487,8 +487,8 @@ function camelToDashCase(input: string) {
 
 function createQuickActionElement(props: Record<string, string>, label: string) {
   const elementProps = [
-    'class="__boltQuickAction__"',
-    'data-bolt-quick-action="true"',
+    'class="__devonzQuickAction__"',
+    'data-devonz-quick-action="true"',
     ...Object.entries(props).map(([key, value]) => `data-${camelToDashCase(key)}=${JSON.stringify(value)}`),
   ];
 
@@ -496,5 +496,5 @@ function createQuickActionElement(props: Record<string, string>, label: string) 
 }
 
 function createQuickActionGroup(buttons: string[]) {
-  return `<div class=\"__boltQuickAction__\" data-bolt-quick-action=\"true\">${buttons.join('')}</div>`;
+  return `<div class=\"__devonzQuickAction__\" data-devonz-quick-action=\"true\">${buttons.join('')}</div>`;
 }

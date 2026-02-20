@@ -44,9 +44,9 @@ export function extractPropertiesFromMessage(message: Omit<Message, 'id'>): {
   return { model, provider, content: cleanedContent };
 }
 
-export function simplifyBoltActions(input: string): string {
-  // Using regex to match boltAction tags that have type="file"
-  const regex = /(<boltAction[^>]*type="file"[^>]*>)([\s\S]*?)(<\/boltAction>)/g;
+export function simplifyDevonzActions(input: string): string {
+  // Using regex to match devonzAction tags that have type="file"
+  const regex = /(<devonzAction[^>]*type="file"[^>]*>)([\s\S]*?)(<\/devonzAction>)/g;
 
   // Replace each matching occurrence
   return input.replace(regex, (_0, openingTag, _2, closingTag) => {
@@ -82,10 +82,10 @@ export function createFilesContext(files: FileMap, useRelativePath?: boolean) {
         filePath = path.replace('/home/project/', '');
       }
 
-      return `<boltAction type="file" filePath="${filePath}">${codeWithLinesNumbers}</boltAction>`;
+      return `<devonzAction type="file" filePath="${filePath}">${codeWithLinesNumbers}</devonzAction>`;
     });
 
-  return `<boltArtifact id="code-content" title="Code Content" >\n${fileContexts.join('\n')}\n</boltArtifact>`;
+  return `<devonzArtifact id="code-content" title="Code Content" >\n${fileContexts.join('\n')}\n</devonzArtifact>`;
 }
 
 export function extractCurrentContext(messages: Message[]) {

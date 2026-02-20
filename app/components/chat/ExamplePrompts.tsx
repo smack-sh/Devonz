@@ -38,19 +38,19 @@ export function ExamplePrompts({ sendMessage }: ExamplePromptsProps) {
   }, []);
 
   const buttonStyle = {
-    backgroundColor: 'var(--bolt-elements-bg-depth-3)',
-    color: 'var(--bolt-elements-textSecondary)',
-    border: '1px solid var(--bolt-elements-borderColor)',
+    backgroundColor: 'var(--devonz-elements-bg-depth-3)',
+    color: 'var(--devonz-elements-textSecondary)',
+    border: '1px solid var(--devonz-elements-borderColor)',
   };
 
   const hoverIn = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.backgroundColor = 'var(--bolt-elements-bg-depth-4)';
-    e.currentTarget.style.color = 'var(--bolt-elements-textPrimary)';
+    e.currentTarget.style.backgroundColor = 'var(--devonz-elements-bg-depth-4)';
+    e.currentTarget.style.color = 'var(--devonz-elements-textPrimary)';
   };
 
   const hoverOut = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.backgroundColor = 'var(--bolt-elements-bg-depth-3)';
-    e.currentTarget.style.color = 'var(--bolt-elements-textSecondary)';
+    e.currentTarget.style.backgroundColor = 'var(--devonz-elements-bg-depth-3)';
+    e.currentTarget.style.color = 'var(--devonz-elements-textSecondary)';
   };
 
   return (

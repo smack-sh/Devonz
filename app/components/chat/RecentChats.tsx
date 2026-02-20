@@ -47,7 +47,7 @@ export const RecentChats: React.FC<RecentChatsProps> = ({ maxItems = 10 }) => {
     return (
       <div className="w-full max-w-4xl mx-auto mt-8 px-4">
         <div className="flex items-center justify-center py-8">
-          <div className="i-svg-spinners:90-ring-with-bg text-2xl text-bolt-elements-loader-progress" />
+          <div className="i-svg-spinners:90-ring-with-bg text-2xl text-devonz-elements-loader-progress" />
         </div>
       </div>
     );
@@ -85,7 +85,7 @@ export const RecentChats: React.FC<RecentChatsProps> = ({ maxItems = 10 }) => {
       {/* Section Header */}
       <div className="flex items-center gap-3 mb-4">
         <div className="i-ph:clock-counter-clockwise text-xl text-[#6b8bb8]" />
-        <h2 className="text-lg font-medium text-bolt-elements-textPrimary">Recent Chats</h2>
+        <h2 className="text-lg font-medium text-devonz-elements-textPrimary">Recent Chats</h2>
         <div className="flex-1 h-px bg-gradient-to-r from-[#3d5a7f]/40 to-transparent" />
       </div>
 
@@ -94,7 +94,7 @@ export const RecentChats: React.FC<RecentChatsProps> = ({ maxItems = 10 }) => {
         className={classNames(
           'rounded-xl overflow-hidden',
           'border border-[#3d5a7f]/30',
-          'bg-gradient-to-b from-bolt-elements-bg-depth-2 to-bolt-elements-bg-depth-1',
+          'bg-gradient-to-b from-devonz-elements-bg-depth-2 to-devonz-elements-bg-depth-1',
         )}
       >
         {/* Table Header */}
@@ -118,16 +118,16 @@ export const RecentChats: React.FC<RecentChatsProps> = ({ maxItems = 10 }) => {
             >
               {/* Task Info */}
               <div className="min-w-0">
-                <div className="font-medium text-bolt-elements-textPrimary truncate group-hover:text-[#8badd4] transition-colors">
+                <div className="font-medium text-devonz-elements-textPrimary truncate group-hover:text-[#8badd4] transition-colors">
                   {chat.description || 'Untitled Chat'}
                 </div>
-                <div className="text-xs text-bolt-elements-textTertiary truncate mt-0.5">{getPreviewText(chat)}</div>
+                <div className="text-xs text-devonz-elements-textTertiary truncate mt-0.5">{getPreviewText(chat)}</div>
               </div>
 
               {/* Timestamp */}
               <div className="flex items-center gap-2 shrink-0">
-                <span className="text-sm text-bolt-elements-textSecondary">{formatRelativeTime(chat.timestamp)}</span>
-                <div className="i-ph:arrow-right text-bolt-elements-textTertiary opacity-0 group-hover:opacity-100 transition-opacity" />
+                <span className="text-sm text-devonz-elements-textSecondary">{formatRelativeTime(chat.timestamp)}</span>
+                <div className="i-ph:arrow-right text-devonz-elements-textTertiary opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             </div>
           ))}
@@ -135,7 +135,7 @@ export const RecentChats: React.FC<RecentChatsProps> = ({ maxItems = 10 }) => {
 
         {/* View All Link */}
         {chats.length >= maxItems && (
-          <div className="px-4 py-3 border-t border-[#3d5a7f]/20 bg-bolt-elements-bg-depth-1/50">
+          <div className="px-4 py-3 border-t border-[#3d5a7f]/20 bg-devonz-elements-bg-depth-1/50">
             <button
               onClick={() => {
                 /* Could navigate to a full history page or open sidebar */

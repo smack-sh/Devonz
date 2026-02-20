@@ -90,11 +90,11 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
     <div
       className={classNames('relative p-4 rounded-xl w-full max-w-chat mx-auto z-prompt', 'shadow-xl')}
       style={{
-        background: 'var(--bolt-chat-bg)',
+        background: 'var(--devonz-chat-bg)',
         borderWidth: '1px',
         borderStyle: 'solid',
-        borderColor: 'var(--bolt-chat-border)',
-        boxShadow: '0 20px 25px -5px var(--bolt-chat-shadow)',
+        borderColor: 'var(--devonz-chat-border)',
+        boxShadow: '0 20px 25px -5px var(--devonz-chat-shadow)',
         backdropFilter: 'blur(24px)',
       }}
     >
@@ -163,7 +163,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         }}
       />
       {props.selectedElement && (
-        <div className="flex mx-1.5 gap-2 items-center justify-between rounded-lg rounded-b-none border border-b-none border-bolt-elements-borderColor text-bolt-elements-textPrimary flex py-1 px-2.5 font-medium text-xs">
+        <div className="flex mx-1.5 gap-2 items-center justify-between rounded-lg rounded-b-none border border-b-none border-devonz-elements-borderColor text-devonz-elements-textPrimary flex py-1 px-2.5 font-medium text-xs">
           <div className="flex gap-2 items-center lowercase">
             <code className="bg-accent-500 rounded-4px px-1.5 py-1 mr-0.5 text-white">
               {props?.selectedElement?.tagName}
@@ -179,15 +179,15 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         </div>
       )}
       <div
-        className={classNames('relative shadow-xs border border-bolt-elements-borderColor backdrop-blur rounded-lg')}
+        className={classNames('relative shadow-xs border border-devonz-elements-borderColor backdrop-blur rounded-lg')}
       >
         <textarea
           ref={props.textareaRef}
           aria-label="Chat message input"
           className={classNames(
-            'w-full pl-4 pt-4 pr-16 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm',
+            'w-full pl-4 pt-4 pr-16 outline-none resize-none text-devonz-elements-textPrimary placeholder-devonz-elements-textTertiary bg-transparent text-sm',
             'transition-all duration-200',
-            'hover:border-bolt-elements-focus',
+            'hover:border-devonz-elements-focus',
           )}
           onDragEnter={(e) => {
             e.preventDefault();
@@ -199,11 +199,11 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           }}
           onDragLeave={(e) => {
             e.preventDefault();
-            e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
+            e.currentTarget.style.border = '1px solid var(--devonz-elements-borderColor)';
           }}
           onDrop={(e) => {
             e.preventDefault();
-            e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
+            e.currentTarget.style.border = '1px solid var(--devonz-elements-borderColor)';
 
             const files = Array.from(e.dataTransfer.files);
             files.forEach((file) => {
@@ -298,9 +298,9 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                 }}
               >
                 {props.enhancingPrompt ? (
-                  <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
+                  <div className="i-svg-spinners:90-ring-with-bg text-devonz-elements-loader-progress text-xl animate-spin"></div>
                 ) : (
-                  <div className="i-bolt:stars text-xl"></div>
+                  <div className="i-devonz:stars text-xl"></div>
                 )}
               </IconButton>
 
@@ -316,8 +316,8 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                 <IconButton
                   title="Select Model"
                   className={classNames('transition-all flex items-center gap-1', {
-                    'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': isModelSelectorOpen,
-                    'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault':
+                    'bg-devonz-elements-item-backgroundAccent text-devonz-elements-item-contentAccent': isModelSelectorOpen,
+                    'bg-devonz-elements-item-backgroundDefault text-devonz-elements-item-contentDefault':
                       !isModelSelectorOpen,
                   })}
                   onClick={() => setIsModelSelectorOpen(!isModelSelectorOpen)}
@@ -328,7 +328,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               </div>
 
               {/* Divider */}
-              <div className="w-px h-4 bg-bolt-elements-borderColor mx-0.5" />
+              <div className="w-px h-4 bg-devonz-elements-borderColor mx-0.5" />
 
               {/* More tools toggle */}
               <IconButton
@@ -336,15 +336,15 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                 className={classNames(
                   'transition-all',
                   showMoreTools
-                    ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent'
-                    : 'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault',
+                    ? 'bg-devonz-elements-item-backgroundAccent text-devonz-elements-item-contentAccent'
+                    : 'bg-devonz-elements-item-backgroundDefault text-devonz-elements-item-contentDefault',
                 )}
                 onClick={() => setShowMoreTools((v) => !v)}
               >
                 <div
                   className={classNames(
                     'text-lg transition-transform duration-200',
-                    showMoreTools ? 'i-ph:x' : 'i-bolt:expand',
+                    showMoreTools ? 'i-ph:x' : 'i-devonz:expand',
                   )}
                 />
               </IconButton>

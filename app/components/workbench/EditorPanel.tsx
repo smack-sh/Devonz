@@ -88,19 +88,19 @@ export const EditorPanel = memo(
               defaultSize={20}
               minSize={15}
               collapsible
-              className="border-r border-bolt-elements-borderColor"
-              style={{ background: 'var(--bolt-elements-bg-depth-1)' }}
+              className="border-r border-devonz-elements-borderColor"
+              style={{ background: 'var(--devonz-elements-bg-depth-1)' }}
             >
               <div className="h-full">
                 <Tabs.Root defaultValue="files" className="flex flex-col h-full">
-                  <PanelHeader className="w-full text-sm font-medium text-bolt-elements-textSecondary px-1">
+                  <PanelHeader className="w-full text-sm font-medium text-devonz-elements-textSecondary px-1">
                     <div className="h-full flex-shrink-0 flex items-center justify-between w-full">
                       <Tabs.List className="h-full flex-shrink-0 flex items-center gap-1">
                         <Tabs.Trigger
                           value="files"
                           title="Files"
                           className={classNames(
-                            'h-full bg-transparent hover:bg-bolt-elements-background-depth-3 p-1.5 rounded-lg text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary data-[state=active]:text-bolt-elements-textPrimary',
+                            'h-full bg-transparent hover:bg-devonz-elements-background-depth-3 p-1.5 rounded-lg text-devonz-elements-textTertiary hover:text-devonz-elements-textPrimary data-[state=active]:text-devonz-elements-textPrimary',
                           )}
                         >
                           <div className="i-ph:files text-lg" />
@@ -109,7 +109,7 @@ export const EditorPanel = memo(
                           value="search"
                           title="Search"
                           className={classNames(
-                            'h-full bg-transparent hover:bg-bolt-elements-background-depth-3 p-1.5 rounded-lg text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary data-[state=active]:text-bolt-elements-textPrimary',
+                            'h-full bg-transparent hover:bg-devonz-elements-background-depth-3 p-1.5 rounded-lg text-devonz-elements-textTertiary hover:text-devonz-elements-textPrimary data-[state=active]:text-devonz-elements-textPrimary',
                           )}
                         >
                           <div className="i-ph:magnifying-glass text-lg" />
@@ -118,7 +118,7 @@ export const EditorPanel = memo(
                           value="locks"
                           title="Locks"
                           className={classNames(
-                            'h-full bg-transparent hover:bg-bolt-elements-background-depth-3 p-1.5 rounded-lg text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary data-[state=active]:text-bolt-elements-textPrimary',
+                            'h-full bg-transparent hover:bg-devonz-elements-background-depth-3 p-1.5 rounded-lg text-devonz-elements-textTertiary hover:text-devonz-elements-textPrimary data-[state=active]:text-devonz-elements-textPrimary',
                           )}
                         >
                           <div className="i-ph:lock text-lg" />
@@ -130,7 +130,7 @@ export const EditorPanel = memo(
                   <Tabs.Content
                     value="files"
                     className="flex-grow overflow-auto focus-visible:outline-none"
-                    style={{ background: 'var(--bolt-elements-bg-depth-1)' }}
+                    style={{ background: 'var(--devonz-elements-bg-depth-1)' }}
                   >
                     <FileTree
                       className="h-full"
@@ -147,7 +147,7 @@ export const EditorPanel = memo(
                   <Tabs.Content
                     value="search"
                     className="flex-grow overflow-auto focus-visible:outline-none"
-                    style={{ background: 'var(--bolt-elements-bg-depth-1)' }}
+                    style={{ background: 'var(--devonz-elements-bg-depth-1)' }}
                   >
                     <Search />
                   </Tabs.Content>
@@ -155,7 +155,7 @@ export const EditorPanel = memo(
                   <Tabs.Content
                     value="locks"
                     className="flex-grow overflow-auto focus-visible:outline-none"
-                    style={{ background: 'var(--bolt-elements-bg-depth-1)' }}
+                    style={{ background: 'var(--devonz-elements-bg-depth-1)' }}
                   >
                     <LockManager />
                   </Tabs.Content>
@@ -168,7 +168,7 @@ export const EditorPanel = memo(
               className="flex flex-col"
               defaultSize={80}
               minSize={20}
-              style={{ background: 'var(--bolt-elements-bg-depth-1)' }}
+              style={{ background: 'var(--devonz-elements-bg-depth-1)' }}
             >
               <PanelHeader className="overflow-x-auto">
                 {activeFileSegments?.length && (

@@ -110,7 +110,7 @@ export default function ProjectMemoryTab() {
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-medium text-bolt-elements-textPrimary">Project Memory</h3>
+              <h3 className="text-lg font-medium text-devonz-elements-textPrimary">Project Memory</h3>
               {fileExists ? (
                 <span className="px-2 py-0.5 text-xs rounded-full bg-green-500/10 text-green-500 font-medium">
                   Active
@@ -123,7 +123,7 @@ export default function ProjectMemoryTab() {
             </div>
             {hasUnsavedChanges && <span className="text-xs text-orange-500 font-medium">Unsaved changes</span>}
           </div>
-          <p className="text-sm text-bolt-elements-textSecondary">
+          <p className="text-sm text-devonz-elements-textSecondary">
             Create a PROJECT.md file to give the AI persistent instructions that apply to every conversation in this
             project. The AI will read this file automatically and follow your rules.
           </p>
@@ -133,15 +133,15 @@ export default function ProjectMemoryTab() {
         <div
           className={classNames(
             'p-4 rounded-lg',
-            'bg-bolt-elements-background-depth-2',
-            'border border-bolt-elements-borderColor',
+            'bg-devonz-elements-background-depth-2',
+            'border border-devonz-elements-borderColor',
           )}
         >
-          <h4 className="text-sm font-medium text-bolt-elements-textPrimary mb-2 flex items-center gap-2">
-            <div className="i-ph:lightbulb w-4 h-4 text-bolt-elements-item-contentAccent" />
+          <h4 className="text-sm font-medium text-devonz-elements-textPrimary mb-2 flex items-center gap-2">
+            <div className="i-ph:lightbulb w-4 h-4 text-devonz-elements-item-contentAccent" />
             What can you put in Project Memory?
           </h4>
-          <ul className="text-sm text-bolt-elements-textSecondary space-y-1 list-disc list-inside">
+          <ul className="text-sm text-devonz-elements-textSecondary space-y-1 list-disc list-inside">
             <li>Coding standards and conventions (e.g., "Use TypeScript strict mode")</li>
             <li>Style guidelines (e.g., "All headings must be red")</li>
             <li>Project-specific rules (e.g., "Never modify the config.ts file")</li>
@@ -153,15 +153,15 @@ export default function ProjectMemoryTab() {
         {/* Editor Section */}
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-bolt-elements-textPrimary">PROJECT.md Content</label>
+            <label className="text-sm font-medium text-devonz-elements-textPrimary">PROJECT.md Content</label>
             {!content && !fileExists && (
               <button
                 onClick={handleCreateTemplate}
                 className={classNames(
                   'px-3 py-1.5 text-xs rounded-md',
-                  'bg-bolt-elements-button-primary-background',
-                  'text-bolt-elements-button-primary-text',
-                  'hover:bg-bolt-elements-button-primary-backgroundHover',
+                  'bg-devonz-elements-button-primary-background',
+                  'text-devonz-elements-button-primary-text',
+                  'hover:bg-devonz-elements-button-primary-backgroundHover',
                   'transition-colors duration-200',
                 )}
               >
@@ -177,11 +177,11 @@ export default function ProjectMemoryTab() {
             placeholder="Enter your project instructions here... The AI will follow these rules in every conversation."
             className={classNames(
               'w-full h-64 p-3 rounded-lg resize-y',
-              'bg-bolt-elements-background-depth-3',
-              'border border-bolt-elements-borderColor',
-              'text-bolt-elements-textPrimary',
-              'placeholder-bolt-elements-textTertiary',
-              'focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus',
+              'bg-devonz-elements-background-depth-3',
+              'border border-devonz-elements-borderColor',
+              'text-devonz-elements-textPrimary',
+              'placeholder-devonz-elements-textTertiary',
+              'focus:outline-none focus:ring-2 focus:ring-devonz-elements-focus',
               'font-mono text-sm',
               'transition-colors duration-200',
             )}
@@ -194,9 +194,9 @@ export default function ProjectMemoryTab() {
               disabled={isSaving || !hasUnsavedChanges}
               className={classNames(
                 'px-4 py-2 rounded-lg text-sm font-medium',
-                'bg-bolt-elements-button-primary-background',
-                'text-bolt-elements-button-primary-text',
-                'hover:bg-bolt-elements-button-primary-backgroundHover',
+                'bg-devonz-elements-button-primary-background',
+                'text-devonz-elements-button-primary-text',
+                'hover:bg-devonz-elements-button-primary-backgroundHover',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
                 'transition-all duration-200',
               )}
@@ -209,10 +209,10 @@ export default function ProjectMemoryTab() {
                 onClick={handleReset}
                 className={classNames(
                   'px-4 py-2 rounded-lg text-sm font-medium',
-                  'bg-bolt-elements-background-depth-2',
-                  'text-bolt-elements-textSecondary',
-                  'hover:text-bolt-elements-textPrimary',
-                  'border border-bolt-elements-borderColor',
+                  'bg-devonz-elements-background-depth-2',
+                  'text-devonz-elements-textSecondary',
+                  'hover:text-devonz-elements-textPrimary',
+                  'border border-devonz-elements-borderColor',
                   'transition-all duration-200',
                 )}
               >
@@ -223,9 +223,9 @@ export default function ProjectMemoryTab() {
         </div>
 
         {/* File Path Info */}
-        <div className="text-xs text-bolt-elements-textTertiary">
+        <div className="text-xs text-devonz-elements-textTertiary">
           File location:{' '}
-          <code className="px-1 py-0.5 rounded bg-bolt-elements-background-depth-2">{PROJECT_MEMORY_PATH}</code>
+          <code className="px-1 py-0.5 rounded bg-devonz-elements-background-depth-2">{PROJECT_MEMORY_PATH}</code>
         </div>
       </motion.div>
     </div>

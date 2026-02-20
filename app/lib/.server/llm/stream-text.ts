@@ -92,20 +92,20 @@ function isEssentialFile(filePath: string): boolean {
 }
 
 /**
- * Simplify non-essential boltAction file contents to "..." to reduce token usage.
+ * Simplify non-essential devonzAction file contents to "..." to reduce token usage.
  * Essential config/entry files keep their full content so the LLM understands the project structure.
  * Lock files are stripped entirely (they're huge and the LLM never needs them).
  */
 function simplifyTemplateActions(text: string): string {
   /* Strip lock files entirely — they can be 6000+ lines (~25K tokens) */
   let result = text.replace(
-    /<boltAction type="file" filePath="(?:package-lock\.json|yarn\.lock|pnpm-lock\.yaml)">[\s\S]*?<\/boltAction>/g,
+    /<devonzAction type="file" filePath="(?:package-lock\.json|yarn\.lock|pnpm-lock\.yaml)">[\s\S]*?<\/devonzAction>/g,
     '',
   );
 
   /* Replace non-essential file contents with "..." */
   result = result.replace(
-    /(<boltAction[^>]*type="file"[^>]*filePath="([^"]+)"[^>]*>)([\s\S]*?)(<\/boltAction>)/g,
+    /(<devonzAction[^>]*type="file"[^>]*filePath="([^"]+)"[^>]*>)([\s\S]*?)(<\/devonzAction>)/g,
     (match, openTag: string, filePath: string, _content: string, closeTag: string) => {
       if (isEssentialFile(filePath)) {
         return match;
@@ -119,7 +119,7 @@ function simplifyTemplateActions(text: string): string {
 }
 
 function sanitizeText(text: string): string {
-  let sanitized = text.replace(/<div class=\\"__boltThought__\\">.*?<\/div>/s, '');
+  let sanitized = text.replace(/<div class=\\"__devonzThought__\\">.*?<\/div>/s, '');
   sanitized = sanitized.replace(/<think>.*?<\/think>/s, '');
   sanitized = simplifyTemplateActions(sanitized);
 
@@ -318,7 +318,7 @@ When the user sends a message like "execute the plan", "approved", or "go ahead"
   }
 
   // PROJECT.md: Persistent project memory - read from project root if exists
-  const projectMemoryPaths = ['/home/project/PROJECT.md', '/home/project/BOLT.md', '/home/project/AGENTS.md'];
+  const projectMemoryPaths = ['/home/project/PROJECT.md', '/home/project/DEVONZ.md', '/home/project/AGENTS.md'];
   let projectMemoryContent: string | undefined;
 
   for (const memoryPath of projectMemoryPaths) {
@@ -335,7 +335,7 @@ When the user sends a message like "execute the plan", "approved", or "go ahead"
     systemPrompt = `${systemPrompt}
 
 <project_memory>
-The following are project-specific instructions from the user's PROJECT.md (or BOLT.md/AGENTS.md) file. You MUST follow these instructions for this project:
+The following are project-specific instructions from the user's PROJECT.md (or DEVONZ.md/AGENTS.md) file. You MUST follow these instructions for this project:
 
 ${projectMemoryContent}
 </project_memory>

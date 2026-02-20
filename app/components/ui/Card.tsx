@@ -9,8 +9,8 @@ const Card = forwardRef<HTMLDivElement, CardProps>(({ className, style, ...props
       ref={ref}
       className={classNames('rounded-lg border text-white shadow-sm', className)}
       style={{
-        backgroundColor: 'var(--bolt-elements-bg-depth-1)',
-        borderColor: 'var(--bolt-elements-borderColor)',
+        backgroundColor: 'var(--devonz-elements-bg-depth-1)',
+        borderColor: 'var(--devonz-elements-borderColor)',
         ...style,
       }}
       {...props}
@@ -30,7 +30,7 @@ const CardTitle = forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHead
       <h3
         ref={ref}
         className={classNames('text-2xl font-semibold leading-none tracking-tight', className)}
-        style={{ color: 'var(--bolt-elements-textPrimary)', ...style }}
+        style={{ color: 'var(--devonz-elements-textPrimary)', ...style }}
         {...props}
       />
     );
@@ -44,7 +44,7 @@ const CardDescription = forwardRef<HTMLParagraphElement, React.HTMLAttributes<HT
       <p
         ref={ref}
         className={classNames('text-sm', className)}
-        style={{ color: 'var(--bolt-elements-textSecondary)', ...style }}
+        style={{ color: 'var(--devonz-elements-textSecondary)', ...style }}
         {...props}
       />
     );

@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────
-# Devonz (bolt.diy) — Multi-stage Docker build
+# Devonz (devonz.diy) — Multi-stage Docker build
 # Optimised for pnpm + Remix on Node 20 LTS
 # ─────────────────────────────────────────────────────────────
 

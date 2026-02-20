@@ -42,8 +42,8 @@ function ProviderCard({
     <Card
       className="w-full transition-all duration-300 shadow-sm hover:shadow-md"
       style={{
-        backgroundColor: 'var(--bolt-elements-bg-depth-1)',
-        borderColor: provider.settings.enabled ? 'rgba(139, 92, 246, 0.3)' : 'var(--bolt-elements-borderColor)',
+        backgroundColor: 'var(--devonz-elements-bg-depth-1)',
+        borderColor: provider.settings.enabled ? 'rgba(139, 92, 246, 0.3)' : 'var(--devonz-elements-borderColor)',
       }}
     >
       <CardContent className="!p-4">
@@ -54,7 +54,7 @@ function ProviderCard({
               style={{
                 backgroundColor: provider.settings.enabled
                   ? 'rgba(139, 92, 246, 0.1)'
-                  : 'var(--bolt-elements-bg-depth-3)',
+                  : 'var(--devonz-elements-bg-depth-3)',
                 boxShadow: provider.settings.enabled ? '0 0 0 1px rgba(139, 92, 246, 0.3)' : 'none',
               }}
             >
@@ -85,9 +85,9 @@ function ProviderCard({
                       spellCheck={false}
                       defaultValue={provider.settings.baseUrl}
                       placeholder={`Enter ${provider.name} base URL`}
-                      className="w-full px-4 py-3 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive transition-all duration-200 shadow-sm"
+                      className="w-full px-4 py-3 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-devonz-elements-borderColorActive transition-all duration-200 shadow-sm"
                       style={{
-                        backgroundColor: 'var(--bolt-elements-bg-depth-3)',
+                        backgroundColor: 'var(--devonz-elements-bg-depth-3)',
                         borderColor: 'rgba(6, 182, 212, 0.3)',
                         border: '1px solid rgba(6, 182, 212, 0.3)',
                       }}
@@ -110,12 +110,12 @@ function ProviderCard({
                       onClick={onStartEditing}
                       className="w-full px-4 py-3 rounded-lg text-sm hover:shadow-sm transition-all duration-200 text-left group"
                       style={{
-                        backgroundColor: 'var(--bolt-elements-bg-depth-3)',
-                        border: '1px solid var(--bolt-elements-borderColor)',
+                        backgroundColor: 'var(--devonz-elements-bg-depth-3)',
+                        border: '1px solid var(--devonz-elements-borderColor)',
                       }}
                     >
                       <div className="flex items-center gap-3 text-gray-400 group-hover:text-white">
-                        <div className="i-ph:link w-4 h-4 group-hover:text-bolt-elements-item-contentAccent transition-colors" />
+                        <div className="i-ph:link w-4 h-4 group-hover:text-devonz-elements-item-contentAccent transition-colors" />
                         <span className="font-mono">{provider.settings.baseUrl || 'Click to set base URL'}</span>
                       </div>
                     </button>

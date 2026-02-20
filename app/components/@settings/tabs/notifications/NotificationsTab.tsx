@@ -92,8 +92,8 @@ const NotificationsTab = () => {
     if (type === 'update') {
       return {
         icon: 'i-ph:arrow-circle-up',
-        color: 'text-bolt-elements-item-contentAccent',
-        bg: 'hover:bg-bolt-elements-item-backgroundAccent',
+        color: 'text-devonz-elements-item-contentAccent',
+        bg: 'hover:bg-devonz-elements-item-backgroundAccent',
       };
     }
 
@@ -142,9 +142,9 @@ const NotificationsTab = () => {
               'rounded-lg px-3 py-1.5',
               'text-sm font-medium',
               'bg-transparent',
-              'border border-bolt-elements-borderColor',
+              'border border-devonz-elements-borderColor',
               'text-gray-900 dark:text-white',
-              'hover:bg-bolt-elements-item-backgroundAccent',
+              'hover:bg-devonz-elements-item-backgroundAccent',
               'transition-all duration-200',
             )}
           >
@@ -180,8 +180,8 @@ const NotificationsTab = () => {
                 'rounded-lg px-3 py-1.5',
                 'text-sm text-gray-900 dark:text-white',
                 'bg-transparent',
-                'border border-bolt-elements-borderColor',
-                'hover:bg-bolt-elements-item-backgroundAccent',
+                'border border-devonz-elements-borderColor',
+                'hover:bg-devonz-elements-item-backgroundAccent',
                 'transition-all duration-200',
               )}
             >
@@ -196,7 +196,7 @@ const NotificationsTab = () => {
 
           <DropdownMenu.Portal>
             <DropdownMenu.Content
-              className="min-w-[200px] rounded-lg shadow-lg py-1 z-[250] animate-in fade-in-0 zoom-in-95 border border-bolt-elements-borderColor"
+              className="min-w-[200px] rounded-lg shadow-lg py-1 z-[250] animate-in fade-in-0 zoom-in-95 border border-devonz-elements-borderColor"
               style={{ backgroundColor: '#0f1219' }}
               sideOffset={5}
               align="start"
@@ -205,19 +205,19 @@ const NotificationsTab = () => {
               {filterOptions.map((option) => (
                 <DropdownMenu.Item
                   key={option.id}
-                  className="group flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-bolt-elements-item-backgroundAccent cursor-pointer transition-colors"
+                  className="group flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-devonz-elements-item-backgroundAccent cursor-pointer transition-colors"
                   onClick={() => handleFilterChange(option.id)}
                 >
                   <div className="mr-3 flex h-5 w-5 items-center justify-center">
                     <div
                       className={classNames(
                         option.icon,
-                        'text-lg group-hover:text-bolt-elements-item-contentAccent transition-colors',
+                        'text-lg group-hover:text-devonz-elements-item-contentAccent transition-colors',
                       )}
                       style={{ color: option.color }}
                     />
                   </div>
-                  <span className="group-hover:text-bolt-elements-item-contentAccent transition-colors">
+                  <span className="group-hover:text-devonz-elements-item-contentAccent transition-colors">
                     {option.label}
                   </span>
                 </DropdownMenu.Item>
@@ -233,12 +233,12 @@ const NotificationsTab = () => {
             'rounded-lg px-3 py-1.5',
             'text-sm text-gray-900 dark:text-white',
             'bg-transparent',
-            'border border-bolt-elements-borderColor',
-            'hover:bg-bolt-elements-item-backgroundAccent',
+            'border border-devonz-elements-borderColor',
+            'hover:bg-devonz-elements-item-backgroundAccent',
             'transition-all duration-200',
           )}
         >
-          <span className="i-ph:trash text-lg text-gray-500 dark:text-gray-400 group-hover:text-bolt-elements-item-contentAccent transition-colors" />
+          <span className="i-ph:trash text-lg text-gray-500 dark:text-gray-400 group-hover:text-devonz-elements-item-contentAccent transition-colors" />
           Clear All
         </button>
       </div>
@@ -251,8 +251,8 @@ const NotificationsTab = () => {
             className={classNames(
               'flex flex-col items-center justify-center gap-4',
               'rounded-lg p-8 text-center',
-              'bg-bolt-elements-bg-depth-1',
-              'border border-bolt-elements-borderColor',
+              'bg-devonz-elements-bg-depth-1',
+              'border border-devonz-elements-borderColor',
             )}
           >
             <span className="i-ph:bell-slash text-4xl text-gray-400 dark:text-gray-600" />
@@ -272,8 +272,8 @@ const NotificationsTab = () => {
                 className={classNames(
                   'flex flex-col gap-2',
                   'rounded-lg p-4',
-                  'bg-bolt-elements-bg-depth-1',
-                  'border border-bolt-elements-borderColor',
+                  'bg-devonz-elements-bg-depth-1',
+                  'border border-devonz-elements-borderColor',
                   style.bg,
                   'transition-all duration-200',
                 )}

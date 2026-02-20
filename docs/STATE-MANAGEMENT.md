@@ -201,14 +201,14 @@ All hooks live in `app/lib/hooks/`. They often wrap store access or provide data
 
 | Storage | What's Stored | Access Pattern |
 | ------- | ------------- | -------------- |
-| **IndexedDB** (`boltHistory`) | Chat messages, snapshots | `app/lib/persistence/db.ts` |
+| **IndexedDB** (`devonzHistory`) | Chat messages, snapshots | `app/lib/persistence/db.ts` |
 | **Cookies** | API keys, provider settings | `js-cookie` library |
 | **localStorage** | Theme preference, MCP settings (`mcp_settings`) | Direct `localStorage` API |
 | **URL Parameters** | Chat ID | Remix route params |
 
 ### IndexedDB Schema
 
-Database: `boltHistory` (version 2)
+Database: `devonzHistory` (version 2)
 
 **Object Stores:**
 

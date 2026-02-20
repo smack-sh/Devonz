@@ -119,12 +119,12 @@ export function createCommandsMessage(commands: ProjectCommands): Message | null
 
   if (commands.setupCommand) {
     commandString += `
-<boltAction type="shell">${commands.setupCommand}</boltAction>`;
+<devonzAction type="shell">${commands.setupCommand}</devonzAction>`;
   }
 
   if (commands.startCommand) {
     commandString += `
-<boltAction type="start">${commands.startCommand}</boltAction>
+<devonzAction type="start">${commands.startCommand}</devonzAction>
 `;
   }
 
@@ -132,17 +132,17 @@ export function createCommandsMessage(commands: ProjectCommands): Message | null
     role: 'assistant',
     content: `
 ${commands.followupMessage ? `\n\n${commands.followupMessage}` : ''}
-<boltArtifact id="project-setup" title="Project Setup">
+<devonzArtifact id="project-setup" title="Project Setup">
 ${commandString}
-</boltArtifact>`,
+</devonzArtifact>`,
     id: generateId(),
     createdAt: new Date(),
   };
 }
 
-export function escapeBoltArtifactTags(input: string) {
-  // Regular expression to match boltArtifact tags and their content
-  const regex = /(<boltArtifact[^>]*>)([\s\S]*?)(<\/boltArtifact>)/g;
+export function escapeDevonzArtifactTags(input: string) {
+  // Regular expression to match devonzArtifact tags and their content
+  const regex = /(<devonzArtifact[^>]*>)([\s\S]*?)(<\/devonzArtifact>)/g;
 
   return input.replace(regex, (match, openTag, content, closeTag) => {
     // Escape the opening tag
@@ -156,9 +156,9 @@ export function escapeBoltArtifactTags(input: string) {
   });
 }
 
-export function escapeBoltAActionTags(input: string) {
-  // Regular expression to match boltArtifact tags and their content
-  const regex = /(<boltAction[^>]*>)([\s\S]*?)(<\/boltAction>)/g;
+export function escapeDevonzAActionTags(input: string) {
+  // Regular expression to match devonzArtifact tags and their content
+  const regex = /(<devonzAction[^>]*>)([\s\S]*?)(<\/devonzAction>)/g;
 
   return input.replace(regex, (match, openTag, content, closeTag) => {
     // Escape the opening tag
@@ -172,8 +172,8 @@ export function escapeBoltAActionTags(input: string) {
   });
 }
 
-export function escapeBoltTags(input: string) {
-  return escapeBoltArtifactTags(escapeBoltAActionTags(input));
+export function escapeDevonzTags(input: string) {
+  return escapeDevonzArtifactTags(escapeDevonzAActionTags(input));
 }
 
 // We have this seperate function to simplify the restore snapshot process in to one single artifact.
@@ -187,12 +187,12 @@ export function createCommandActionsString(commands: ProjectCommands): string {
 
   if (commands.setupCommand) {
     commandString += `
-<boltAction type="shell">${commands.setupCommand}</boltAction>`;
+<devonzAction type="shell">${commands.setupCommand}</devonzAction>`;
   }
 
   if (commands.startCommand) {
     commandString += `
-<boltAction type="start">${commands.startCommand}</boltAction>
+<devonzAction type="start">${commands.startCommand}</devonzAction>
 `;
   }
 

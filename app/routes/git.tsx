@@ -26,7 +26,7 @@ export async function loader(args: LoaderFunctionArgs) {
 
 export default function Index() {
   return (
-    <main className="flex flex-col h-full w-full bg-bolt-elements-background-depth-1">
+    <main className="flex flex-col h-full w-full bg-devonz-elements-background-depth-1">
       <BackgroundRays />
       <Header />
       <ClientOnly fallback={<BaseChat />}>{() => <GitUrlImport />}</ClientOnly>

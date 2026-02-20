@@ -127,8 +127,8 @@ export class WorkbenchStore {
   get showTerminal() {
     return this.#terminalStore.showTerminal;
   }
-  get boltTerminal() {
-    return this.#terminalStore.boltTerminal;
+  get devonzTerminal() {
+    return this.#terminalStore.devonzTerminal;
   }
   get alert() {
     return this.actionAlert;
@@ -142,7 +142,7 @@ export class WorkbenchStore {
    * Useful before sending a fix request so the terminal is ready for new commands
    */
   interruptTerminal() {
-    this.#terminalStore.boltTerminal.interruptExecution();
+    this.#terminalStore.devonzTerminal.interruptExecution();
   }
 
   get SupabaseAlert() {
@@ -168,8 +168,8 @@ export class WorkbenchStore {
   attachTerminal(terminal: ITerminal) {
     this.#terminalStore.attachTerminal(terminal);
   }
-  attachBoltTerminal(terminal: ITerminal) {
-    this.#terminalStore.attachBoltTerminal(terminal);
+  attachDevonzTerminal(terminal: ITerminal) {
+    this.#terminalStore.attachDevonzTerminal(terminal);
   }
 
   detachTerminal(terminal: ITerminal) {
@@ -543,7 +543,7 @@ export class WorkbenchStore {
       type,
       runner: new ActionRunner(
         webcontainer,
-        () => this.boltTerminal,
+        () => this.devonzTerminal,
         (alert) => {
           if (this.#reloadedMessages.has(messageId)) {
             return;

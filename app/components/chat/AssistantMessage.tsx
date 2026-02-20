@@ -31,10 +31,10 @@ const ThinkingBlock = memo(({ reasoningParts }: { reasoningParts: ReasoningUIPar
   }
 
   return (
-    <div className="mb-3 rounded-lg border border-bolt-elements-borderColor overflow-hidden">
+    <div className="mb-3 rounded-lg border border-devonz-elements-borderColor overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 transition-colors"
+        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-devonz-elements-textSecondary bg-devonz-elements-background-depth-2 hover:bg-devonz-elements-background-depth-3 transition-colors"
       >
         <div className="i-ph:brain w-4 h-4 text-purple-400" />
         <span>Thinking</span>
@@ -43,7 +43,7 @@ const ThinkingBlock = memo(({ reasoningParts }: { reasoningParts: ReasoningUIPar
         />
       </button>
       {isOpen && (
-        <div className="px-3 py-2 text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-1 border-t border-bolt-elements-borderColor max-h-64 overflow-y-auto whitespace-pre-wrap leading-relaxed">
+        <div className="px-3 py-2 text-xs text-devonz-elements-textSecondary bg-devonz-elements-background-depth-1 border-t border-devonz-elements-borderColor max-h-64 overflow-y-auto whitespace-pre-wrap leading-relaxed">
           {combinedText}
         </div>
       )}
@@ -138,36 +138,36 @@ export const AssistantMessage = memo(
       <div className="overflow-hidden w-full">
         {/* Assistant Header - Blink style */}
         <div className="flex items-center gap-2 mb-3">
-          <div className="w-6 h-6 rounded-full bg-bolt-elements-bg-depth-3 border border-bolt-elements-borderColor flex items-center justify-center">
-            <span className="text-xs font-bold text-bolt-elements-textPrimary">D</span>
+          <div className="w-6 h-6 rounded-full bg-devonz-elements-bg-depth-3 border border-devonz-elements-borderColor flex items-center justify-center">
+            <span className="text-xs font-bold text-devonz-elements-textPrimary">D</span>
           </div>
-          <span className="text-sm font-medium text-bolt-elements-textSecondary">Devonz</span>
+          <span className="text-sm font-medium text-devonz-elements-textSecondary">Devonz</span>
           {(codeContext || chatSummary) && (
             <Popover
               side="right"
               align="start"
               trigger={
-                <div className="i-ph:info text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary transition-colors cursor-pointer" />
+                <div className="i-ph:info text-devonz-elements-textTertiary hover:text-devonz-elements-textSecondary transition-colors cursor-pointer" />
               }
             >
               {chatSummary && (
                 <div className="max-w-chat">
                   <div className="summary max-h-96 flex flex-col">
-                    <h2 className="border border-bolt-elements-borderColor rounded-md p4">Summary</h2>
+                    <h2 className="border border-devonz-elements-borderColor rounded-md p4">Summary</h2>
                     <div style={{ zoom: 0.7 }} className="overflow-y-auto m4">
                       <Markdown>{chatSummary}</Markdown>
                     </div>
                   </div>
                   {codeContext && (
-                    <div className="code-context flex flex-col p4 border border-bolt-elements-borderColor rounded-md">
+                    <div className="code-context flex flex-col p4 border border-devonz-elements-borderColor rounded-md">
                       <h2>Context</h2>
-                      <div className="flex gap-4 mt-4 bolt" style={{ zoom: 0.6 }}>
+                      <div className="flex gap-4 mt-4 devonz" style={{ zoom: 0.6 }}>
                         {codeContext.map((x) => {
                           const normalized = normalizedFilePath(x);
                           return (
                             <Fragment key={normalized}>
                               <code
-                                className="bg-bolt-elements-artifacts-inlineCode-background text-bolt-elements-artifacts-inlineCode-text px-1.5 py-1 rounded-md text-bolt-elements-item-contentAccent hover:underline cursor-pointer"
+                                className="bg-devonz-elements-artifacts-inlineCode-background text-devonz-elements-artifacts-inlineCode-text px-1.5 py-1 rounded-md text-devonz-elements-item-contentAccent hover:underline cursor-pointer"
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
@@ -189,7 +189,7 @@ export const AssistantMessage = memo(
           )}
           <div className="flex-1" />
           {usage && (
-            <div className="text-xs text-bolt-elements-textTertiary">{usage.totalTokens.toLocaleString()} tokens</div>
+            <div className="text-xs text-devonz-elements-textTertiary">{usage.totalTokens.toLocaleString()} tokens</div>
           )}
           {(onRewind || onFork) && messageId && (
             <div className="flex gap-1.5">
@@ -199,7 +199,7 @@ export const AssistantMessage = memo(
                     onClick={() => onRewind(messageId)}
                     key="i-ph:arrow-u-up-left"
                     aria-label="Revert to this message"
-                    className="i-ph:arrow-u-up-left text-lg text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-colors"
+                    className="i-ph:arrow-u-up-left text-lg text-devonz-elements-textTertiary hover:text-devonz-elements-textPrimary transition-colors"
                   />
                 </WithTooltip>
               )}
@@ -208,7 +208,7 @@ export const AssistantMessage = memo(
                   <button
                     onClick={() => onFork(messageId)}
                     key="i-ph:git-fork"
-                    className="i-ph:git-fork text-lg text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-colors"
+                    className="i-ph:git-fork text-lg text-devonz-elements-textTertiary hover:text-devonz-elements-textPrimary transition-colors"
                   />
                 </WithTooltip>
               )}
@@ -220,7 +220,7 @@ export const AssistantMessage = memo(
         {reasoningParts && reasoningParts.length > 0 && <ThinkingBlock reasoningParts={reasoningParts} />}
 
         {/* Message Content */}
-        <div className="text-bolt-elements-textPrimary text-sm leading-relaxed">
+        <div className="text-devonz-elements-textPrimary text-sm leading-relaxed">
           <Markdown
             append={append}
             chatMode={chatMode}

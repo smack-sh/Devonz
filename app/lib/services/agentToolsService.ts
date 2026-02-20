@@ -215,7 +215,7 @@ async function listDirectory(params: ListDirectoryParams): Promise<ToolExecution
 
 /**
  * Run Command Tool
- * Executes a shell command in the WebContainer using the BoltShell.
+ * Executes a shell command in the WebContainer using the DevonzShell.
  * Requires the terminal to be initialized and ready.
  */
 async function runCommand(params: RunCommandParams): Promise<ToolExecutionResult<RunCommandResult>> {
@@ -223,7 +223,7 @@ async function runCommand(params: RunCommandParams): Promise<ToolExecutionResult
 
   try {
     const workbench = await getWorkbenchStore();
-    const shell = workbench.boltTerminal;
+    const shell = workbench.devonzTerminal;
 
     // Check if shell is ready
     await shell.ready();

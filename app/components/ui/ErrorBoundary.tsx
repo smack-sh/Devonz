@@ -147,20 +147,20 @@ function DefaultErrorFallback({
     <div
       className={classNames(
         'flex flex-col items-center justify-center p-6 rounded-lg',
-        'border border-bolt-elements-borderColor',
-        'bg-bolt-elements-background-depth-2',
+        'border border-devonz-elements-borderColor',
+        'bg-devonz-elements-background-depth-2',
         'text-center min-h-[200px]',
         className,
       )}
     >
       {/* Error Icon */}
-      <div className="i-ph:warning-circle-duotone text-4xl text-bolt-elements-button-danger-text mb-4" />
+      <div className="i-ph:warning-circle-duotone text-4xl text-devonz-elements-button-danger-text mb-4" />
 
       {/* Title */}
-      <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-2">{title}</h3>
+      <h3 className="text-lg font-medium text-devonz-elements-textPrimary mb-2">{title}</h3>
 
       {/* Description */}
-      <p className="text-sm text-bolt-elements-textSecondary mb-4 max-w-md">{description}</p>
+      <p className="text-sm text-devonz-elements-textSecondary mb-4 max-w-md">{description}</p>
 
       {/* Actions */}
       <div className="flex gap-2">
@@ -168,9 +168,9 @@ function DefaultErrorFallback({
           onClick={resetErrorBoundary}
           className={classNames(
             'px-4 py-2 rounded-lg text-sm font-medium',
-            'bg-bolt-elements-button-primary-background',
-            'text-bolt-elements-button-primary-text',
-            'hover:bg-bolt-elements-button-primary-backgroundHover',
+            'bg-devonz-elements-button-primary-background',
+            'text-devonz-elements-button-primary-text',
+            'hover:bg-devonz-elements-button-primary-backgroundHover',
             'transition-colors duration-200',
           )}
         >
@@ -181,15 +181,15 @@ function DefaultErrorFallback({
       {/* Error Details (Development Only) */}
       {showDetails && (
         <details className="mt-4 w-full max-w-lg text-left">
-          <summary className="cursor-pointer text-sm text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary">
+          <summary className="cursor-pointer text-sm text-devonz-elements-textTertiary hover:text-devonz-elements-textSecondary">
             Error Details
           </summary>
-          <div className="mt-2 p-3 bg-bolt-elements-background-depth-3 rounded-lg overflow-auto">
-            <p className="text-xs text-bolt-elements-textSecondary font-mono mb-2">
+          <div className="mt-2 p-3 bg-devonz-elements-background-depth-3 rounded-lg overflow-auto">
+            <p className="text-xs text-devonz-elements-textSecondary font-mono mb-2">
               {error.name}: {error.message}
             </p>
             {error.stack && (
-              <pre className="text-xs text-bolt-elements-textTertiary whitespace-pre-wrap break-words">
+              <pre className="text-xs text-devonz-elements-textTertiary whitespace-pre-wrap break-words">
                 {error.stack}
               </pre>
             )}
@@ -213,12 +213,12 @@ export function InlineErrorFallback({
   message?: string;
 }): JSX.Element {
   return (
-    <div className="flex items-center gap-2 p-2 text-sm text-bolt-elements-textSecondary">
+    <div className="flex items-center gap-2 p-2 text-sm text-devonz-elements-textSecondary">
       <div className="i-ph:warning text-yellow-500" />
       <span>{message}</span>
       <button
         onClick={resetErrorBoundary}
-        className="text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary underline"
+        className="text-devonz-elements-textTertiary hover:text-devonz-elements-textSecondary underline"
       >
         Retry
       </button>
@@ -234,13 +234,13 @@ export function PreviewErrorFallback({ error, resetErrorBoundary }: ErrorBoundar
     <div
       className={classNames(
         'flex flex-col items-center justify-center w-full h-full',
-        'bg-bolt-elements-background-depth-1',
-        'text-bolt-elements-textPrimary',
+        'bg-devonz-elements-background-depth-1',
+        'text-devonz-elements-textPrimary',
       )}
     >
-      <div className="i-ph:monitor-duotone text-6xl text-bolt-elements-textTertiary mb-4" />
+      <div className="i-ph:monitor-duotone text-6xl text-devonz-elements-textTertiary mb-4" />
       <h3 className="text-lg font-medium mb-2">Preview Error</h3>
-      <p className="text-sm text-bolt-elements-textSecondary mb-4 text-center max-w-md">
+      <p className="text-sm text-devonz-elements-textSecondary mb-4 text-center max-w-md">
         The preview encountered an error. This might be a temporary issue.
       </p>
       <div className="flex gap-2">
@@ -248,9 +248,9 @@ export function PreviewErrorFallback({ error, resetErrorBoundary }: ErrorBoundar
           onClick={resetErrorBoundary}
           className={classNames(
             'px-4 py-2 rounded-lg text-sm font-medium',
-            'bg-bolt-elements-button-primary-background',
-            'text-bolt-elements-button-primary-text',
-            'hover:bg-bolt-elements-button-primary-backgroundHover',
+            'bg-devonz-elements-button-primary-background',
+            'text-devonz-elements-button-primary-text',
+            'hover:bg-devonz-elements-button-primary-backgroundHover',
             'transition-colors duration-200',
           )}
         >
@@ -259,8 +259,8 @@ export function PreviewErrorFallback({ error, resetErrorBoundary }: ErrorBoundar
       </div>
       {process.env.NODE_ENV === 'development' && (
         <details className="mt-4 max-w-lg text-left">
-          <summary className="cursor-pointer text-xs text-bolt-elements-textTertiary">Technical Details</summary>
-          <pre className="mt-2 p-2 bg-bolt-elements-background-depth-2 rounded text-xs overflow-auto max-h-32">
+          <summary className="cursor-pointer text-xs text-devonz-elements-textTertiary">Technical Details</summary>
+          <pre className="mt-2 p-2 bg-devonz-elements-background-depth-2 rounded text-xs overflow-auto max-h-32">
             {error.message}
           </pre>
         </details>

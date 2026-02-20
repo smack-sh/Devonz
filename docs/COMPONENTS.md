@@ -232,7 +232,7 @@ const showWorkbench = useStore(workbenchStore.showWorkbench);
 Two icon systems:
 
 - **Phosphor Icons**: `@phosphor-icons/react` — general UI icons
-- **Custom Icons**: UnoCSS `i-bolt:*` classes — project-specific SVG icons from `icons/` directory
+- **Custom Icons**: UnoCSS `i-devonz:*` classes — project-specific SVG icons from `icons/` directory
 - **UnoCSS Icon Classes**: `i-ph:*` — Phosphor icons via UnoCSS
 
 ```tsx
@@ -242,7 +242,7 @@ import { Gear } from '@phosphor-icons/react';
 
 // UnoCSS class (div with icon)
 <div className="i-ph:gear text-xl" />
-<div className="i-bolt:custom-icon text-xl" />
+<div className="i-devonz:custom-icon text-xl" />
 ```
 
 ### 5. Memoization

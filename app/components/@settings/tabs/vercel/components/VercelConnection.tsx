@@ -120,7 +120,7 @@ export default function VercelConnection() {
 
   return (
     <motion.div
-      className="bg-bolt-elements-bg-depth-1 rounded-lg border border-bolt-elements-borderColor"
+      className="bg-devonz-elements-bg-depth-1 rounded-lg border border-devonz-elements-borderColor"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
@@ -136,14 +136,14 @@ export default function VercelConnection() {
               alt="Vercel"
               src={`https://cdn.simpleicons.org/vercel/black`}
             />
-            <h3 className="text-base font-medium text-bolt-elements-textPrimary">Vercel Connection</h3>
+            <h3 className="text-base font-medium text-devonz-elements-textPrimary">Vercel Connection</h3>
           </div>
         </div>
 
         {!connection.user ? (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-bolt-elements-textSecondary mb-2">Personal Access Token</label>
+              <label className="block text-sm text-devonz-elements-textSecondary mb-2">Personal Access Token</label>
               <input
                 type="password"
                 autoComplete="off"
@@ -154,28 +154,28 @@ export default function VercelConnection() {
                 placeholder="Enter your Vercel personal access token"
                 className={classNames(
                   'w-full px-3 py-2 rounded-lg text-sm',
-                  'bg-bolt-elements-background-depth-1',
-                  'border border-bolt-elements-borderColor',
-                  'text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary',
-                  'focus:outline-none focus:ring-1 focus:ring-bolt-elements-borderColorActive',
+                  'bg-devonz-elements-background-depth-1',
+                  'border border-devonz-elements-borderColor',
+                  'text-devonz-elements-textPrimary placeholder-devonz-elements-textTertiary',
+                  'focus:outline-none focus:ring-1 focus:ring-devonz-elements-borderColorActive',
                   'disabled:opacity-50',
                 )}
               />
-              <div className="mt-2 text-sm text-bolt-elements-textSecondary">
+              <div className="mt-2 text-sm text-devonz-elements-textSecondary">
                 <a
                   href="https://vercel.com/account/tokens"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-bolt-elements-borderColorActive hover:underline inline-flex items-center gap-1"
+                  className="text-devonz-elements-borderColorActive hover:underline inline-flex items-center gap-1"
                 >
                   Get your token
                   <div className="i-ph:arrow-square-out w-4 h-4" />
                 </a>
-                <div className="mt-2 text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-1 p-2 rounded">
+                <div className="mt-2 text-xs text-devonz-elements-textSecondary bg-devonz-elements-background-depth-1 p-2 rounded">
                   <p className="flex items-center gap-1">
-                    <span className="i-ph:lightbulb w-3.5 h-3.5 text-bolt-elements-icon-success" />
+                    <span className="i-ph:lightbulb w-3.5 h-3.5 text-devonz-elements-icon-success" />
                     <span className="font-medium">Tip:</span> You can also set{' '}
-                    <code className="px-1 py-0.5 bg-bolt-elements-background-depth-2 rounded text-xs">
+                    <code className="px-1 py-0.5 bg-devonz-elements-background-depth-2 rounded text-xs">
                       VITE_VERCEL_ACCESS_TOKEN
                     </code>{' '}
                     in your .env.local for automatic connection.
@@ -190,7 +190,7 @@ export default function VercelConnection() {
                 disabled={connecting || !connection.token}
                 className={classNames(
                   'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
-                  'bg-bolt-elements-bg-depth-3 text-bolt-elements-textPrimary',
+                  'bg-devonz-elements-bg-depth-3 text-devonz-elements-textPrimary',
                   'hover:bg-[#5E41D0] hover:text-white',
                   'disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200',
                   'transform active:scale-95',
@@ -225,14 +225,14 @@ export default function VercelConnection() {
                   <div className="i-ph:plug w-4 h-4" />
                   Disconnect
                 </button>
-                <span className="text-sm text-bolt-elements-textSecondary flex items-center gap-1">
+                <span className="text-sm text-devonz-elements-textSecondary flex items-center gap-1">
                   <div className="i-ph:check-circle w-4 h-4 text-green-500" />
                   Connected to Vercel
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-4 p-4 bg-bolt-elements-bg-depth-2 rounded-lg">
+            <div className="flex items-center gap-4 p-4 bg-devonz-elements-bg-depth-2 rounded-lg">
               {/* Debug output */}
               <pre className="hidden">{JSON.stringify(connection.user, null, 2)}</pre>
 
@@ -242,20 +242,20 @@ export default function VercelConnection() {
                 referrerPolicy="no-referrer"
                 crossOrigin="anonymous"
                 alt="User Avatar"
-                className="w-12 h-12 rounded-full border-2 border-bolt-elements-borderColorActive"
+                className="w-12 h-12 rounded-full border-2 border-devonz-elements-borderColorActive"
               />
               <div>
-                <h4 className="text-sm font-medium text-bolt-elements-textPrimary">
+                <h4 className="text-sm font-medium text-devonz-elements-textPrimary">
                   {connection.user?.username || connection.user?.user?.username || 'Vercel User'}
                 </h4>
-                <p className="text-sm text-bolt-elements-textSecondary">
+                <p className="text-sm text-devonz-elements-textSecondary">
                   {connection.user?.email || connection.user?.user?.email || 'No email available'}
                 </p>
               </div>
             </div>
 
             {fetchingStats ? (
-              <div className="flex items-center gap-2 text-sm text-bolt-elements-textSecondary">
+              <div className="flex items-center gap-2 text-sm text-devonz-elements-textSecondary">
                 <div className="i-ph:spinner-gap w-4 h-4 animate-spin" />
                 Fetching Vercel projects...
               </div>
@@ -263,7 +263,7 @@ export default function VercelConnection() {
               <div>
                 <button
                   onClick={() => setIsProjectsExpanded(!isProjectsExpanded)}
-                  className="w-full bg-transparent text-left text-sm font-medium text-bolt-elements-textPrimary mb-3 flex items-center gap-2"
+                  className="w-full bg-transparent text-left text-sm font-medium text-devonz-elements-textPrimary mb-3 flex items-center gap-2"
                 >
                   <div className="i-ph:buildings w-4 h-4" />
                   Your Projects ({connection.stats?.totalProjects || 0})
@@ -282,22 +282,22 @@ export default function VercelConnection() {
                         href={`https://vercel.com/dashboard/${project.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block p-4 rounded-lg border border-bolt-elements-borderColor hover:border-bolt-elements-borderColorActive transition-colors"
+                        className="block p-4 rounded-lg border border-devonz-elements-borderColor hover:border-devonz-elements-borderColorActive transition-colors"
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <h5 className="text-sm font-medium text-bolt-elements-textPrimary flex items-center gap-2">
-                              <div className="i-ph:globe w-4 h-4 text-bolt-elements-borderColorActive" />
+                            <h5 className="text-sm font-medium text-devonz-elements-textPrimary flex items-center gap-2">
+                              <div className="i-ph:globe w-4 h-4 text-devonz-elements-borderColorActive" />
                               {project.name}
                             </h5>
-                            <div className="flex items-center gap-2 mt-2 text-xs text-bolt-elements-textSecondary">
+                            <div className="flex items-center gap-2 mt-2 text-xs text-devonz-elements-textSecondary">
                               {project.targets?.production?.alias && project.targets.production.alias.length > 0 ? (
                                 <>
                                   <a
                                     href={`https://${project.targets.production.alias.find((a: string) => a.endsWith('.vercel.app') && !a.includes('-projects.vercel.app')) || project.targets.production.alias[0]}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="hover:text-bolt-elements-borderColorActive"
+                                    className="hover:text-devonz-elements-borderColorActive"
                                   >
                                     {project.targets.production.alias.find(
                                       (a: string) => a.endsWith('.vercel.app') && !a.includes('-projects.vercel.app'),
@@ -315,7 +315,7 @@ export default function VercelConnection() {
                                     href={`https://${project.latestDeployments[0].url}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="hover:text-bolt-elements-borderColorActive"
+                                    className="hover:text-devonz-elements-borderColorActive"
                                   >
                                     {project.latestDeployments[0].url}
                                   </a>
@@ -329,7 +329,7 @@ export default function VercelConnection() {
                             </div>
                           </div>
                           {project.framework && (
-                            <div className="text-xs text-bolt-elements-textSecondary px-2 py-1 rounded-md bg-bolt-elements-bg-depth-3">
+                            <div className="text-xs text-devonz-elements-textSecondary px-2 py-1 rounded-md bg-devonz-elements-bg-depth-3">
                               <span className="flex items-center gap-1">
                                 <div className="i-ph:code w-3 h-3" />
                                 {project.framework}
@@ -341,7 +341,7 @@ export default function VercelConnection() {
                     ))}
                   </div>
                 ) : isProjectsExpanded ? (
-                  <div className="text-sm text-bolt-elements-textSecondary flex items-center gap-2">
+                  <div className="text-sm text-devonz-elements-textSecondary flex items-center gap-2">
                     <div className="i-ph:info w-4 h-4" />
                     No projects found in your Vercel account
                   </div>

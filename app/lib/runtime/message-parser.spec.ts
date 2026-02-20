@@ -29,7 +29,7 @@ describe('StreamingMessageParser', () => {
       ['Foo bar <', 'Foo bar '],
       ['Foo bar <p', 'Foo bar <p'],
       [['Foo bar <', 's', 'p', 'an>some text</span>'], 'Foo bar <span>some text</span>'],
-    ])('should correctly parse chunks and strip out bolt artifacts (%#)', (input, expected) => {
+    ])('should correctly parse chunks and strip out devonz artifacts (%#)', (input, expected) => {
       runTest(input, expected);
     });
   });
@@ -39,13 +39,13 @@ describe('StreamingMessageParser', () => {
       ['Foo bar <b', 'Foo bar '],
       ['Foo bar <ba', 'Foo bar <ba'],
       ['Foo bar <bol', 'Foo bar '],
-      ['Foo bar <bolt', 'Foo bar '],
-      ['Foo bar <bolta', 'Foo bar <bolta'],
-      ['Foo bar <boltA', 'Foo bar '],
-      ['Foo bar <boltArtifacs></boltArtifact>', 'Foo bar <boltArtifacs></boltArtifact>'],
-      ['Before <oltArtfiact>foo</boltArtifact> After', 'Before <oltArtfiact>foo</boltArtifact> After'],
-      ['Before <boltArtifactt>foo</boltArtifact> After', 'Before <boltArtifactt>foo</boltArtifact> After'],
-    ])('should correctly parse chunks and strip out bolt artifacts (%#)', (input, expected) => {
+      ['Foo bar <devonz', 'Foo bar '],
+      ['Foo bar <devonza', 'Foo bar <devonza'],
+      ['Foo bar <devonzA', 'Foo bar '],
+      ['Foo bar <devonzArtifacs></devonzArtifact>', 'Foo bar <devonzArtifacs></devonzArtifact>'],
+      ['Before <oltArtfiact>foo</devonzArtifact> After', 'Before <oltArtfiact>foo</devonzArtifact> After'],
+      ['Before <devonzArtifactt>foo</devonzArtifact> After', 'Before <devonzArtifactt>foo</devonzArtifact> After'],
+    ])('should correctly parse chunks and strip out devonz artifacts (%#)', (input, expected) => {
       runTest(input, expected);
     });
   });
@@ -53,7 +53,7 @@ describe('StreamingMessageParser', () => {
   describe('valid artifacts without actions', () => {
     it.each<[string | string[], ExpectedResult | string]>([
       [
-        'Some text before <boltArtifact title="Some title" id="artifact_1">foo bar</boltArtifact> Some more text',
+        'Some text before <devonzArtifact title="Some title" id="artifact_1">foo bar</devonzArtifact> Some more text',
         {
           output: 'Some text before  Some more text',
           callbacks: { onArtifactOpen: 1, onArtifactClose: 1, onActionOpen: 0, onActionClose: 0 },
@@ -61,9 +61,9 @@ describe('StreamingMessageParser', () => {
       ],
       [
         [
-          'Some text before <boltArti',
+          'Some text before <devonzArti',
           'fact',
-          ' title="Some title" id="artifact_1" type="bundled" >foo</boltArtifact> Some more text',
+          ' title="Some title" id="artifact_1" type="bundled" >foo</devonzArtifact> Some more text',
         ],
         {
           output: 'Some text before  Some more text',
@@ -72,12 +72,12 @@ describe('StreamingMessageParser', () => {
       ],
       [
         [
-          'Some text before <boltArti',
+          'Some text before <devonzArti',
           'fac',
           't title="Some title" id="artifact_1"',
           ' ',
           '>',
-          'foo</boltArtifact> Some more text',
+          'foo</devonzArtifact> Some more text',
         ],
         {
           output: 'Some text before  Some more text',
@@ -86,11 +86,11 @@ describe('StreamingMessageParser', () => {
       ],
       [
         [
-          'Some text before <boltArti',
+          'Some text before <devonzArti',
           'fact',
           ' title="Some title" id="artifact_1"',
           ' >fo',
-          'o</boltArtifact> Some more text',
+          'o</devonzArtifact> Some more text',
         ],
         {
           output: 'Some text before  Some more text',
@@ -99,13 +99,13 @@ describe('StreamingMessageParser', () => {
       ],
       [
         [
-          'Some text before <boltArti',
+          'Some text before <devonzArti',
           'fact tit',
           'le="Some ',
           'title" id="artifact_1">fo',
           'o',
           '<',
-          '/boltArtifact> Some more text',
+          '/devonzArtifact> Some more text',
         ],
         {
           output: 'Some text before  Some more text',
@@ -114,11 +114,11 @@ describe('StreamingMessageParser', () => {
       ],
       [
         [
-          'Some text before <boltArti',
+          'Some text before <devonzArti',
           'fact title="Some title" id="artif',
           'act_1">fo',
           'o<',
-          '/boltArtifact> Some more text',
+          '/devonzArtifact> Some more text',
         ],
         {
           output: 'Some text before  Some more text',
@@ -126,13 +126,13 @@ describe('StreamingMessageParser', () => {
         },
       ],
       [
-        'Before <boltArtifact title="Some title" id="artifact_1">foo</boltArtifact> After',
+        'Before <devonzArtifact title="Some title" id="artifact_1">foo</devonzArtifact> After',
         {
           output: 'Before  After',
           callbacks: { onArtifactOpen: 1, onArtifactClose: 1, onActionOpen: 0, onActionClose: 0 },
         },
       ],
-    ])('should correctly parse chunks and strip out bolt artifacts (%#)', (input, expected) => {
+    ])('should correctly parse chunks and strip out devonz artifacts (%#)', (input, expected) => {
       runTest(input, expected);
     });
   });
@@ -140,26 +140,26 @@ describe('StreamingMessageParser', () => {
   describe('valid artifacts with actions', () => {
     it.each<[string | string[], ExpectedResult | string]>([
       [
-        'Before <boltArtifact title="Some title" id="artifact_1"><boltAction type="shell">npm install</boltAction></boltArtifact> After',
+        'Before <devonzArtifact title="Some title" id="artifact_1"><devonzAction type="shell">npm install</devonzAction></devonzArtifact> After',
         {
           output: 'Before  After',
           callbacks: { onArtifactOpen: 1, onArtifactClose: 1, onActionOpen: 1, onActionClose: 1 },
         },
       ],
       [
-        'Before <boltArtifact title="Some title" id="artifact_1"><boltAction type="shell">npm install</boltAction><boltAction type="file" filePath="index.js">some content</boltAction></boltArtifact> After',
+        'Before <devonzArtifact title="Some title" id="artifact_1"><devonzAction type="shell">npm install</devonzAction><devonzAction type="file" filePath="index.js">some content</devonzAction></devonzArtifact> After',
         {
           output: 'Before  After',
           callbacks: { onArtifactOpen: 1, onArtifactClose: 1, onActionOpen: 2, onActionClose: 2 },
         },
       ],
-    ])('should correctly parse chunks and strip out bolt artifacts (%#)', (input, expected) => {
+    ])('should correctly parse chunks and strip out devonz artifacts (%#)', (input, expected) => {
       runTest(input, expected);
     });
   });
 
-  describe('missing </boltAction> tag (implicit close via </boltArtifact>)', () => {
-    it('should close the last action implicitly when </boltAction> is missing', () => {
+  describe('missing </devonzAction> tag (implicit close via </devonzArtifact>)', () => {
+    it('should close the last action implicitly when </devonzAction> is missing', () => {
       const callbacks = {
         onArtifactOpen: vi.fn(),
         onArtifactClose: vi.fn(),
@@ -173,7 +173,7 @@ describe('StreamingMessageParser', () => {
       });
 
       const input =
-        'Before <boltArtifact title="Test" id="artifact_1"><boltAction type="file" filePath="App.css">.container { color: red; }</boltArtifact> After';
+        'Before <devonzArtifact title="Test" id="artifact_1"><devonzAction type="file" filePath="App.css">.container { color: red; }</devonzArtifact> After';
 
       const result = parser.parse('msg_1', input);
 
@@ -183,13 +183,13 @@ describe('StreamingMessageParser', () => {
       expect(callbacks.onActionOpen).toHaveBeenCalledTimes(1);
       expect(callbacks.onActionClose).toHaveBeenCalledTimes(1);
 
-      // Ensure the content does NOT include </boltArtifact>
+      // Ensure the content does NOT include </devonzArtifact>
       const actionCloseCall = callbacks.onActionClose.mock.calls[0][0];
-      expect(actionCloseCall.action.content).not.toContain('</boltArtifact>');
+      expect(actionCloseCall.action.content).not.toContain('</devonzArtifact>');
       expect(actionCloseCall.action.content).toContain('.container { color: red; }');
     });
 
-    it('should handle multiple actions where only the last is missing </boltAction>', () => {
+    it('should handle multiple actions where only the last is missing </devonzAction>', () => {
       const callbacks = {
         onArtifactOpen: vi.fn(),
         onArtifactClose: vi.fn(),
@@ -203,7 +203,7 @@ describe('StreamingMessageParser', () => {
       });
 
       const input =
-        'Before <boltArtifact title="Test" id="artifact_1"><boltAction type="shell">npm install</boltAction><boltAction type="file" filePath="App.css">.container { color: red; }</boltArtifact> After';
+        'Before <devonzArtifact title="Test" id="artifact_1"><devonzAction type="shell">npm install</devonzAction><devonzAction type="file" filePath="App.css">.container { color: red; }</devonzArtifact> After';
 
       const result = parser.parse('msg_2', input);
 
@@ -213,13 +213,13 @@ describe('StreamingMessageParser', () => {
       expect(callbacks.onActionOpen).toHaveBeenCalledTimes(2);
       expect(callbacks.onActionClose).toHaveBeenCalledTimes(2);
 
-      // The last action's content should NOT contain </boltArtifact>
+      // The last action's content should NOT contain </devonzArtifact>
       const lastCloseCall = callbacks.onActionClose.mock.calls[1][0];
-      expect(lastCloseCall.action.content).not.toContain('</boltArtifact>');
+      expect(lastCloseCall.action.content).not.toContain('</devonzArtifact>');
       expect(lastCloseCall.action.content).toContain('.container { color: red; }');
     });
 
-    it('should handle streaming where </boltArtifact> arrives without </boltAction>', () => {
+    it('should handle streaming where </devonzArtifact> arrives without </devonzAction>', () => {
       const callbacks = {
         onArtifactOpen: vi.fn(),
         onArtifactClose: vi.fn(),
@@ -235,27 +235,27 @@ describe('StreamingMessageParser', () => {
 
       /*
        * Simulate streaming: chunk 1 has partial content,
-       * chunk 2 adds </boltArtifact> without </boltAction>
+       * chunk 2 adds </devonzArtifact> without </devonzAction>
        */
       let accumulated =
-        '<boltArtifact title="Test" id="artifact_1"><boltAction type="file" filePath="App.css">.container { color: red; }';
+        '<devonzArtifact title="Test" id="artifact_1"><devonzAction type="file" filePath="App.css">.container { color: red; }';
       parser.parse('msg_3', accumulated);
 
       // At this point, onActionStream should have been called with clean content
       if (callbacks.onActionStream.mock.calls.length > 0) {
         const streamCall = callbacks.onActionStream.mock.calls[0][0];
-        expect(streamCall.action.content).not.toContain('</boltArtifact>');
+        expect(streamCall.action.content).not.toContain('</devonzArtifact>');
       }
 
-      // Now add </boltArtifact> without </boltAction>
-      accumulated += '</boltArtifact>';
+      // Now add </devonzArtifact> without </devonzAction>
+      accumulated += '</devonzArtifact>';
       parser.parse('msg_3', accumulated);
 
       // The action should be implicitly closed with clean content
       expect(callbacks.onActionClose).toHaveBeenCalledTimes(1);
 
       const closeCall = callbacks.onActionClose.mock.calls[0][0];
-      expect(closeCall.action.content).not.toContain('</boltArtifact>');
+      expect(closeCall.action.content).not.toContain('</devonzArtifact>');
       expect(closeCall.action.content).toContain('.container { color: red; }');
     });
   });

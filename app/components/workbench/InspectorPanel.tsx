@@ -237,25 +237,25 @@ export const InspectorPanel = memo(
     }
 
     return (
-      <div className="fixed right-4 top-20 w-80 bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor rounded-lg shadow-lg z-[9999] max-h-[calc(100vh-6rem)] overflow-hidden">
+      <div className="fixed right-4 top-20 w-80 bg-devonz-elements-background-depth-2 border border-devonz-elements-borderColor rounded-lg shadow-lg z-[9999] max-h-[calc(100vh-6rem)] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
+        <div className="flex items-center justify-between p-3 border-b border-devonz-elements-borderColor bg-devonz-elements-background-depth-3">
           <div className="flex items-center gap-2">
             <div className="i-ph:cursor-click text-accent-400" />
-            <h3 className="font-medium text-bolt-elements-textPrimary text-sm">Element Inspector</h3>
+            <h3 className="font-medium text-devonz-elements-textPrimary text-sm">Element Inspector</h3>
           </div>
           <button
             onClick={onClose}
-            className="text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors p-1 rounded hover:bg-bolt-elements-background-depth-4"
+            className="text-devonz-elements-textSecondary hover:text-devonz-elements-textPrimary transition-colors p-1 rounded hover:bg-devonz-elements-background-depth-4"
           >
             <div className="i-ph:x w-4 h-4" />
           </button>
         </div>
 
         {/* Element Info */}
-        <div className="p-3 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
+        <div className="p-3 border-b border-devonz-elements-borderColor bg-devonz-elements-background-depth-2">
           <div className="text-sm">
-            <div className="font-mono text-xs bg-bolt-elements-background-depth-3 px-2 py-1.5 rounded border border-bolt-elements-borderColor">
+            <div className="font-mono text-xs bg-devonz-elements-background-depth-3 px-2 py-1.5 rounded border border-devonz-elements-borderColor">
               <span className="text-blue-400">{selectedElement.tagName.toLowerCase()}</span>
               {selectedElement.id && <span className="text-green-400">#{selectedElement.id}</span>}
               {selectedElement.className && (
@@ -266,7 +266,7 @@ export const InspectorPanel = memo(
         </div>
 
         {/* Bulk Style Selector */}
-        <div className="p-3 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
+        <div className="p-3 border-b border-devonz-elements-borderColor bg-devonz-elements-background-depth-2">
           <BulkStyleSelector
             currentTagName={selectedElement.tagName}
             selectedTarget={bulkTarget}
@@ -277,8 +277,8 @@ export const InspectorPanel = memo(
 
         {/* Tabs */}
         <div
-          className="flex border-b border-bolt-elements-borderColor"
-          style={{ background: 'var(--bolt-elements-bg-depth-3)' }}
+          className="flex border-b border-devonz-elements-borderColor"
+          style={{ background: 'var(--devonz-elements-bg-depth-3)' }}
         >
           {(['styles', 'text', 'box', 'ai', 'tree', 'colors'] as const).map((tab) => (
             <button
@@ -286,8 +286,8 @@ export const InspectorPanel = memo(
               onClick={() => setActiveTab(tab)}
               className="flex-1 px-1.5 py-2 text-[10px] font-medium capitalize transition-colors"
               style={{
-                background: activeTab === tab ? 'var(--bolt-elements-bg-depth-2)' : 'transparent',
-                color: activeTab === tab ? 'var(--color-accent-500, #3b82f6)' : 'var(--bolt-elements-textSecondary)',
+                background: activeTab === tab ? 'var(--devonz-elements-bg-depth-2)' : 'transparent',
+                color: activeTab === tab ? 'var(--color-accent-500, #3b82f6)' : 'var(--devonz-elements-textSecondary)',
                 borderBottom:
                   activeTab === tab ? '2px solid var(--color-accent-500, #3b82f6)' : '2px solid transparent',
               }}
@@ -298,13 +298,13 @@ export const InspectorPanel = memo(
         </div>
 
         {/* Content */}
-        <div className="p-3 overflow-y-auto max-h-80 bg-bolt-elements-background-depth-2">
+        <div className="p-3 overflow-y-auto max-h-80 bg-devonz-elements-background-depth-2">
           {activeTab === 'styles' && (
             <div className="space-y-2">
               {/* Copy All Styles Button */}
               <button
                 onClick={handleCopyAllStyles}
-                className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-4 hover:text-bolt-elements-textPrimary transition-colors mb-3"
+                className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium rounded border border-devonz-elements-borderColor bg-devonz-elements-background-depth-3 text-devonz-elements-textSecondary hover:bg-devonz-elements-background-depth-4 hover:text-devonz-elements-textPrimary transition-colors mb-3"
               >
                 <span className="i-ph:clipboard w-3.5 h-3.5" />
                 {copyFeedback || 'Copy All Styles'}
@@ -316,12 +316,12 @@ export const InspectorPanel = memo(
 
                 return (
                   <div key={prop} className="flex items-center gap-2 text-xs">
-                    <span className="text-bolt-elements-textSecondary min-w-[100px] truncate" title={prop}>
+                    <span className="text-devonz-elements-textSecondary min-w-[100px] truncate" title={prop}>
                       {prop}:
                     </span>
                     <div className="flex-1 flex items-center gap-1">
                       {color && (
-                        <div className="relative w-6 h-6 rounded overflow-hidden border border-bolt-elements-borderColor">
+                        <div className="relative w-6 h-6 rounded overflow-hidden border border-devonz-elements-borderColor">
                           <input
                             type="color"
                             value={color.startsWith('#') ? color : '#000000'}
@@ -337,14 +337,14 @@ export const InspectorPanel = memo(
                         spellCheck={false}
                         value={editedValue}
                         onChange={(e) => handleStyleChange(prop, e.target.value)}
-                        className="flex-1 bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor rounded px-2 py-1 text-bolt-elements-textPrimary font-mono text-xs focus:outline-none focus:border-accent-400"
+                        className="flex-1 bg-devonz-elements-background-depth-3 border border-devonz-elements-borderColor rounded px-2 py-1 text-devonz-elements-textPrimary font-mono text-xs focus:outline-none focus:border-accent-400"
                       />
                     </div>
                   </div>
                 );
               })}
               {Object.keys(getRelevantStyles(selectedElement.styles)).length === 0 && (
-                <p className="text-bolt-elements-textSecondary text-xs italic">No editable styles found</p>
+                <p className="text-devonz-elements-textSecondary text-xs italic">No editable styles found</p>
               )}
             </div>
           )}
@@ -352,19 +352,19 @@ export const InspectorPanel = memo(
           {activeTab === 'text' && (
             <div className="space-y-3">
               <div>
-                <label htmlFor="inspector-text-content" className="text-xs text-bolt-elements-textSecondary block mb-1">
+                <label htmlFor="inspector-text-content" className="text-xs text-devonz-elements-textSecondary block mb-1">
                   Text Content
                 </label>
                 <textarea
                   id="inspector-text-content"
                   value={editedText || selectedElement.textContent}
                   onChange={(e) => handleTextChange(e.target.value)}
-                  className="w-full bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor rounded px-2 py-2 text-bolt-elements-textPrimary text-sm focus:outline-none focus:border-accent-400 resize-none"
+                  className="w-full bg-devonz-elements-background-depth-3 border border-devonz-elements-borderColor rounded px-2 py-2 text-devonz-elements-textPrimary text-sm focus:outline-none focus:border-accent-400 resize-none"
                   rows={4}
                   placeholder="Enter text content..."
                 />
               </div>
-              <p className="text-bolt-elements-textTertiary text-xs">
+              <p className="text-devonz-elements-textTertiary text-xs">
                 Changes apply instantly to the preview. Note: Only works for simple text elements.
               </p>
             </div>
@@ -399,7 +399,7 @@ export const InspectorPanel = memo(
         </div>
 
         {/* Footer with action buttons */}
-        <div className="p-3 border-t border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 space-y-2">
+        <div className="p-3 border-t border-devonz-elements-borderColor bg-devonz-elements-background-depth-3 space-y-2">
           {/* Bulk CSS Apply Section - Show when there are accumulated bulk changes */}
           {accumulatedBulkChanges && accumulatedBulkChanges.length > 0 && (
             <div className="space-y-2 p-2 rounded-lg border border-green-500/30 bg-green-500/5">
@@ -410,7 +410,7 @@ export const InspectorPanel = memo(
                 </span>
                 <button
                   onClick={onClearBulkChanges}
-                  className="text-bolt-elements-textTertiary hover:text-red-400 transition-colors"
+                  className="text-devonz-elements-textTertiary hover:text-red-400 transition-colors"
                   title="Clear all bulk changes"
                 >
                   <div className="i-ph:x-circle w-4 h-4" />
@@ -431,7 +431,7 @@ export const InspectorPanel = memo(
               <div className="flex gap-2">
                 <button
                   onClick={handleCopyCSS}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-4 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border border-devonz-elements-borderColor bg-devonz-elements-background-depth-2 text-devonz-elements-textPrimary hover:bg-devonz-elements-background-depth-4 transition-colors"
                 >
                   <div className="i-ph:clipboard w-3.5 h-3.5" />
                   {copyFeedback || 'Copy CSS'}
@@ -467,7 +467,7 @@ export const InspectorPanel = memo(
               </button>
             </div>
           ) : (
-            <p className="text-bolt-elements-textTertiary text-xs text-center">Edit values above to see live changes</p>
+            <p className="text-devonz-elements-textTertiary text-xs text-center">Edit values above to see live changes</p>
           )}
 
           {/* Delete Element Button */}

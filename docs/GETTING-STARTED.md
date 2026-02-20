@@ -19,7 +19,7 @@
 ```bash
 # Clone the repository
 git clone https://github.com/zebbern/Devonz.git
-cd Devonz/bolt.diy
+cd Devonz/devonz.diy
 
 # Install dependencies
 pnpm install
@@ -29,7 +29,7 @@ pnpm install
 
 ## Environment Variables
 
-Create a `.env.local` file in `bolt.diy/` (gitignored). The app loads env files in this priority:
+Create a `.env.local` file in `devonz.diy/` (gitignored). The app loads env files in this priority:
 
 1. `.env.local` (highest priority)
 2. `.env`
@@ -236,7 +236,7 @@ The app shows a blue banner at the top of the page when a new version is availab
 ## Project Structure Quick Reference
 
 ```text
-bolt.diy/
+devonz.diy/
 ├── .dockerignore         # Docker ignore rules
 ├── .github/workflows/    # CI/CD pipelines
 ├── Dockerfile            # Production Docker build

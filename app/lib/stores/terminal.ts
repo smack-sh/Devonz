@@ -1,7 +1,7 @@
 import type { WebContainer, WebContainerProcess } from '@webcontainer/api';
 import { atom, type WritableAtom } from 'nanostores';
 import type { ITerminal } from '~/types/terminal';
-import { newBoltShellProcess, newShellProcess } from '~/utils/shell';
+import { newDevonzShellProcess, newShellProcess } from '~/utils/shell';
 import { coloredText } from '~/utils/terminal';
 import { createScopedLogger } from '~/utils/logger';
 
@@ -10,7 +10,7 @@ const logger = createScopedLogger('TerminalStore');
 export class TerminalStore {
   #webcontainer: Promise<WebContainer>;
   #terminals: Array<{ terminal: ITerminal; process: WebContainerProcess }> = [];
-  #boltTerminal = newBoltShellProcess();
+  #devonzTerminal = newDevonzShellProcess();
 
   showTerminal: WritableAtom<boolean> = import.meta.hot?.data.showTerminal ?? atom(true);
 
@@ -21,14 +21,14 @@ export class TerminalStore {
       import.meta.hot.data.showTerminal = this.showTerminal;
     }
   }
-  get boltTerminal() {
-    return this.#boltTerminal;
+  get devonzTerminal() {
+    return this.#devonzTerminal;
   }
 
   toggleTerminal(value?: boolean) {
     this.showTerminal.set(value !== undefined ? value : !this.showTerminal.get());
   }
-  async attachBoltTerminal(terminal: ITerminal) {
+  async attachDevonzTerminal(terminal: ITerminal) {
     try {
       const wc = await this.#webcontainer;
 
@@ -38,10 +38,10 @@ export class TerminalStore {
         return;
       }
 
-      await this.#boltTerminal.init(wc, terminal);
+      await this.#devonzTerminal.init(wc, terminal);
     } catch (error: unknown) {
       terminal.write(
-        coloredText.red('Failed to spawn bolt shell\n\n') + (error instanceof Error ? error.message : String(error)),
+        coloredText.red('Failed to spawn devonz shell\n\n') + (error instanceof Error ? error.message : String(error)),
       );
       return;
     }

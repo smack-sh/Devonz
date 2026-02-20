@@ -29,7 +29,7 @@ const StatusIcon = memo(({ status }: { status: PlanTask['status'] }) => {
         </div>
       );
     default:
-      return <div className="w-5 h-5 rounded-full border-2 border-bolt-elements-borderColor bg-transparent" />;
+      return <div className="w-5 h-5 rounded-full border-2 border-devonz-elements-borderColor bg-transparent" />;
   }
 });
 
@@ -40,7 +40,7 @@ StatusIcon.displayName = 'StatusIcon';
  */
 const TaskItem = memo(({ task, index }: { task: PlanTask; index: number }) => {
   const statusColors = {
-    'not-started': 'text-bolt-elements-textSecondary',
+    'not-started': 'text-devonz-elements-textSecondary',
     'in-progress': 'text-blue-500',
     completed: 'text-green-500',
   };
@@ -54,7 +54,7 @@ const TaskItem = memo(({ task, index }: { task: PlanTask; index: number }) => {
         'flex items-start gap-3 p-3 rounded-lg transition-colors',
         task.status === 'in-progress'
           ? 'bg-blue-500/10 border border-blue-500/30'
-          : 'bg-bolt-elements-background-depth-2 border border-transparent',
+          : 'bg-devonz-elements-background-depth-2 border border-transparent',
       )}
     >
       <StatusIcon status={task.status} />
@@ -71,7 +71,7 @@ const TaskItem = memo(({ task, index }: { task: PlanTask; index: number }) => {
         </div>
 
         {task.description && (
-          <div className="text-xs text-bolt-elements-textSecondary mt-1 line-clamp-2">{task.description}</div>
+          <div className="text-xs text-devonz-elements-textSecondary mt-1 line-clamp-2">{task.description}</div>
         )}
 
         {task.fileActions && task.fileActions.length > 0 && (
@@ -79,7 +79,7 @@ const TaskItem = memo(({ task, index }: { task: PlanTask; index: number }) => {
             {task.fileActions.map((file) => (
               <span
                 key={file}
-                className="text-xs px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary font-mono"
+                className="text-xs px-1.5 py-0.5 rounded bg-devonz-elements-background-depth-3 text-devonz-elements-textSecondary font-mono"
               >
                 {file}
               </span>
@@ -184,23 +184,23 @@ export const Plan = memo(({ className }: PlanProps) => {
   const totalCount = state.tasks.length;
 
   return (
-    <div className={classNames('border-b border-bolt-elements-borderColor', className)}>
+    <div className={classNames('border-b border-devonz-elements-borderColor', className)}>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
           <button
             className={classNames(
               'w-full flex items-center justify-between p-4',
-              'bg-bolt-elements-background-depth-1 hover:bg-bolt-elements-background-depth-2',
+              'bg-devonz-elements-background-depth-1 hover:bg-devonz-elements-background-depth-2',
               'transition-colors cursor-pointer',
             )}
           >
             <div className="flex items-center gap-3">
-              <div className="i-ph:list-checks-fill text-xl text-bolt-elements-textPrimary" />
+              <div className="i-ph:list-checks-fill text-xl text-devonz-elements-textPrimary" />
               <div className="text-left">
-                <h3 className="font-semibold text-bolt-elements-textPrimary">
+                <h3 className="font-semibold text-devonz-elements-textPrimary">
                   {state.planTitle || 'Implementation Plan'}
                 </h3>
-                <p className="text-xs text-bolt-elements-textSecondary">
+                <p className="text-xs text-devonz-elements-textSecondary">
                   {completedCount} of {totalCount} tasks completed
                 </p>
               </div>
@@ -212,13 +212,13 @@ export const Plan = memo(({ className }: PlanProps) => {
                 <div className="w-24 hidden sm:block">
                   <Progress value={progress} />
                 </div>
-                <span className="text-sm font-medium text-bolt-elements-textSecondary">{progress}%</span>
+                <span className="text-sm font-medium text-devonz-elements-textSecondary">{progress}%</span>
               </div>
 
               {/* Chevron */}
               <div
                 className={classNames(
-                  'i-ph:caret-down text-bolt-elements-textSecondary transition-transform',
+                  'i-ph:caret-down text-devonz-elements-textSecondary transition-transform',
                   isOpen ? 'rotate-180' : '',
                 )}
               />
@@ -242,7 +242,7 @@ export const Plan = memo(({ className }: PlanProps) => {
               </div>
 
               {/* Approval actions */}
-              <div className="pt-3 border-t border-bolt-elements-borderColor">
+              <div className="pt-3 border-t border-devonz-elements-borderColor">
                 <PlanActions approvedByUser={state.approvedByUser} progress={progress} />
               </div>
             </motion.div>

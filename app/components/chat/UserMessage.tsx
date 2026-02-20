@@ -36,20 +36,20 @@ export function UserMessage({ content, parts }: UserMessageProps) {
         <div className="flex flex-row items-center gap-2 self-end">
           {profile?.avatar || profile?.username ? (
             <div className="flex items-center gap-2">
-              <span className="text-bolt-elements-textSecondary text-sm">
+              <span className="text-devonz-elements-textSecondary text-sm">
                 {profile?.username ? profile.username : 'You'}
               </span>
               <img
                 src={profile.avatar}
                 alt={profile?.username || 'User'}
-                className="w-6 h-6 object-cover rounded-full ring-1 ring-bolt-elements-borderColor"
+                className="w-6 h-6 object-cover rounded-full ring-1 ring-devonz-elements-borderColor"
                 loading="eager"
                 decoding="sync"
               />
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <span className="text-bolt-elements-textSecondary text-sm">You</span>
+              <span className="text-devonz-elements-textSecondary text-sm">You</span>
               <div className="w-6 h-6 rounded-full bg-accent-500/20 flex items-center justify-center">
                 <div className="i-ph:user text-accent-400 text-sm" />
               </div>
@@ -58,7 +58,7 @@ export function UserMessage({ content, parts }: UserMessageProps) {
         </div>
         <div className="flex flex-col gap-3 max-w-[85%] ml-auto overflow-hidden">
           {textContent && (
-            <div className="text-bolt-elements-textPrimary text-sm leading-relaxed min-w-0">
+            <div className="text-devonz-elements-textPrimary text-sm leading-relaxed min-w-0">
               <Markdown html>{textContent}</Markdown>
             </div>
           )}
@@ -69,7 +69,7 @@ export function UserMessage({ content, parts }: UserMessageProps) {
                   key={index}
                   src={`data:${item.mimeType};base64,${item.data}`}
                   alt={`Image ${index + 1}`}
-                  className="max-w-full h-auto rounded-lg border border-bolt-elements-borderColor"
+                  className="max-w-full h-auto rounded-lg border border-devonz-elements-borderColor"
                   style={{ maxHeight: '256px', objectFit: 'contain' }}
                   width={256}
                   height={256}
@@ -89,18 +89,18 @@ export function UserMessage({ content, parts }: UserMessageProps) {
       <div className="flex items-center gap-2">
         {profile?.avatar ? (
           <>
-            <span className="text-bolt-elements-textSecondary text-sm">{profile?.username || 'You'}</span>
+            <span className="text-devonz-elements-textSecondary text-sm">{profile?.username || 'You'}</span>
             <img
               src={profile.avatar}
               alt={profile?.username || 'User'}
-              className="w-6 h-6 object-cover rounded-full ring-1 ring-bolt-elements-borderColor"
+              className="w-6 h-6 object-cover rounded-full ring-1 ring-devonz-elements-borderColor"
               loading="eager"
               decoding="sync"
             />
           </>
         ) : (
           <>
-            <span className="text-bolt-elements-textSecondary text-sm">You</span>
+            <span className="text-devonz-elements-textSecondary text-sm">You</span>
             <div className="w-6 h-6 rounded-full bg-accent-500/20 flex items-center justify-center">
               <div className="i-ph:user text-accent-400 text-sm" />
             </div>
@@ -111,7 +111,7 @@ export function UserMessage({ content, parts }: UserMessageProps) {
         {images.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-3">
             {images.map((item, index) => (
-              <div key={index} className="relative rounded-lg border border-bolt-elements-borderColor overflow-hidden">
+              <div key={index} className="relative rounded-lg border border-devonz-elements-borderColor overflow-hidden">
                 <img
                   src={`data:${item.mimeType};base64,${item.data}`}
                   alt={`Image ${index + 1}`}
@@ -121,7 +121,7 @@ export function UserMessage({ content, parts }: UserMessageProps) {
             ))}
           </div>
         )}
-        <div className="text-bolt-elements-textPrimary text-sm leading-relaxed min-w-0">
+        <div className="text-devonz-elements-textPrimary text-sm leading-relaxed min-w-0">
           <Markdown html>{textContent}</Markdown>
         </div>
       </div>
@@ -130,6 +130,6 @@ export function UserMessage({ content, parts }: UserMessageProps) {
 }
 
 function stripMetadata(content: string) {
-  const artifactRegex = /<boltArtifact\s+[^>]*>[\s\S]*?<\/boltArtifact>/gm;
+  const artifactRegex = /<devonzArtifact\s+[^>]*>[\s\S]*?<\/devonzArtifact>/gm;
   return content.replace(MODEL_REGEX, '').replace(PROVIDER_REGEX, '').replace(artifactRegex, '');
 }

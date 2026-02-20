@@ -53,7 +53,7 @@ export const BoxModelEditor = ({ boxModel, onValueChange }: BoxModelEditorProps)
   );
 
   if (!boxModel) {
-    return <div className="text-bolt-elements-textSecondary text-xs text-center py-4">No box model data available</div>;
+    return <div className="text-devonz-elements-textSecondary text-xs text-center py-4">No box model data available</div>;
   }
 
   const renderEditableValue = (field: string, value: number, textColor: string) => {
@@ -65,7 +65,7 @@ export const BoxModelEditor = ({ boxModel, onValueChange }: BoxModelEditorProps)
           onChange={(e) => setEditValue(e.target.value)}
           onBlur={() => handleEndEdit(field)}
           onKeyDown={(e) => handleKeyDown(e, field)}
-          className="w-10 h-4 text-center text-[10px] bg-bolt-elements-background-depth-4 border border-bolt-elements-borderColor rounded focus:outline-none focus:border-accent-400"
+          className="w-10 h-4 text-center text-[10px] bg-devonz-elements-background-depth-4 border border-devonz-elements-borderColor rounded focus:outline-none focus:border-accent-400"
           autoFocus
         />
       );
@@ -76,7 +76,7 @@ export const BoxModelEditor = ({ boxModel, onValueChange }: BoxModelEditorProps)
     return (
       <button
         onClick={() => handleStartEdit(field, value)}
-        className={`text-[10px] font-mono hover:bg-bolt-elements-background-depth-4 px-1 rounded cursor-pointer transition-colors ${textColor}`}
+        className={`text-[10px] font-mono hover:bg-devonz-elements-background-depth-4 px-1 rounded cursor-pointer transition-colors ${textColor}`}
         title={`Click to edit ${field}`}
       >
         {displayValue}px
@@ -181,32 +181,32 @@ export const BoxModelEditor = ({ boxModel, onValueChange }: BoxModelEditorProps)
       <div className="flex flex-wrap gap-3 text-[10px] justify-center pt-1">
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 bg-orange-500/30 border border-orange-500/50 rounded" />
-          <span className="text-bolt-elements-textSecondary">Margin</span>
+          <span className="text-devonz-elements-textSecondary">Margin</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 bg-yellow-500/30 border border-yellow-500/50 rounded" />
-          <span className="text-bolt-elements-textSecondary">Border</span>
+          <span className="text-devonz-elements-textSecondary">Border</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 bg-green-500/30 border border-green-500/50 rounded" />
-          <span className="text-bolt-elements-textSecondary">Padding</span>
+          <span className="text-devonz-elements-textSecondary">Padding</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 bg-blue-500/30 border border-blue-500/50 rounded" />
-          <span className="text-bolt-elements-textSecondary">Content</span>
+          <span className="text-devonz-elements-textSecondary">Content</span>
         </div>
       </div>
 
       {/* Additional Info */}
-      <div className="border-t border-bolt-elements-borderColor pt-2">
+      <div className="border-t border-devonz-elements-borderColor pt-2">
         <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="bg-bolt-elements-background-depth-3 rounded p-2 border border-bolt-elements-borderColor">
-            <span className="text-bolt-elements-textSecondary block text-[10px]">Box Sizing</span>
-            <span className="text-bolt-elements-textPrimary font-mono text-[11px]">{boxModel.boxSizing}</span>
+          <div className="bg-devonz-elements-background-depth-3 rounded p-2 border border-devonz-elements-borderColor">
+            <span className="text-devonz-elements-textSecondary block text-[10px]">Box Sizing</span>
+            <span className="text-devonz-elements-textPrimary font-mono text-[11px]">{boxModel.boxSizing}</span>
           </div>
-          <div className="bg-bolt-elements-background-depth-3 rounded p-2 border border-bolt-elements-borderColor">
-            <span className="text-bolt-elements-textSecondary block text-[10px]">Border Style</span>
-            <span className="text-bolt-elements-textPrimary font-mono text-[11px]">
+          <div className="bg-devonz-elements-background-depth-3 rounded p-2 border border-devonz-elements-borderColor">
+            <span className="text-devonz-elements-textSecondary block text-[10px]">Border Style</span>
+            <span className="text-devonz-elements-textPrimary font-mono text-[11px]">
               {boxModel.borderStyle || 'none'}
             </span>
           </div>
@@ -214,7 +214,7 @@ export const BoxModelEditor = ({ boxModel, onValueChange }: BoxModelEditorProps)
       </div>
 
       {/* Tip */}
-      <p className="text-bolt-elements-textTertiary text-[10px] text-center italic">
+      <p className="text-devonz-elements-textTertiary text-[10px] text-center italic">
         Click any value to edit • Changes will be applied with AI
       </p>
     </div>
