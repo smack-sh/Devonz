@@ -923,84 +923,43 @@ The todo app is running with local storage persistence.</assistant_response>
 </examples>
 
 <self_validation>
-  BEFORE SENDING RESPONSE, VERIFY THESE CHECKPOINTS:
-  
-  Code Quality:
-  [ ] All imports use unique identifiers (no duplicate declarations possible)
-  [ ] Types imported with \`import type\` when only used for typing
-  [ ] No placeholder text like "TODO", "implement this", or "your-api-key"
-  [ ] No \`forwardRef\` usage in React 19 projects (use \`ref\` as prop instead)
-  [ ] No manual \`useMemo\`/\`useCallback\` unless profiling justifies it (React Compiler handles this)
-  
-  Import Path Correctness (CRITICAL):
-  [ ] Every import statement points to a file being created in this artifact
-  [ ] Relative paths are calculated correctly based on source/target file locations
-  [ ] No imports to non-existent files or wrong directory paths
-  [ ] Verified: count \`../\` depth matches actual directory structure
-  [ ] CRITICAL: The \`cn\` utility from \`@/lib/utils\` MUST be imported in EVERY file that uses \`cn()\` — scan EVERY file for \`cn(\` calls and verify the import exists at the top
-  [ ] Every utility function used in a file is explicitly imported (e.g., \`cn\` from \`@/lib/utils\`, \`clsx\` from \`clsx\`)
-  [ ] No undefined references — if a function/component is used, it MUST be imported or defined in that file
-  [ ] All companion/peer dependencies listed in package.json (e.g., zustand+immer, react-hook-form+zod)
-  [ ] LUCIDE ICONS: Every \`<IconName />\` in JSX has a matching \`import { IconName } from 'lucide-react'\` — scan ALL files for icon usage. COUNT: for each file, count icon usages in JSX vs. icon names in the import statement. If counts differ, you missed one.
-  [ ] NO UI COMPONENTS FROM LUCIDE: Tooltip, Dialog, Sheet, Popover, Select, Accordion, etc. are imported from \`@/components/ui/\` — NEVER from \`lucide-react\`
-  [ ] FINAL ICON AUDIT: Re-read EVERY file that imports from 'lucide-react' and verify EVERY PascalCase JSX element used as \`<Name />\` or \`<Name \` has a corresponding import. Pay special attention to icons used inside .map() callbacks, conditional renders, and nested components.
-  [ ] JSX TRANSFORM: No \`React.Fragment\` or \`React.createElement\` in ANY file — use \`<>...</>\` and JSX syntax. If React namespace is needed (React.lazy, React.memo), verify \`import React from 'react'\` exists at the top.
-  
-  Artifact Completeness:
-  [ ] All referenced files are included in the artifact
-  [ ] package.json includes ALL required dependencies
-  [ ] Configuration files (vite.config, tsconfig) included if needed
-  
+  BEFORE SENDING RESPONSE, VERIFY EVERY CHECKPOINT:
+
+  Imports & References:
+  [ ] Unique identifiers — no duplicate declarations. Use \`import type\` for type-only imports.
+  [ ] Every import points to a file in this artifact. Relative paths match directory depth (\`../\` count correct).
+  [ ] Every utility call has a matching import (\`cn\` from \`@/lib/utils\`, \`clsx\`, etc.). No undefined references.
+  [ ] Lucide icons: every \`<IconName />\` in JSX has \`import { IconName } from 'lucide-react'\`. UI components (Tooltip, Dialog, Sheet, Popover, Select, Accordion, etc.) come from \`@/components/ui/\` — NEVER \`lucide-react\`. Scan ALL files including .map() callbacks and conditionals.
+  [ ] JSX: use \`<>...</>\` not \`React.Fragment\`. Use named imports (\`import { lazy } from 'react'\`) not \`React.lazy\`.
+  [ ] React 19: no \`forwardRef\`, no manual \`useMemo\`/\`useCallback\`. React 18: opposite rules apply.
+  [ ] No placeholder text: "TODO", "implement this", "your-api-key".
+
+  Dependencies (CRITICAL — scan ALL source files):
+  [ ] Every \`from 'pkg'\` import in code → \`pkg\` exists in package.json deps/devDeps. Missing = build failure.
+  [ ] Companion packages included: zustand+immer, react-hook-form+@hookform/resolvers+zod, @tanstack/react-query+devtools.
+
+  Artifact & Action Order:
+  [ ] package.json FIRST → App.tsx / main source files → other source → config files → \`npm install\` → \`npm run dev\` LAST.
+  [ ] Each shell command in its OWN devonzAction. New deps via package.json file edit, NOT \`npm install <pkg>\`.
+  [ ] Follow-up responses: ONLY modify files the user asked about — no unnecessary config rewrites.
+
   Framework Compatibility:
-  [ ] React version matches R3F version (React 18 → R3F v8, React 19 → R3F v9)
-  [ ] If template uses React 18: use forwardRef, manual useMemo/useCallback — NOT React 19 APIs
-  [ ] If template uses React 19: use ref as prop, React Compiler — NOT forwardRef
-  [ ] Tailwind v4 uses \`@import "tailwindcss"\` (NOT \`@tailwind\` directives)
-  [ ] Tailwind v3 projects keep \`tailwind.config.js\` pattern
-  [ ] Expo projects use Expo Router (NOT React Navigation)
+  [ ] React 18 → R3F v8; React 19 → R3F v9 (never mix).
+  [ ] Tailwind v3: \`@tailwind\` directives + config file. Tailwind v4: \`@import "tailwindcss"\` + \`@theme\`.
+  [ ] Expo projects use Expo Router (NOT React Navigation).
 
-  Action Order:
-  [ ] Files created BEFORE shell commands that depend on them
-  [ ] package.json updated BEFORE npm install
-  [ ] \`npm install\` runs BEFORE \`npm run dev\`
-  [ ] Artifact ENDS with \`<devonzAction type="start">npm run dev</devonzAction>\`
-  [ ] Each shell command is in its OWN devonzAction — one command per action for reliable sequencing
-  [ ] New dependencies added to package.json via file action — NOT via \`npm install <pkg>\` shell command
-  [ ] All packages imported in code are listed in package.json dependencies/devDependencies
-  [ ] FILE ORDERING: App.tsx / main component written BEFORE config files (tsconfig, tailwind, postcss)
-  [ ] FOLLOW-UP: If user asked to update specific files, ONLY those files are in the artifact — no unnecessary config edits
-  [ ] DEPENDENCY CROSS-CHECK: For EVERY \`from 'xyz'\` import in source files, verified 'xyz' exists in package.json
-  [ ] No package imported in ANY source file is missing from package.json (scan ALL files before finalizing)
-  
-  App Completeness:
-  [ ] App.tsx imports and renders the MAIN FEATURE component — NOT the template default "Start prompting"
-  [ ] Every component used in JSX (<Card>, <Button>, etc.) has a matching import statement at the top of the file
-  [ ] If dashboard/app requested: App.tsx routes to the dashboard page — user sees the feature immediately on load
-  [ ] All feature pages are reachable — routing is configured and the default route shows the main content
+  App Completeness (CRITICAL):
+  [ ] App.tsx renders the MAIN FEATURE — not template default. Every component in JSX has a matching import.
+  [ ] Every nav link → fully implemented page with real content. All routes work bidirectionally.
+  [ ] No mock data arrays — real CRUD with state management. No external API calls with API keys — use seed data.
+  [ ] Every button, form, toggle works. No stubs, TODOs, or "coming soon". Stats derived from real data.
+  [ ] COMPLETE in this response — no "foundation", "scaffold", or "will continue in next turn".
+  [ ] Charts use \`<ChartContainer>\` wrapper (useChart requires it). Never use bare recharts components.
 
-  Performance & Accessibility:
-  [ ] Images have \`loading="lazy"\` or \`fetchpriority="high"\` as appropriate
-  [ ] Fonts use \`<link rel="preload">\` for critical resources
-  [ ] WCAG 2.2 AA: keyboard navigation, focus states, \`prefers-reduced-motion\`
-  [ ] Core Web Vitals considered: no layout shift, optimized LCP
-
-  User Experience:
-  [ ] Response does NOT tell user to "run npm install" or any manual commands
-  [ ] All paths use forward slashes (not backslashes)
-  [ ] Code is production-ready, not scaffolding
-
-  Completeness (CRITICAL):
-  [ ] No hardcoded mock data arrays — state management with real CRUD operations used
-  [ ] No external API calls with API keys — all demo content uses local seed data
-  [ ] Every navigation link leads to a fully implemented page with real content
-  [ ] Every button, form, and interactive element has a working handler
-  [ ] All features visible in UI are fully functional — no stubs or TODOs
-  [ ] App works as a cohesive whole — consistent layout, shared state, working navigation
-  [ ] Stats, counters, and badges derive from actual data, not hardcoded numbers
-  [ ] COMPLETE APP IN THIS RESPONSE — no "foundation", no "will continue in next turn"
-  [ ] NO banned placeholder phrases: "will be here", "coming soon", "implement later"
-  [ ] Every page has REAL interactive content (forms, lists, charts) — not just headings and text
-  [ ] Charts use ChartContainer wrapper (NOT bare recharts components) — useChart requires ChartContainer ancestor
+  Quality:
+  [ ] Images: \`loading="lazy"\` / \`fetchpriority="high"\`. Fonts: preloaded. No layout shift.
+  [ ] WCAG 2.2 AA: keyboard nav, focus states, \`prefers-reduced-motion\`.
+  [ ] Never tell user to run commands manually. All paths use forward slashes.
 </self_validation>`;
 
 export const CONTINUE_PROMPT = stripIndents`
