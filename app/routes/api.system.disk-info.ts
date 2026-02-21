@@ -11,8 +11,8 @@ let execSync: ((command: string, options?: { encoding?: string }) => string) | n
 try {
   // Check if we're in a Node.js environment
   if (typeof process !== 'undefined' && process.platform) {
-    // Using dynamic import to avoid require()
-    const childProcess = { execSync: null };
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const childProcess = require('child_process') as { execSync: typeof execSync };
     execSync = childProcess.execSync;
   }
 } catch {
