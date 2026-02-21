@@ -15,11 +15,38 @@
 
 import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import { json } from '@remix-run/node';
+import { existsSync } from 'node:fs';
 import { RuntimeManager } from '~/lib/runtime/local-runtime';
 import { isValidProjectId } from '~/lib/runtime/runtime-provider';
 import { validateCommand, auditCommand } from '~/lib/runtime/command-safety';
 import { withSecurity } from '~/lib/security';
 import { createScopedLogger } from '~/utils/logger';
+
+/**
+ * Resolve the native Git Bash path on Windows.
+ * Prefers Git Bash over WSL bash to avoid WSL port-forwarding issues
+ * and keep the project's dev server on the Windows network stack.
+ */
+let _resolvedGitBash: string | null | undefined;
+
+function resolveGitBash(): string | null {
+  if (_resolvedGitBash !== undefined) {
+    return _resolvedGitBash;
+  }
+
+  const candidates = ['C:\\Program Files\\Git\\bin\\bash.exe', 'C:\\Program Files (x86)\\Git\\bin\\bash.exe'];
+
+  for (const p of candidates) {
+    if (existsSync(p)) {
+      _resolvedGitBash = p;
+      return p;
+    }
+  }
+
+  _resolvedGitBash = null;
+
+  return null;
+}
 
 const logger = createScopedLogger('RuntimeTerminal');
 
@@ -151,7 +178,37 @@ async function terminalAction({ request }: ActionFunctionArgs) {
         return json({ error: 'Invalid or missing projectId' }, { status: 400 });
       }
 
-      const shellCommand = command || (process.platform === 'win32' ? 'cmd.exe' : '/bin/bash');
+      /*
+       * Normalize shell command for the current platform.
+       * The client (browser) cannot detect the OS and defaults to /bin/bash.
+       * On Windows, prefer Git Bash over WSL bash to keep the dev server on
+       * the native Windows network stack and avoid WSL port-forwarding issues.
+       */
+      let shellCommand = command ?? '';
+
+      if (process.platform === 'win32' && shellCommand) {
+        // Strip Unix-style absolute path prefix (e.g. /bin/bash → bash)
+        const stripped = shellCommand.replace(/^\/(?:usr\/)?bin\/((?:ba|z|fi|da)sh)\b/, '$1');
+
+        // If the command resolves to a simple bash name, prefer Git Bash
+        if (/^bash\b/.test(stripped)) {
+          const gitBash = resolveGitBash();
+
+          if (gitBash) {
+            shellCommand = stripped.replace(/^bash/, `"${gitBash}"`);
+            logger.debug(`Using Git Bash: ${shellCommand}`);
+          } else {
+            shellCommand = stripped;
+            logger.debug(`Git Bash not found, falling back to PATH bash: ${shellCommand}`);
+          }
+        } else {
+          shellCommand = stripped;
+        }
+      }
+
+      if (!shellCommand) {
+        shellCommand = process.platform === 'win32' ? 'cmd.exe' : '/bin/bash';
+      }
 
       if (command) {
         const validation = validateCommand(command);

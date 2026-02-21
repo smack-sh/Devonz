@@ -56,7 +56,13 @@ const PORT_PATTERNS = [
   /localhost:(\d+)/i,
   /0\.0\.0\.0:(\d+)/i,
   /127\.0\.0\.1:(\d+)/i,
-  /port\s+(\d+)/i,
+
+  /*
+   * Broad "port XXXX" pattern — uses \b after the digits to prevent
+   * regex backtracking, and a negative lookahead to skip messages
+   * like "Port 5173 is in use" which are NOT server announcements.
+   */
+  /port\s+(\d+)\b(?!\s+is\b)/i,
 ];
 
 /** Internal representation of a terminal session on the server. */
@@ -365,11 +371,27 @@ export class LocalRuntime implements RuntimeProvider {
 
   /** Detect port numbers from process output and fire port events. */
   #detectPorts(output: string): void {
+    /*
+     * Strip ANSI escape codes so color sequences don't break regex matching.
+     * Vite (and other tools) wrap URLs in color codes like \x1b[36m...\x1b[0m
+     * which can insert non-digit characters between "localhost:" and the port number.
+     */
+    const cleaned = output.replace(/\x1b\[[0-9;]*m/g, '');
+
+    // DEBUG: Log all stdout chunks so we can see what output flows through
+    if (cleaned.trim().length > 0) {
+      logger.debug(`[detectPorts] chunk (${cleaned.length} chars): ${cleaned.slice(0, 200).replace(/\n/g, '\\n')}`);
+    }
+
     for (const pattern of PORT_PATTERNS) {
-      const match = output.match(pattern);
+      const match = cleaned.match(pattern);
 
       if (match?.[1]) {
         const port = parseInt(match[1], 10);
+
+        logger.debug(
+          `[detectPorts] Pattern matched port ${port}, already detected: ${this.#detectedPorts.has(port)}, listeners: ${this.#portListeners.length}`,
+        );
 
         if (port > 0 && port < 65536 && !this.#detectedPorts.has(port)) {
           this.#detectedPorts.add(port);
@@ -377,7 +399,7 @@ export class LocalRuntime implements RuntimeProvider {
           const event: PortEvent = {
             port,
             type: 'open',
-            url: `http://localhost:${port}`,
+            url: `http://127.0.0.1:${port}`,
           };
 
           logger.info(`Detected port open: ${port}`);

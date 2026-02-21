@@ -154,7 +154,7 @@ export function createSecurityHeaders() {
         // WebSocket support for real-time features
         'wss://*.supabase.co',
       ].join(' '),
-      "frame-src 'none'", // Prevent iframe embedding
+      "frame-src 'self' http://localhost:*", // Allow preview iframes from localhost dev servers
       "object-src 'none'", // Prevent object embedding
       "base-uri 'self'",
       "form-action 'self'",

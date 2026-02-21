@@ -238,8 +238,56 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
     }
 
     const { baseUrl } = activePreview;
-    setIframeUrl(baseUrl);
-    setDisplayPath('/');
+
+    /*
+     * The project server (e.g. Vite) may not be fully ready to accept
+     * HTTP requests the instant the port is detected from terminal output.
+     * Probe with a HEAD fetch before setting the iframe src so that the
+     * iframe doesn't cache an ERR_CONNECTION_REFUSED error page.
+     */
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const MAX_RETRIES = 20;
+    const INTERVAL_MS = 500;
+
+    const probe = async (attempt: number) => {
+      if (cancelled) {
+        return;
+      }
+
+      try {
+        await fetch(baseUrl, {
+          method: 'HEAD',
+          mode: 'no-cors', // avoid CORB/CORS issues — we only care about connectivity
+        });
+
+        // mode: 'no-cors' yields an opaque response (status 0), but no throw = server is reachable
+        if (!cancelled) {
+          setIframeUrl(baseUrl);
+          setDisplayPath('/');
+        }
+      } catch {
+        // Server not ready yet — retry
+        if (!cancelled && attempt < MAX_RETRIES) {
+          timer = setTimeout(() => probe(attempt + 1), INTERVAL_MS);
+        } else if (!cancelled) {
+          // Max retries exhausted — set URL anyway so the user can manually reload later
+          setIframeUrl(baseUrl);
+          setDisplayPath('/');
+        }
+      }
+    };
+
+    probe(0);
+
+    // eslint-disable-next-line consistent-return
+    return () => {
+      cancelled = true;
+
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
   }, [activePreview]);
 
   const findMinPortIndex = useCallback(

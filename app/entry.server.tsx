@@ -79,8 +79,14 @@ export default async function handleRequest(
           const head = renderHeadToString({ request, remixContext, Head });
 
           responseHeaders.set('Content-Type', 'text/html');
-          responseHeaders.set('Cross-Origin-Embedder-Policy', 'credentialless');
-          responseHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+
+          /*
+           * COEP/COOP headers removed — they were only required by the
+           * WebContainer runtime.  The local runtime doesn't need them,
+           * and they interfere with cross-origin iframe loading
+           * (e.g. project preview on a different localhost port).
+           * See plan/adr-001-local-runtime-migration.md §18.
+           */
 
           // Write the HTML shell
           body.write(
