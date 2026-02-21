@@ -161,12 +161,7 @@ async function execAction({ request }: ActionFunctionArgs) {
         const runtime = await manager.getRuntime(projectId);
         const timeoutMs = body.timeout ?? DEFAULT_EXEC_TIMEOUT_MS;
 
-        const result = await Promise.race([
-          runtime.exec(command, { cwd, env }),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error(`Command timed out after ${Math.round(timeoutMs / 1000)}s`)), timeoutMs),
-          ),
-        ]);
+        const result = await runtime.exec(command, { cwd, env, timeout: timeoutMs });
 
         return json(result);
       } catch (error) {

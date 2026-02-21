@@ -69,6 +69,9 @@ export interface SpawnOptions {
 
   /** Terminal dimensions for PTY-attached processes. */
   terminal?: { cols: number; rows: number };
+
+  /** Timeout in ms — the process is killed (SIGTERM) if it exceeds this duration. */
+  timeout?: number;
 }
 
 /** Result returned after a command finishes (used by `exec`). */

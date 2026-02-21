@@ -269,11 +269,16 @@ export class LocalRuntime implements RuntimeProvider {
           env,
           maxBuffer: 10 * 1024 * 1024, // 10 MB
           shell: this.#shell,
+          ...(options.timeout ? { timeout: options.timeout } : {}),
         },
         (error, stdout, stderr) => {
+          const killed = error && 'killed' in error && (error as { killed?: boolean }).killed;
+
           resolve({
-            exitCode: error?.code ?? (error ? 1 : 0),
-            output: stdout + stderr,
+            exitCode: killed ? 124 : (error?.code ?? (error ? 1 : 0)),
+            output: killed
+              ? `${stdout}${stderr}\n[Process killed: exceeded ${Math.round((options.timeout ?? 0) / 1000)}s timeout]`
+              : stdout + stderr,
           });
         },
       );
