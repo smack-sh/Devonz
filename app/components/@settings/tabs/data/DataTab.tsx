@@ -698,6 +698,98 @@ export function DataTab() {
                 </motion.div>
               </CardFooter>
             </Card>
+
+            {/* Restore from Backup */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center mb-2">
+                  <motion.div className="text-accent-500 mr-2" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                    <div className="i-ph-upload-simple-duotone w-5 h-5" />
+                  </motion.div>
+                  <CardTitle className="text-lg group-hover:text-devonz-elements-item-contentAccent transition-colors">
+                    Restore from Backup
+                  </CardTitle>
+                </div>
+                <CardDescription>Import chats from a previously downloaded backup JSON file.</CardDescription>
+              </CardHeader>
+              <CardFooter>
+                <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="w-full">
+                  <Button
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = '.json';
+
+                      input.onchange = async (e) => {
+                        const file = (e.target as HTMLInputElement).files?.[0];
+
+                        if (!file) {
+                          return;
+                        }
+
+                        try {
+                          const text = await file.text();
+                          const data = JSON.parse(text);
+
+                          if (!data?._meta?.version || !Array.isArray(data?.chats)) {
+                            toast.error('Invalid backup file format');
+                            return;
+                          }
+
+                          const database = await openDatabase();
+
+                          if (!database) {
+                            toast.error('Database not available');
+                            return;
+                          }
+
+                          const { setMessages, setSnapshot, saveVersions } = await import('~/lib/persistence/db');
+                          let imported = 0;
+
+                          for (const chat of data.chats) {
+                            try {
+                              await setMessages(
+                                database,
+                                chat.id,
+                                chat.messages,
+                                chat.urlId,
+                                chat.description,
+                                chat.timestamp,
+                                chat.metadata,
+                              );
+
+                              if (data.snapshots?.[chat.id]) {
+                                await setSnapshot(database, chat.id, data.snapshots[chat.id]);
+                              }
+
+                              if (data.versions?.[chat.id]) {
+                                await saveVersions(database, chat.id, data.versions[chat.id]);
+                              }
+
+                              imported++;
+                            } catch (err) {
+                              logger.error(`Failed to restore chat ${chat.id}:`, err);
+                            }
+                          }
+
+                          toast.success(`Restored ${imported} of ${data.chats.length} chats`);
+                        } catch (err) {
+                          logger.error('Restore failed:', err);
+                          toast.error('Failed to restore backup');
+                        }
+                      };
+
+                      input.click();
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="hover:text-devonz-elements-item-contentAccent hover:border-devonz-elements-item-backgroundAccent hover:bg-devonz-elements-item-backgroundAccent transition-colors w-full justify-center"
+                  >
+                    Restore Backup
+                  </Button>
+                </motion.div>
+              </CardFooter>
+            </Card>
           </div>
         </div>
       )}

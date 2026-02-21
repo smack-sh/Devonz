@@ -12,7 +12,6 @@ import {
 } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { PanelHeader } from '~/components/ui/PanelHeader';
 import { PanelHeaderButton } from '~/components/ui/PanelHeaderButton';
-import type { FileMap } from '~/lib/stores/files';
 import type { FileHistory } from '~/types/actions';
 import { themeStore } from '~/lib/stores/theme';
 import { WORK_DIR } from '~/utils/constants';
@@ -27,7 +26,6 @@ import { classNames } from '~/utils/classNames'; // <-- Import classNames if not
 import { LockManager } from './LockManager'; // <-- Import LockManager
 
 interface EditorPanelProps {
-  files?: FileMap;
   unsavedFiles?: Set<string>;
   editorDocument?: EditorDocument;
   selectedFile?: string | undefined;
@@ -46,7 +44,6 @@ const editorSettings: EditorSettings = { tabSize: 2 };
 
 export const EditorPanel = memo(
   ({
-    files,
     unsavedFiles,
     editorDocument,
     selectedFile,
@@ -58,6 +55,7 @@ export const EditorPanel = memo(
     onFileSave,
     onFileReset,
   }: EditorPanelProps) => {
+    const files = useStore(workbenchStore.files);
     renderLogger.trace('EditorPanel');
 
     const theme = useStore(themeStore);

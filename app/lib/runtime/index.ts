@@ -70,16 +70,25 @@ export let runtime: Promise<RuntimeProvider> = new Promise(() => {
 });
 
 if (!import.meta.env.SSR) {
-  if (runtimePromise) {
-    // Reuse existing promise from HMR
-    runtime = runtimePromise;
+  if (runtimeInstance && runtimeContext.loaded) {
+    /*
+     * Runtime already booted (HMR reload) — resolve immediately so all
+     * stores that hold the runtime promise get the existing instance.
+     */
+    runtime = Promise.resolve(runtimeInstance);
   } else {
-    // Create a new promise that resolves when boot() is called
+    /*
+     * Fresh load or HMR before boot — create a pending promise.
+     * bootResolver MUST always be connected so bootRuntime() can resolve it.
+     * (The old code re-used a stale HMR-cached promise without reconnecting
+     * bootResolver, causing the promise to hang forever after HMR.)
+     */
     runtime = new Promise<RuntimeProvider>((resolve) => {
       bootResolver = resolve;
     });
-    runtimePromise = runtime;
   }
+
+  runtimePromise = runtime;
 
   if (import.meta.hot) {
     import.meta.hot.data.runtimeInstance = runtimeInstance;

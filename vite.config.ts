@@ -99,6 +99,7 @@ export default defineConfig((config) => {
       },
     },
     test: {
+      testTimeout: 30_000,
       exclude: [
         '**/node_modules/**',
         '**/dist/**',

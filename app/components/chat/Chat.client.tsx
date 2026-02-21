@@ -8,6 +8,7 @@ import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { description, useChatHistory } from '~/lib/persistence';
 import { chatId } from '~/lib/persistence/useChatHistory';
 import { getProjectPlanMode, setProjectPlanMode } from '~/lib/persistence/projectPlanMode';
+import { bootRuntime } from '~/lib/runtime';
 import { chatStore, clearPendingChatMessage } from '~/lib/stores/chat';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROMPT_COOKIE_KEY, PROVIDER_LIST } from '~/utils/constants';
@@ -188,6 +189,18 @@ export const ChatImpl = memo(
 
       setProjectPlanMode(currentChatId, { enabled: planMode });
     }, [currentChatId, planMode]);
+
+    // Boot the local runtime when a chat session is established
+    useEffect(() => {
+      if (!currentChatId) {
+        return;
+      }
+
+      bootRuntime(currentChatId).catch((error) => {
+        logger.error('Failed to boot runtime:', error);
+        toast.error('Failed to initialize project runtime');
+      });
+    }, [currentChatId]);
 
     const {
       messages,

@@ -30,6 +30,10 @@ export class EditorStore {
       import.meta.hot.data.documents = this.documents;
       import.meta.hot.data.selectedFile = this.selectedFile;
     }
+
+    filesStore.files.subscribe((files) => {
+      this.setDocuments(files);
+    });
   }
 
   setDocuments(files: FileMap) {

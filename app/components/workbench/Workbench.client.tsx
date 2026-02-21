@@ -86,7 +86,6 @@ export const Workbench = memo(
     const selectedFile = useStore(workbenchStore.selectedFile);
     const currentDocument = useStore(workbenchStore.currentDocument);
     const unsavedFiles = useStore(workbenchStore.unsavedFiles);
-    const files = useStore(workbenchStore.files);
     const selectedView = useStore(workbenchStore.currentView);
     const { showChat } = useStore(chatStore);
     const canHideChat = showWorkbench || !showChat;
@@ -204,10 +203,6 @@ export const Workbench = memo(
         setSelectedView('preview');
       }
     }, [hasPreview]);
-
-    useEffect(() => {
-      workbenchStore.setDocuments(files);
-    }, [files]);
 
     const onEditorChange = useCallback<OnEditorChange>((update) => {
       workbenchStore.setCurrentDocumentContent(update.content);
@@ -363,7 +358,6 @@ export const Workbench = memo(
                   editorDocument={currentDocument}
                   isStreaming={isStreaming}
                   selectedFile={selectedFile}
-                  files={files}
                   unsavedFiles={unsavedFiles}
                   fileHistory={fileHistory}
                   onFileSelect={onFileSelect}

@@ -524,7 +524,19 @@ export class ActionRunner {
     }
 
     const runtime = await this.#runtime;
-    const relativePath = nodePath.relative(runtime.workdir, action.filePath);
+
+    /*
+     * action.filePath from the AI can be:
+     *   1. Already relative to workdir: "src/App.tsx"
+     *   2. Absolute with workdir prefix: "/home/project/src/App.tsx"
+     *
+     * We need the path relative to workdir for FS operations.
+     * Using nodePath.relative() on an already-relative path produces
+     * a traversal (e.g. "../../src/App.tsx") which fails validation.
+     */
+    const relativePath = action.filePath.startsWith(runtime.workdir)
+      ? nodePath.relative(runtime.workdir, action.filePath)
+      : action.filePath;
 
     // Check if staging is enabled and if this file should be staged
     const stagingState = stagingStore.get();
@@ -1223,7 +1235,9 @@ export class ActionRunner {
   async applyAcceptedChange(filePath: string, content: string): Promise<boolean> {
     try {
       const runtime = await this.#runtime;
-      const relativePath = nodePath.relative(runtime.workdir, filePath);
+      const relativePath = filePath.startsWith(runtime.workdir)
+        ? nodePath.relative(runtime.workdir, filePath)
+        : filePath;
 
       let folder = nodePath.dirname(relativePath);
       folder = folder.replace(/\/+$/g, '');
@@ -1249,7 +1263,9 @@ export class ActionRunner {
   async deleteFile(filePath: string): Promise<boolean> {
     try {
       const runtime = await this.#runtime;
-      const relativePath = nodePath.relative(runtime.workdir, filePath);
+      const relativePath = filePath.startsWith(runtime.workdir)
+        ? nodePath.relative(runtime.workdir, filePath)
+        : filePath;
 
       await runtime.fs.rm(relativePath);
       logger.info(`File deleted: ${relativePath}`);

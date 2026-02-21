@@ -181,6 +181,13 @@ export class PreviewsStore {
       return;
     }
 
+    /* Guard against stale HMR-cached runtime missing expected methods */
+    if (typeof runtime.onPortEvent !== 'function') {
+      logger.warn('Runtime missing onPortEvent — stale HMR cache? Skipping init');
+
+      return;
+    }
+
     /*
      * Listen for port events from the runtime.
      * PortEvent.type is 'open' or 'close' — the first 'open' for a port
