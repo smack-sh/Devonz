@@ -60,6 +60,10 @@ export default class TogetherProvider extends BaseProvider {
       signal: this.createTimeoutSignal(5000),
     });
 
+    if (!response.ok) {
+      throw new Error(`Together API error: ${response.status} ${response.statusText}`);
+    }
+
     const res = (await response.json()) as Array<{
       id: string;
       type?: string;

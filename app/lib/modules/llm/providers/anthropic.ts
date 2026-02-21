@@ -69,6 +69,10 @@ export default class AnthropicProvider extends BaseProvider {
       signal: this.createTimeoutSignal(5000),
     });
 
+    if (!response.ok) {
+      throw new Error(`Anthropic API error: ${response.status} ${response.statusText}`);
+    }
+
     const res = (await response.json()) as {
       data: Array<{ id: string; type: string; display_name?: string; max_tokens?: number }>;
     };

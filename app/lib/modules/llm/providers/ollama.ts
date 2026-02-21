@@ -90,6 +90,11 @@ export default class OllamaProvider extends BaseProvider {
     const response = await fetch(`${baseUrl}/api/tags`, {
       signal: this.createTimeoutSignal(5000),
     });
+
+    if (!response.ok) {
+      throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
+    }
+
     const data = (await response.json()) as OllamaApiResponse;
 
     return data.models.map((model: OllamaModel) => ({

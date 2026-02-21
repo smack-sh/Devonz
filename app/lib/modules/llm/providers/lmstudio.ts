@@ -49,6 +49,11 @@ export default class LMStudioProvider extends BaseProvider {
     const response = await fetch(`${baseUrl}/v1/models`, {
       signal: this.createTimeoutSignal(5000),
     });
+
+    if (!response.ok) {
+      throw new Error(`LMStudio API error: ${response.status} ${response.statusText}`);
+    }
+
     const data = (await response.json()) as { data: Array<{ id: string }> };
 
     return data.data.map((model) => ({

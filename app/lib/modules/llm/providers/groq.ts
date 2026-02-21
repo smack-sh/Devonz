@@ -59,6 +59,10 @@ export default class GroqProvider extends BaseProvider {
       signal: this.createTimeoutSignal(5000),
     });
 
+    if (!response.ok) {
+      throw new Error(`Groq API error: ${response.status} ${response.statusText}`);
+    }
+
     const res = (await response.json()) as {
       data: Array<{ id: string; object?: string; active?: boolean; context_window?: number; owned_by?: string }>;
     };

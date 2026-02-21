@@ -74,6 +74,10 @@ export default class OpenAIProvider extends BaseProvider {
       signal: this.createTimeoutSignal(5000),
     });
 
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+    }
+
     const res = (await response.json()) as { data: Array<{ id: string; object?: string; context_length?: number }> };
     const staticModelIds = this.staticModels.map((m) => m.name);
 

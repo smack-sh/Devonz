@@ -70,6 +70,10 @@ export default class HyperbolicProvider extends BaseProvider {
       signal: this.createTimeoutSignal(5000),
     });
 
+    if (!response.ok) {
+      throw new Error(`Hyperbolic API error: ${response.status} ${response.statusText}`);
+    }
+
     const res = (await response.json()) as {
       data: Array<{ id: string; object?: string; supports_chat?: boolean; context_length?: number }>;
     };
