@@ -342,6 +342,7 @@ export class StreamingMessageParser {
                 id: artifactId,
                 title: artifactTitle,
                 type,
+                preloaded: this.#extractAttribute(artifactTag, 'preloaded') === 'true',
               } satisfies DevonzArtifactData;
 
               state.currentArtifact = currentArtifact;

@@ -106,6 +106,9 @@ export class ActionRunner {
   onDeployAlert?: (alert: DeployAlert) => void;
   buildOutput?: { path: string; exitCode: number; output: string };
 
+  /** When true, file actions are skipped (files already on disk from server-side clone). */
+  preloaded = false;
+
   constructor(
     runtimePromise: Promise<RuntimeProvider>,
     getShellTerminal: () => DevonzShell,
@@ -548,6 +551,15 @@ export class ActionRunner {
   async #runFileAction(action: ActionState | FileWriteInput) {
     if (action.type !== 'file') {
       unreachable('Expected file action');
+    }
+
+    /*
+     * Fast-path for preloaded artifacts (e.g. server-side git clone).
+     * Files are already on disk — skip the read+compare round-trip entirely.
+     */
+    if (this.preloaded) {
+      logger.debug(`Preloaded artifact — skipping file action: ${action.filePath}`);
+      return;
     }
 
     const runtime = await this.#runtime;

@@ -28,6 +28,9 @@ export interface ArtifactState {
   type?: string;
   closed: boolean;
   runner: ActionRunner;
+
+  /** When true, files are already on disk — file actions can be skipped. */
+  preloaded?: boolean;
 }
 
 export type ArtifactUpdateState = Pick<ArtifactState, 'title' | 'closed'>;
@@ -547,8 +550,8 @@ export class WorkbenchStore {
     return isReloaded;
   }
 
-  addArtifact({ messageId, title, id, type }: ArtifactCallbackData) {
-    logger.debug('addArtifact:', { messageId, id, title, type });
+  addArtifact({ messageId, title, id, type, preloaded }: ArtifactCallbackData) {
+    logger.debug('addArtifact:', { messageId, id, title, type, preloaded });
 
     const artifact = this.#getArtifact(id);
 
@@ -562,39 +565,46 @@ export class WorkbenchStore {
       this.artifactIdList.push(id);
     }
 
+    const runner = new ActionRunner(
+      runtime,
+      () => this.devonzTerminal,
+      (alert) => {
+        if (this.#reloadedMessages.has(messageId)) {
+          return;
+        }
+
+        this.actionAlert.set(alert);
+      },
+      (alert) => {
+        if (this.#reloadedMessages.has(messageId)) {
+          return;
+        }
+
+        this.supabaseAlert.set(alert);
+      },
+      (alert) => {
+        if (this.#reloadedMessages.has(messageId)) {
+          return;
+        }
+
+        this.deployAlert.set(alert);
+      },
+      () => {
+        this.clearAlert();
+      },
+    );
+
+    if (preloaded) {
+      runner.preloaded = true;
+    }
+
     this.artifacts.setKey(id, {
       id,
       title,
       closed: false,
       type,
-      runner: new ActionRunner(
-        runtime,
-        () => this.devonzTerminal,
-        (alert) => {
-          if (this.#reloadedMessages.has(messageId)) {
-            return;
-          }
-
-          this.actionAlert.set(alert);
-        },
-        (alert) => {
-          if (this.#reloadedMessages.has(messageId)) {
-            return;
-          }
-
-          this.supabaseAlert.set(alert);
-        },
-        (alert) => {
-          if (this.#reloadedMessages.has(messageId)) {
-            return;
-          }
-
-          this.deployAlert.set(alert);
-        },
-        () => {
-          this.clearAlert();
-        },
-      ),
+      preloaded,
+      runner,
     });
   }
 
