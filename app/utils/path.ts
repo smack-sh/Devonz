@@ -25,9 +25,25 @@ export const path = {
  * (e.g. `src/App.tsx`).  `path.relative('/home/project', 'src/App.tsx')`
  * produces `../../src/App.tsx` — a traversal path the server rejects.
  *
- * This helper only calls `path.relative()` when the path actually starts
- * with the base directory prefix; otherwise it returns the path as-is.
+ * This helper handles three path forms:
+ *   1. Absolute with baseDir prefix (`/home/project/src/App.tsx`) → `path.relative()`
+ *   2. Already relative (`src/App.tsx`) → returned as-is
+ *   3. Absolute WITHOUT baseDir prefix (`/src/App.tsx`) → strip leading slashes
+ *      This third case occurs when replaying old chat history that stored
+ *      absolute paths before the path-normalization fix was applied.
  */
 export function toRelativePath(baseDir: string, filePath: string): string {
-  return filePath.startsWith(baseDir) ? path.relative(baseDir, filePath) : filePath;
+  if (filePath.startsWith(baseDir)) {
+    return path.relative(baseDir, filePath);
+  }
+
+  /*
+   * Strip leading slashes from absolute paths that don't belong to baseDir.
+   * e.g. "/src/app/app.component.css" → "src/app/app.component.css"
+   */
+  if (filePath.startsWith('/')) {
+    return filePath.replace(/^\/+/, '');
+  }
+
+  return filePath;
 }

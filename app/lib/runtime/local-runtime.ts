@@ -126,9 +126,14 @@ function killPortHolder(port: number): void {
 const PORT_PATTERNS = [
   /(?:Local|Server|App|http):?\s*(?:running\s+(?:at|on)\s+)?https?:\/\/[^:/\s]+:(\d+)/i,
   /(?:listening|started|running)\s+(?:at|on)\s+(?:port\s+)?(\d+)/i,
-  /localhost:(\d+)/i,
-  /0\.0\.0\.0:(\d+)/i,
-  /127\.0\.0\.1:(\d+)/i,
+
+  /*
+   * localhost / 0.0.0.0 / 127.0.0.1 patterns — use negative lookahead to
+   * skip "in use" / "already" messages (e.g. "localhost:3000 is already in use").
+   */
+  /localhost:(\d+)(?!\s+is\b)(?!.*(?:in use|already))/i,
+  /0\.0\.0\.0:(\d+)(?!\s+is\b)(?!.*(?:in use|already))/i,
+  /127\.0\.0\.1:(\d+)(?!\s+is\b)(?!.*(?:in use|already))/i,
 
   /*
    * Broad "port XXXX" pattern — uses \b after the digits to prevent
