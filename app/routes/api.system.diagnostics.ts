@@ -132,7 +132,7 @@ async function diagnosticsLoader({ request, context }: LoaderFunctionArgs & { co
   );
 }
 
-export const loader = withSecurity(diagnosticsLoader as any, {
+export const loader = withSecurity(diagnosticsLoader, {
   allowedMethods: ['GET'],
   rateLimit: false,
 });

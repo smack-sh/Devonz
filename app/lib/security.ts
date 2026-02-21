@@ -223,10 +223,11 @@ export function sanitizeErrorMessage(error: unknown, isDevelopment = false): str
 }
 
 /**
- * Security wrapper for API routes
+ * Security wrapper for API routes.
+ * Accepts handlers that may or may not consume the args parameter.
  */
-export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctionArgs) => Promise<Response>>(
-  handler: T,
+export function withSecurity(
+  handler: (args: ActionFunctionArgs | LoaderFunctionArgs) => Promise<Response> | Response,
   options: {
     requireAuth?: boolean;
     rateLimit?: boolean;

@@ -320,7 +320,7 @@ async function gitInfoSystemLoader({ request, context }: LoaderFunctionArgs & { 
   });
 }
 
-export const loader = withSecurity(gitInfoSystemLoader as any, {
+export const loader = withSecurity(gitInfoSystemLoader, {
   allowedMethods: ['GET'],
   rateLimit: false,
 });

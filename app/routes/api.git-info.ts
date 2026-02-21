@@ -52,7 +52,7 @@ async function gitInfoLoader() {
   });
 }
 
-export const loader = withSecurity(gitInfoLoader as any, {
+export const loader = withSecurity(gitInfoLoader, {
   allowedMethods: ['GET'],
   rateLimit: false,
 });

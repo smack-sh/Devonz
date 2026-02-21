@@ -61,7 +61,7 @@ async function versionCheckLoader(_args: LoaderFunctionArgs) {
   });
 }
 
-export const loader = withSecurity(versionCheckLoader as any, {
+export const loader = withSecurity(versionCheckLoader, {
   allowedMethods: ['GET'],
   rateLimit: false,
 });

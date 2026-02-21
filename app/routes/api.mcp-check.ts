@@ -16,7 +16,7 @@ async function mcpCheckLoader() {
   );
 }
 
-export const loader = withSecurity(mcpCheckLoader as any, {
+export const loader = withSecurity(mcpCheckLoader, {
   allowedMethods: ['GET'],
   rateLimit: false,
 });
