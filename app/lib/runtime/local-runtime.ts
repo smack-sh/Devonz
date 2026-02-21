@@ -429,6 +429,19 @@ export class RuntimeManager {
   static #instance: RuntimeManager | null = null;
 
   #runtimes = new Map<string, LocalRuntime>();
+
+  /**
+   * In-flight boot promises keyed by project ID.
+   *
+   * Prevents a race condition where two concurrent requests both see
+   * `#runtimes.get(id) === undefined`, each creates a new LocalRuntime,
+   * and the second overwrites the first — orphaning its sessions/processes.
+   *
+   * By caching the boot Promise itself, the second caller awaits the same
+   * Promise and receives the same runtime instance.
+   */
+  #bootingProjects = new Map<string, Promise<LocalRuntime>>();
+
   #projectsDir: string;
   #shell: string;
 
@@ -449,21 +462,48 @@ export class RuntimeManager {
   /**
    * Get or create a runtime for the given project ID.
    * Automatically boots the runtime if it's new.
+   *
+   * Safe for concurrent access: if two requests arrive simultaneously
+   * for the same project ID, both will receive the same runtime instance.
    */
   async getRuntime(projectId: string): Promise<LocalRuntime> {
-    let runtime = this.#runtimes.get(projectId);
+    // Fast path: runtime already exists
+    const existing = this.#runtimes.get(projectId);
 
-    if (!runtime) {
-      runtime = new LocalRuntime({
+    if (existing) {
+      return existing;
+    }
+
+    // Check if another request is already booting this project
+    const inflight = this.#bootingProjects.get(projectId);
+
+    if (inflight) {
+      return inflight;
+    }
+
+    // Create and cache the boot promise to prevent duplicate boots
+    const bootPromise = (async () => {
+      const runtime = new LocalRuntime({
         projectsDir: this.#projectsDir,
         shell: this.#shell,
       });
       await runtime.boot(projectId);
       this.#runtimes.set(projectId, runtime);
+      this.#bootingProjects.delete(projectId);
       logger.info(`Created runtime for project "${projectId}"`);
-    }
 
-    return runtime;
+      return runtime;
+    })();
+
+    this.#bootingProjects.set(projectId, bootPromise);
+
+    try {
+      return await bootPromise;
+    } catch (error) {
+      // Clean up on boot failure so retries can try again
+      this.#bootingProjects.delete(projectId);
+      throw error;
+    }
   }
 
   /** Tear down and remove a runtime. */
@@ -481,6 +521,7 @@ export class RuntimeManager {
     const teardownPromises = Array.from(this.#runtimes.values()).map((rt) => rt.teardown());
     await Promise.allSettled(teardownPromises);
     this.#runtimes.clear();
+    this.#bootingProjects.clear();
     logger.info('All runtimes torn down');
   }
 
