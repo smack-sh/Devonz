@@ -324,13 +324,13 @@ export function getFileDiff(projectDir: string, commitSha: string, filePath: str
     let hasParent = true;
 
     try {
-      gitExec(`git rev-parse ${commitSha}^`, projectDir);
+      gitExec(`git rev-parse ${commitSha}~1`, projectDir);
     } catch {
       hasParent = false;
     }
 
     if (hasParent) {
-      return gitExec(`git diff ${commitSha}^ ${commitSha} -- "${safePath}"`, projectDir);
+      return gitExec(`git diff ${commitSha}~1 ${commitSha} -- "${safePath}"`, projectDir);
     }
 
     // For initial commit, show the entire file as added
@@ -354,13 +354,13 @@ export function getCommitDiff(projectDir: string, commitSha: string): string {
     let hasParent = true;
 
     try {
-      gitExec(`git rev-parse ${commitSha}^`, projectDir);
+      gitExec(`git rev-parse ${commitSha}~1`, projectDir);
     } catch {
       hasParent = false;
     }
 
     if (hasParent) {
-      return gitExec(`git diff ${commitSha}^ ${commitSha}`, projectDir);
+      return gitExec(`git diff ${commitSha}~1 ${commitSha}`, projectDir);
     }
 
     // Initial commit — show all files as added
