@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import { useStore } from '@nanostores/react';
 import { runtime } from '~/lib/runtime';
 import { classNames } from '~/utils/classNames';
 import { toast } from 'react-toastify';
 import { createScopedLogger } from '~/utils/logger';
 import { useFileContent } from '~/lib/hooks/useFileContent';
+import { workbenchStore } from '~/lib/stores/workbench';
 
 const logger = createScopedLogger('ProjectMemory');
 
@@ -31,6 +33,7 @@ This file contains persistent instructions for the AI. The AI will read this fil
 
 export default function ProjectMemoryTab() {
   const fileContent = useFileContent(PROJECT_MEMORY_PATH);
+  const files = useStore(workbenchStore.files);
   const [content, setContent] = useState('');
   const [originalContent, setOriginalContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);

@@ -5,10 +5,6 @@ import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('ApiUtils');
 
-type CloudflareContext = AppLoadContext & {
-  cloudflare?: { env: Record<string, string> };
-};
-
 /**
  * Error with an HTTP status code, so handleApiError can forward upstream
  * status codes (403, 429, 502, etc.) instead of collapsing them to 500.
@@ -34,7 +30,7 @@ export class ApiError extends Error {
  */
 export function resolveToken(
   request: Request,
-  context: CloudflareContext | undefined,
+  context: AppLoadContext | undefined,
   ...envKeys: string[]
 ): string | null {
   const cookieHeader = request.headers.get('Cookie');
@@ -46,7 +42,7 @@ export function resolveToken(
     }
   }
 
-  const cfEnv = context?.cloudflare?.env as Record<string, string> | undefined;
+  const cfEnv = (context as { cloudflare?: { env?: Record<string, string> } })?.cloudflare?.env;
 
   for (const key of envKeys) {
     if (cfEnv?.[key]) {
