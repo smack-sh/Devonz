@@ -390,13 +390,22 @@ export class RuntimeClient implements RuntimeProvider {
     this.#activeSessions.set(sessionId, { eventSource, dataListeners });
 
     const exitPromise = new Promise<number>((resolve) => {
+      let resolved = false;
+
+      const doResolve = (code: number) => {
+        if (!resolved) {
+          resolved = true;
+          resolve(code);
+          eventSource.removeEventListener('message', exitListener);
+        }
+      };
+
       const exitListener = (event: MessageEvent) => {
         try {
           const parsed = JSON.parse(event.data);
 
           if (parsed.type === 'exit') {
-            resolve(parsed.exitCode ?? 1);
-            eventSource.removeEventListener('message', exitListener);
+            doResolve(parsed.exitCode ?? 1);
           }
         } catch {
           // Ignore parse errors
@@ -404,6 +413,19 @@ export class RuntimeClient implements RuntimeProvider {
       };
 
       eventSource.addEventListener('message', exitListener);
+
+      /*
+       * If the SSE connection permanently closes (readyState === CLOSED),
+       * resolve the promise so callers like action-runner don't hang forever.
+       * EventSource auto-reconnects on transient errors but enters CLOSED
+       * state when the server returns a non-retryable response.
+       */
+      eventSource.addEventListener('error', () => {
+        if (eventSource.readyState === EventSource.CLOSED) {
+          logger.warn(`SSE connection closed for session ${sessionId}, resolving exit promise`);
+          doResolve(1);
+        }
+      });
     });
 
     return {
