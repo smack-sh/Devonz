@@ -60,7 +60,7 @@ export default class HyperbolicProvider extends BaseProvider {
     const baseUrl = fetchBaseUrl || 'https://api.hyperbolic.xyz/v1';
 
     if (!apiKey) {
-      throw `Missing Api Key configuration for ${this.name} provider`;
+      throw new Error(`Missing Api Key configuration for ${this.name} provider`);
     }
 
     const response = await fetch(`${baseUrl}/models`, {
@@ -105,7 +105,7 @@ export default class HyperbolicProvider extends BaseProvider {
     });
 
     if (!apiKey) {
-      throw `Missing Api Key configuration for ${this.name} provider`;
+      throw new Error(`Missing Api Key configuration for ${this.name} provider`);
     }
 
     const openai = createOpenAI({
