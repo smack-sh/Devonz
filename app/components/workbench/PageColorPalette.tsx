@@ -19,9 +19,9 @@ const toHex = (color: string): string => {
   const rgbMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
 
   if (rgbMatch) {
-    const r = parseInt(rgbMatch[1]).toString(16).padStart(2, '0');
-    const g = parseInt(rgbMatch[2]).toString(16).padStart(2, '0');
-    const b = parseInt(rgbMatch[3]).toString(16).padStart(2, '0');
+    const r = parseInt(rgbMatch[1], 10).toString(16).padStart(2, '0');
+    const g = parseInt(rgbMatch[2], 10).toString(16).padStart(2, '0');
+    const b = parseInt(rgbMatch[3], 10).toString(16).padStart(2, '0');
 
     return `#${r}${g}${b}`;
   }
@@ -32,9 +32,9 @@ const toHex = (color: string): string => {
 // Check if color is light or dark
 const isLightColor = (color: string): boolean => {
   const hex = toHex(color).replace('#', '');
-  const r = parseInt(hex.substr(0, 2), 16);
-  const g = parseInt(hex.substr(2, 2), 16);
-  const b = parseInt(hex.substr(4, 2), 16);
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 
   return luminance > 0.5;
@@ -127,7 +127,9 @@ export const PageColorPalette = memo(({ colors, onColorSelect }: PageColorPalett
       </div>
 
       <div className="pt-2 border-t border-devonz-elements-borderColor">
-        <p className="text-[10px] text-devonz-elements-textTertiary text-center">Click to copy • Double-click to apply</p>
+        <p className="text-[10px] text-devonz-elements-textTertiary text-center">
+          Click to copy • Double-click to apply
+        </p>
       </div>
     </div>
   );

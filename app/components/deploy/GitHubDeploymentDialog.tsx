@@ -143,7 +143,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
           } else if (response.status === 403 && response.headers.get('x-ratelimit-remaining') === '0') {
             // Rate limit exceeded
             const resetTime = response.headers.get('x-ratelimit-reset');
-            const resetDate = resetTime ? new Date(parseInt(resetTime) * 1000).toLocaleTimeString() : 'soon';
+            const resetDate = resetTime ? new Date(parseInt(resetTime, 10) * 1000).toLocaleTimeString() : 'soon';
             toast.error(`GitHub API rate limit exceeded. Limit resets at ${resetDate}`);
           } else {
             logStore.logError('Failed to fetch GitHub repositories', {

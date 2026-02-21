@@ -1,5 +1,6 @@
 import { json, type LoaderFunctionArgs } from '@remix-run/node';
 import { withSecurity } from '~/lib/security';
+import { parseCookies } from '~/lib/api/cookies';
 
 /**
  * Diagnostic API for troubleshooting connection issues
@@ -21,19 +22,8 @@ async function diagnosticsLoader({ request, context }: LoaderFunctionArgs & { co
   };
 
   // Check cookies
-  const cookieHeader = request.headers.get('Cookie') || '';
-  const cookies = cookieHeader.split(';').reduce(
-    (acc, cookie) => {
-      const [key, value] = cookie.trim().split('=');
-
-      if (key) {
-        acc[key] = value;
-      }
-
-      return acc;
-    },
-    {} as Record<string, string>,
-  );
+  const cookieHeader = request.headers.get('Cookie');
+  const cookies = parseCookies(cookieHeader);
 
   const hasGithubTokenCookie = Boolean(cookies.githubToken);
   const hasGithubUsernameCookie = Boolean(cookies.githubUsername);

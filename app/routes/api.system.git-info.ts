@@ -1,5 +1,6 @@
 import { json, type LoaderFunctionArgs } from '@remix-run/node';
 import { withSecurity } from '~/lib/security';
+import { parseCookies } from '~/lib/api/cookies';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('GitInfo');
@@ -83,13 +84,8 @@ async function gitInfoSystemLoader({ request, context }: LoaderFunctionArgs & { 
   if (action === 'getUser' || action === 'getRepos' || action === 'getOrgs' || action === 'getActivity') {
     // Use server-side token instead of client-side token
     const serverGithubToken = process.env.GITHUB_ACCESS_TOKEN || context.env?.GITHUB_ACCESS_TOKEN;
-    const cookieToken = request.headers
-      .get('Cookie')
-      ?.split(';')
-      .find((cookie) => cookie.trim().startsWith('githubToken='))
-      ?.split('=')
-      .slice(1)
-      .join('=');
+    const cookies = parseCookies(request.headers.get('Cookie'));
+    const cookieToken = cookies.githubToken;
 
     // Also check for token in Authorization header
     const authHeader = request.headers.get('Authorization');
@@ -248,13 +244,7 @@ async function gitInfoSystemLoader({ request, context }: LoaderFunctionArgs & { 
       }
 
       if (action === 'getActivity') {
-        const username = request.headers
-          .get('Cookie')
-          ?.split(';')
-          .find((cookie) => cookie.trim().startsWith('githubUsername='))
-          ?.split('=')
-          .slice(1)
-          .join('=');
+        const username = cookies.githubUsername;
 
         if (!username) {
           logger.error('GitHub username not found in cookies');

@@ -75,7 +75,7 @@ export function requestPreviewScreenshot(
   timeout: number = 5000,
 ): Promise<string> {
   return new Promise((resolve) => {
-    const requestId = `screenshot-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const requestId = `screenshot-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
     // Set up timeout fallback
     const timeoutId = setTimeout(() => {

@@ -16,6 +16,7 @@ import type { DesignScheme } from '~/types/design-scheme';
 import { MCPService } from '~/lib/services/mcpService';
 import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
 import { withSecurity } from '~/lib/security';
+import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
 import {
   getAgentToolSetWithoutExecute,
   shouldUseAgentMode,
@@ -77,29 +78,6 @@ const chatRequestSchema = z.object({
   maxLLMSteps: z.number().int().positive().default(5),
   agentMode: z.boolean().optional(),
 });
-
-function parseCookies(cookieHeader: string): Record<string, string> {
-  const cookies: Record<string, string> = {};
-
-  const items = cookieHeader.split(';').map((cookie) => cookie.trim());
-
-  items.forEach((item) => {
-    const [name, ...rest] = item.split('=');
-
-    if (name && rest) {
-      try {
-        const decodedName = decodeURIComponent(name.trim());
-        const decodedValue = decodeURIComponent(rest.join('=').trim());
-        cookies[decodedName] = decodedValue;
-      } catch {
-        // Malformed percent-encoding — use raw values
-        cookies[name.trim()] = rest.join('=').trim();
-      }
-    }
-  });
-
-  return cookies;
-}
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
   const streamRecovery = new StreamRecoveryManager({
@@ -179,21 +157,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   const useAgentMode = shouldUseAgentMode({ agentMode });
 
   const cookieHeader = request.headers.get('Cookie');
-
-  let apiKeys: Record<string, string> = {};
-  let providerSettings: Record<string, IProviderSetting> = {};
-
-  try {
-    apiKeys = JSON.parse(parseCookies(cookieHeader || '').apiKeys || '{}');
-  } catch {
-    // corrupted cookie — fall back to empty
-  }
-
-  try {
-    providerSettings = JSON.parse(parseCookies(cookieHeader || '').providers || '{}');
-  } catch {
-    // corrupted cookie — fall back to empty
-  }
+  const apiKeys = getApiKeysFromCookie(cookieHeader);
+  const providerSettings: Record<string, IProviderSetting> = getProviderSettingsFromCookie(cookieHeader);
 
   const stream = new SwitchableStream();
 

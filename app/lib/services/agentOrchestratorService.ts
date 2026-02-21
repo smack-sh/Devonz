@@ -131,7 +131,7 @@ export class AgentOrchestrator {
       const duration = Date.now() - startTime;
 
       const record: ToolCallRecord = {
-        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         name: toolName,
         params,
         result,
