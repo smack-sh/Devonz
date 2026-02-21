@@ -213,6 +213,8 @@ export default function LocalProvidersTab() {
         throw new Error('No response reader available');
       }
 
+      const decoder = new TextDecoder();
+
       while (true) {
         const { done, value } = await reader.read();
 
@@ -220,7 +222,7 @@ export default function LocalProvidersTab() {
           break;
         }
 
-        const text = new TextDecoder().decode(value);
+        const text = decoder.decode(value, { stream: true });
         const lines = text.split('\n').filter(Boolean);
 
         for (const line of lines) {

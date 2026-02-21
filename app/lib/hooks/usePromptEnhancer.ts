@@ -72,7 +72,7 @@ export function usePromptEnhancer() {
           break;
         }
 
-        _input += decoder.decode(value);
+        _input += decoder.decode(value, { stream: true });
 
         logger.trace('Set input', _input);
 
