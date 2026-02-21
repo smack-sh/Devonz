@@ -11,7 +11,7 @@
  */
 import { json } from '@remix-run/node';
 import type { ActionFunctionArgs } from '@remix-run/node';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import * as fs from 'node:fs/promises';
 import * as fsSync from 'node:fs';
 import * as nodePath from 'node:path';
@@ -192,6 +192,27 @@ async function handleGitClone({ request }: ActionFunctionArgs) {
       await fs.rename(tempDir, projectDir);
 
       logger.info(`Finalized clone: _clone_${tempId} → ${projectId}`);
+
+      /*
+       * Fire-and-forget: start `npm install` in the background.
+       * When the chat loads and the shell action runs `npm install`,
+       * deps will already be installed (or nearly finished), making
+       * the second `npm install` exit in ~1 s instead of 30–60 s.
+       */
+      const pkgPath = nodePath.join(projectDir, 'package.json');
+
+      if (fsSync.existsSync(pkgPath)) {
+        const child = spawn('npm', ['install', '--prefer-offline'], {
+          cwd: projectDir,
+          stdio: 'ignore',
+          shell: true,
+          detached: true,
+          env: { ...process.env, NODE_ENV: 'development' },
+        });
+
+        child.unref();
+        logger.info(`Background npm install started for ${projectId} (pid ${child.pid})`);
+      }
 
       return json({ success: true });
     } catch (error) {

@@ -47,6 +47,15 @@ const messageParser = new EnhancedStreamingMessageParser({
       const artifact = data.artifactId ? workbenchStore.artifacts.get()[data.artifactId] : undefined;
       const messageId = data.messageId || artifact?.id || '';
 
+      /*
+       * Skip version snapshot for preloaded artifacts (e.g. git clone import).
+       * Files haven't changed — the snapshot would be identical to the initial state.
+       */
+      if (artifact?.preloaded) {
+        logger.debug('Skipping version snapshot for preloaded artifact:', data.artifactId);
+        return;
+      }
+
       // Skip if we've already versioned this message
       if (versionedMessages.has(messageId)) {
         return;
