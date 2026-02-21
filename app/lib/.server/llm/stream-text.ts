@@ -85,6 +85,31 @@ const ESSENTIAL_FILE_PATTERNS = [
   'next.config.js',
   'next.config.ts',
   'next.config.mjs',
+
+  // SvelteKit
+  'svelte.config.js',
+  'src/routes/+page.svelte',
+  'src/routes/+layout.svelte',
+  'src/app.html',
+  'src/app.css',
+  'src/app.d.ts',
+
+  // Angular
+  'angular.json',
+  'src/main.ts',
+  'src/styles.css',
+  'src/styles.scss',
+  'src/app/app.component.ts',
+  'src/app/app.module.ts',
+  'src/app/app-routing.module.ts',
+  'src/app/app.config.ts',
+  'src/app/app.routes.ts',
+
+  // Vue
+  'src/App.vue',
+  'src/main.ts',
+  'src/main.js',
+  'nuxt.config.ts',
 ];
 
 function isEssentialFile(filePath: string): boolean {
@@ -422,8 +447,10 @@ ${projectMemoryContent}
 
     // Add context files reference for agent mode
     if (chatMode === 'build' && contextFiles && contextOptimization) {
-      // In agent mode, provide file paths as references instead of full content
-      // The agent can use devonz_read_file to read specific files when needed
+      /*
+       * In agent mode, provide file paths as references instead of full content.
+       * The agent can use devonz_read_file to read specific files when needed.
+       */
       const fileList = Object.keys(contextFiles);
 
       if (fileList.length <= 5) {

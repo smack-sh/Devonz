@@ -615,7 +615,7 @@ export const ChatImpl = memo(
                 {
                   id: `3-${new Date().getTime()}`,
                   role: 'user',
-                  content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userMessage}`,
+                  content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userMessage}\n\nNow implement the following user request using the imported template above:\n${finalMessageContent}`,
                   annotations: ['hidden'],
                 },
               ]);
