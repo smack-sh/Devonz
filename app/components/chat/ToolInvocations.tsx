@@ -1,6 +1,6 @@
 import type { ToolInvocationUIPart } from '@ai-sdk/ui-utils';
 import { AnimatePresence, motion } from 'framer-motion';
-import { memo, useMemo, useState, useEffect, useRef } from 'react';
+import { memo, useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { createHighlighter, type BundledLanguage, type BundledTheme, type HighlighterGeneric } from 'shiki';
 import DOMPurify from 'dompurify';
 import ReactMarkdown from 'react-markdown';
@@ -579,6 +579,45 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
   // OS detection for shortcut display
   const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 
+  /**
+   * Execute an agent tool on the client side and send the actual result via addToolResult.
+   * For MCP tools, send 'Yes, approved.' for server-side execution (MCPService handles it).
+   * This avoids the SSR runtime hang where `await runtime` never resolves on the server.
+   */
+  const handleApprove = useCallback(
+    async (toolCallId: string) => {
+      const inv = toolInvocations.find((i) => i.toolInvocation.toolCallId === toolCallId);
+
+      if (!inv) {
+        return;
+      }
+
+      const { toolName, args } = inv.toolInvocation;
+      const annotation = toolCallAnnotations.find((a) => a.toolCallId === toolCallId);
+      const serverName = annotation?.serverName ?? '';
+
+      if (serverName === 'devonz-agent') {
+        // Execute agent tools on the CLIENT to avoid SSR runtime hang
+        try {
+          const { executeAgentTool } = await import('~/lib/services/agentToolsService');
+          const result = await executeAgentTool(toolName, args as Record<string, unknown>);
+          logger.debug(`Tool ${toolName} executed on client:`, result);
+          addToolResult({ toolCallId, result });
+        } catch (error) {
+          logger.error(`Failed to execute agent tool ${toolName}:`, error);
+          addToolResult({
+            toolCallId,
+            result: { error: `Tool execution failed: ${error instanceof Error ? error.message : String(error)}` },
+          });
+        }
+      } else {
+        // MCP tools: send approval for server-side execution (MCPService works on server)
+        addToolResult({ toolCallId, result: TOOL_EXECUTION_APPROVAL.APPROVE });
+      }
+    },
+    [toolInvocations, toolCallAnnotations, addToolResult],
+  );
+
   useEffect(() => {
     const expandedState: { [id: string]: boolean } = {};
     toolInvocations.forEach((inv) => {
@@ -589,7 +628,11 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
     setExpanded(expandedState);
   }, [toolInvocations]);
 
-  // Auto-approve tool calls for MCP servers in the auto-approve list AND agent tools based on settings
+  /*
+   * Auto-approve tool calls for MCP servers in the auto-approve list.
+   * NOTE: Agent tool auto-approval is primarily handled by onToolCall in Chat.client.tsx.
+   * This fallback covers MCP tools from auto-approve servers.
+   */
   useEffect(() => {
     toolInvocations.forEach((inv) => {
       if (inv.toolInvocation.state !== 'call') {
@@ -609,7 +652,7 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
       // Check MCP server auto-approve list
       const isMcpAutoApproved = autoApproveServers.includes(serverName);
 
-      // Check agent tool auto-approve settings
+      // Check agent tool auto-approve settings (fallback for edge cases)
       const isAgentAutoApproved = serverName === 'devonz-agent' && shouldAutoApproveAgentTool(toolName, agentSettings);
 
       if (!isMcpAutoApproved && !isAgentAutoApproved) {
@@ -619,9 +662,9 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
       autoApprovedRef.current.add(toolCallId);
 
       logger.debug(`Auto-approving tool "${toolName}" from server "${serverName}"`);
-      addToolResult({ toolCallId, result: TOOL_EXECUTION_APPROVAL.APPROVE });
+      handleApprove(toolCallId);
     });
-  }, [toolInvocations, toolCallAnnotations, addToolResult, autoApproveServers, agentSettings]);
+  }, [toolInvocations, toolCallAnnotations, handleApprove, autoApproveServers, agentSettings]);
 
   // Keyboard shortcut logic
   useEffect(() => {
@@ -655,16 +698,13 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
       // Run tool: Cmd/Ctrl + Enter
       if ((isMac ? e.metaKey : e.ctrlKey) && (e.key === 'Enter' || e.key === 'Return')) {
         e.preventDefault();
-        addToolResult({
-          toolCallId: openId,
-          result: TOOL_EXECUTION_APPROVAL.APPROVE,
-        });
+        handleApprove(openId);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
 
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [expanded, addToolResult, isMac]);
+  }, [expanded, handleApprove, isMac]);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
@@ -733,12 +773,7 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
                             'text-accent-500 hover:text-devonz-elements-textPrimary',
                             'disabled:opacity-50 disabled:cursor-not-allowed',
                           )}
-                          onClick={() =>
-                            addToolResult({
-                              toolCallId,
-                              result: TOOL_EXECUTION_APPROVAL.APPROVE,
-                            })
-                          }
+                          onClick={() => handleApprove(toolCallId)}
                         >
                           Run tool <span className="opacity-70 text-xs ml-1">{isMac ? '⌘↵' : 'Ctrl+Enter'}</span>
                         </button>
