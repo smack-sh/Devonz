@@ -90,14 +90,14 @@ export default class CerebrasProvider extends BaseProvider {
         return [];
       }
 
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as { data?: Array<{ id: string }> };
       const staticModelIds = this.staticModels.map((m) => m.name);
 
       // Filter out models we already have in staticModels
       const dynamicModels =
         data.data
-          ?.filter((model: any) => !staticModelIds.includes(model.id))
-          .map((m: any) => ({
+          ?.filter((model) => !staticModelIds.includes(model.id))
+          .map((m) => ({
             name: m.id,
             label: `${m.id} (Dynamic)`,
             provider: this.name,

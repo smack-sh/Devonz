@@ -135,17 +135,16 @@ export default class ZaiProvider extends BaseProvider {
         throw new Error(`Failed to fetch models: ${response.status} ${response.statusText}`);
       }
 
-      const res = (await response.json()) as any;
+      const res = (await response.json()) as { data?: Array<{ id: string; object?: string }> };
       const staticModelIds = this.staticModels.map((m) => m.name);
 
       // Filter out static models and only include GLM models
       const data =
         res.data?.filter(
-          (model: any) =>
-            model.object === 'model' && model.id?.startsWith('glm-') && !staticModelIds.includes(model.id),
+          (model) => model.object === 'model' && model.id?.startsWith('glm-') && !staticModelIds.includes(model.id),
         ) || [];
 
-      return data.map((m: any) => {
+      return data.map((m) => {
         let contextWindow = 128000;
         let maxCompletionTokens = 65536;
 

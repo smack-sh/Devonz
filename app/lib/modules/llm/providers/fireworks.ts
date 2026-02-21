@@ -96,17 +96,17 @@ export default class FireworksProvider extends BaseProvider {
         return [];
       }
 
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as { data?: Array<{ id: string; context_length?: number }> };
       const staticModelIds = this.staticModels.map((m) => m.name);
 
       // Filter out models we already have in staticModels
       const dynamicModels =
         data.data
-          ?.filter((model: any) => {
+          ?.filter((model) => {
             const modelPath = `accounts/fireworks/models/${model.id}`;
             return !staticModelIds.includes(modelPath) && !staticModelIds.includes(model.id);
           })
-          .map((m: any) => ({
+          .map((m) => ({
             name: `accounts/fireworks/models/${m.id}`,
             label: `${m.id} (Dynamic)`,
             provider: this.name,
