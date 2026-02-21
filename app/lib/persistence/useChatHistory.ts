@@ -428,6 +428,20 @@ export function useChatHistory() {
               | string
               | undefined;
           }
+
+          // Extract token usage from annotations
+          const usageAnnotation = filteredAnnotations.find((annotation) => annotation.type === 'usage');
+          const usage = usageAnnotation?.value as { totalTokens?: number } | undefined;
+
+          // Update the latest version with metadata from annotations
+          const latestVersion = versionsStore.getLatestVersion();
+
+          if (latestVersion && latestVersion.messageId === lastMessage.id) {
+            versionsStore.updateVersionMeta(latestVersion.id, {
+              totalTokens: usage?.totalTokens,
+              chatSummary,
+            });
+          }
         }
 
         lastSnapshotParamsRef.current = { chatIdx: messages[messages.length - 1].id, chatSummary };

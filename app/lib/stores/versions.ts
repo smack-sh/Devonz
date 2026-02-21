@@ -13,6 +13,8 @@ export interface ProjectVersion {
   files: Record<string, { content: string; type: string }>;
   thumbnail?: string; // Base64 preview image (optional, for future)
   commitSha?: string; // Git commit SHA, set after auto-commit completes
+  totalTokens?: number;
+  chatSummary?: string;
   isLatest: boolean;
 }
 
@@ -225,6 +227,18 @@ class VersionsStore {
     }
 
     return `${months}mo ago`;
+  }
+
+  /**
+   * Update version metadata (tokens, summary) and persist the change.
+   */
+  updateVersionMeta(versionId: string, meta: { totalTokens?: number; chatSummary?: string }) {
+    const version = this.versions.get()[versionId];
+
+    if (version) {
+      this.versions.setKey(versionId, { ...version, ...meta });
+      this._persistToDB();
+    }
   }
 
   /**
