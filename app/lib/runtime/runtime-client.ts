@@ -52,7 +52,16 @@ class ClientFileSystem implements RuntimeFileSystem {
     this.#projectId = projectId;
   }
 
+  /** Guard: throw if no project is booted yet (prevents 400 errors from server). */
+  #requireProject(operation: string): void {
+    if (!this.#projectId) {
+      throw new Error(`Cannot ${operation}: no project booted yet`);
+    }
+  }
+
   async readFile(path: string, encoding: BufferEncoding = 'utf-8'): Promise<string> {
+    this.#requireProject('readFile');
+
     const params = new URLSearchParams({
       projectId: this.#projectId,
       path,
@@ -69,6 +78,8 @@ class ClientFileSystem implements RuntimeFileSystem {
   }
 
   async readFileRaw(path: string): Promise<Uint8Array> {
+    this.#requireProject('readFileRaw');
+
     const params = new URLSearchParams({
       projectId: this.#projectId,
       path,
@@ -87,6 +98,8 @@ class ClientFileSystem implements RuntimeFileSystem {
   }
 
   async writeFile(path: string, content: string | Uint8Array): Promise<void> {
+    this.#requireProject('writeFile');
+
     const isBinary = content instanceof Uint8Array;
 
     let encodedContent: string;
@@ -130,6 +143,8 @@ class ClientFileSystem implements RuntimeFileSystem {
   }
 
   async mkdir(path: string, options?: { recursive?: boolean }): Promise<void> {
+    this.#requireProject('mkdir');
+
     const body = JSON.stringify({
       projectId: this.#projectId,
       path,
@@ -150,6 +165,8 @@ class ClientFileSystem implements RuntimeFileSystem {
   }
 
   async readdir(path: string): Promise<DirEntry[]> {
+    this.#requireProject('readdir');
+
     const params = new URLSearchParams({
       projectId: this.#projectId,
       path,
@@ -167,6 +184,8 @@ class ClientFileSystem implements RuntimeFileSystem {
   }
 
   async stat(path: string): Promise<FileStat> {
+    this.#requireProject('stat');
+
     const params = new URLSearchParams({
       projectId: this.#projectId,
       path,
@@ -189,6 +208,8 @@ class ClientFileSystem implements RuntimeFileSystem {
   }
 
   async rm(path: string, options?: { recursive?: boolean; force?: boolean }): Promise<void> {
+    this.#requireProject('rm');
+
     const body = JSON.stringify({
       projectId: this.#projectId,
       path,
@@ -210,6 +231,10 @@ class ClientFileSystem implements RuntimeFileSystem {
   }
 
   async exists(path: string): Promise<boolean> {
+    if (!this.#projectId) {
+      return false;
+    }
+
     const params = new URLSearchParams({
       projectId: this.#projectId,
       path,
@@ -228,6 +253,8 @@ class ClientFileSystem implements RuntimeFileSystem {
   }
 
   async rename(oldPath: string, newPath: string): Promise<void> {
+    this.#requireProject('rename');
+
     const body = JSON.stringify({
       projectId: this.#projectId,
       oldPath,
@@ -254,6 +281,11 @@ class ClientFileSystem implements RuntimeFileSystem {
    * file change events from the server's file watcher.
    */
   watch(glob: string, callback: WatchCallback): Disposer {
+    if (!this.#projectId) {
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      return () => {};
+    }
+
     const params = new URLSearchParams({
       projectId: this.#projectId,
       glob,

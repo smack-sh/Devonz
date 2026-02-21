@@ -80,14 +80,6 @@ const chatRequestSchema = z.object({
 });
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
-  const streamRecovery = new StreamRecoveryManager({
-    timeout: 45000,
-    maxRetries: 2,
-    onTimeout: () => {
-      logger.warn('Stream timeout - attempting recovery');
-    },
-  });
-
   // Parse and validate request body
   let rawBody: unknown;
 
@@ -155,6 +147,20 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
   // Determine if agent mode should be active for this request
   const useAgentMode = shouldUseAgentMode({ agentMode });
+
+  /*
+   * Agent mode tools (MCP) require user approval in the UI, so the
+   * stream can be idle for minutes while the user reviews a tool call.
+   * Use a 5-minute timeout to prevent false stream-recovery kills.
+   * Normal (non-agent) mode keeps the 45-second timeout.
+   */
+  const streamRecovery = new StreamRecoveryManager({
+    timeout: useAgentMode ? 300_000 : 45_000,
+    maxRetries: useAgentMode ? 0 : 2,
+    onTimeout: () => {
+      logger.warn('Stream timeout - attempting recovery');
+    },
+  });
 
   const cookieHeader = request.headers.get('Cookie');
   const apiKeys = getApiKeysFromCookie(cookieHeader);
