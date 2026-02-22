@@ -62,6 +62,10 @@ export const execRequestSchema = z.discriminatedUnion('op', [
     op: z.literal('teardown'),
     projectId: projectIdSchema,
   }),
+  z.object({
+    op: z.literal('allocatePort'),
+    projectId: projectIdSchema,
+  }),
 ]);
 
 /** Schema for POST /api/runtime/fs operations. */

@@ -607,6 +607,23 @@ export class RuntimeClient implements RuntimeProvider {
     return `http://localhost:${port}`;
   }
 
+  async allocatePort(): Promise<number> {
+    const response = await fetch('/api/runtime/exec', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ op: 'allocatePort', projectId: this.#projectId }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to allocate port: ${error}`);
+    }
+
+    const { port } = await response.json();
+
+    return port;
+  }
+
   onPortEvent(callback: (event: PortEvent) => void): Disposer {
     this.#portListeners.push(callback);
 

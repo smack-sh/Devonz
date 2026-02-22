@@ -197,6 +197,20 @@ async function execAction({ request }: ActionFunctionArgs) {
       }
     }
 
+    case 'allocatePort': {
+      try {
+        const runtime = await manager.getRuntime(projectId);
+        const port = await runtime.allocatePort();
+
+        return json({ port });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Port allocation failed';
+        logger.error(`Port allocation failed for "${projectId}":`, error);
+
+        return json({ error: message }, { status: 500 });
+      }
+    }
+
     default: {
       return json({ error: `Unknown operation: ${op}` }, { status: 400 });
     }
