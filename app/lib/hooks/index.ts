@@ -13,3 +13,5 @@ export { useGitLabConnection } from './useGitLabConnection';
 export { useGitLabAPI } from './useGitLabAPI';
 export { useSupabaseConnection } from './useSupabaseConnection';
 export { useConnectionTest } from './useConnectionTest';
+export { useInspector } from './useInspector';
+export type { UseInspectorOptions, UseInspectorReturn } from './useInspector';
