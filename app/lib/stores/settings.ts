@@ -1,4 +1,4 @@
-import { atom, map } from 'nanostores';
+import { atom, map, type MapStore } from 'nanostores';
 import Cookies from 'js-cookie';
 import { PROVIDER_LIST } from '~/utils/constants';
 import type { IProviderConfig, IProviderSetting } from '~/types/model';
@@ -143,8 +143,12 @@ export interface EnvKeyStatus {
   hasCookieKey: boolean;
 }
 
-// Store for env key status - tracks which providers have server-side API keys
-export const envKeyStatusStore = map<Record<string, EnvKeyStatus>>({});
+/*
+ * Store for env key status - tracks which providers have server-side API keys.
+ * Preserved across Vite HMR to avoid re-fetching from server.
+ */
+export const envKeyStatusStore: MapStore<Record<string, EnvKeyStatus>> =
+  import.meta.hot?.data.envKeyStatusStore ?? map<Record<string, EnvKeyStatus>>({});
 
 /*
  * Preferred models store - maps provider name → preferred model name.
@@ -402,18 +406,25 @@ const autoEnableConfiguredProviders = async () => {
   }
 };
 
-export const providersStore = map<ProviderSetting>(getInitialProviderSettings());
+export const providersStore: MapStore<ProviderSetting> =
+  import.meta.hot?.data.providersStore ?? map<ProviderSetting>(getInitialProviderSettings());
 
 // Export the auto-enable function for use in components
 export const initializeProviders = autoEnableConfiguredProviders;
 
-// Initialize providers when the module loads (in browser only)
-if (isBrowser) {
+// Initialize providers when the module loads (in browser only, skip on HMR)
+if (isBrowser && !import.meta.hot?.data.providersStore) {
   // Use a small delay to ensure DOM and other resources are ready
   setTimeout(() => {
     autoEnableConfiguredProviders();
     checkCloudProviderEnvKeys();
   }, 100);
+}
+
+// Preserve stores across Vite HMR updates
+if (import.meta.hot) {
+  import.meta.hot.data.envKeyStatusStore = envKeyStatusStore;
+  import.meta.hot.data.providersStore = providersStore;
 }
 
 // Create a function to update provider settings that handles both store and persistence

@@ -1,4 +1,4 @@
-import { atom, map } from 'nanostores';
+import { atom, map, type MapStore, type WritableAtom } from 'nanostores';
 import Cookies from 'js-cookie';
 import { createScopedLogger } from '~/utils/logger';
 
@@ -49,13 +49,23 @@ interface LogDetails extends Record<string, unknown> {
 const MAX_LOGS = 1000; // Maximum number of logs to keep in memory
 
 class LogStore {
-  private _logs = map<Record<string, LogEntry>>({});
-  showLogs = atom(true);
+  private _logs: MapStore<Record<string, LogEntry>> =
+    import.meta.hot?.data.logStoreData ?? map<Record<string, LogEntry>>({});
+
+  showLogs: WritableAtom<boolean> = import.meta.hot?.data.showLogs ?? atom(true);
   private _readLogs = new Set<string>();
 
   constructor() {
-    // Load saved logs from localStorage on initialization
-    this._loadLogs();
+    // Preserve store atoms across Vite HMR updates
+    if (import.meta.hot) {
+      import.meta.hot.data.logStoreData = this._logs;
+      import.meta.hot.data.showLogs = this.showLogs;
+    }
+
+    // Only load from localStorage on cold start (not HMR)
+    if (!import.meta.hot?.data.logStoreData) {
+      this._loadLogs();
+    }
 
     // Only load read logs in browser environment
     if (typeof window !== 'undefined') {

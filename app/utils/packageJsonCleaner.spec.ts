@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cleanPackageJson, cleanPackageJsonForWebContainer, replaceUnsupportedFonts } from './packageJsonCleaner';
+import { cleanPackageJson } from './packageJsonCleaner';
 
 describe('cleanPackageJson', () => {
   it('should remove expo and react-native dependencies', () => {
@@ -256,42 +256,5 @@ describe('cleanPackageJson', () => {
     const cleaned = JSON.parse(result.content);
     expect(cleaned.dependencies.next).toBe('14.1.4');
     expect(cleaned.dependencies.react).toBe('^18.2.0');
-  });
-});
-
-describe('cleanPackageJsonForWebContainer (deprecated wrapper)', () => {
-  it('should delegate to cleanPackageJson', () => {
-    const pkg = JSON.stringify({
-      dependencies: {
-        react: '^19',
-        expo: 'latest',
-      },
-    });
-
-    const result = cleanPackageJsonForWebContainer(pkg);
-    expect(result.cleaned).toBe(true);
-    expect(result.removedDeps).toContain('expo (dependencies)');
-  });
-});
-
-describe('replaceUnsupportedFonts (deprecated — now a no-op)', () => {
-  it('should return content unchanged', () => {
-    const layout = `import { Geist, Geist_Mono } from 'next/font/google';
-const geistSans = Geist({ subsets: ['latin'] });`;
-
-    const result = replaceUnsupportedFonts(layout);
-
-    expect(result.replaced).toBe(false);
-    expect(result.content).toBe(layout);
-  });
-
-  it('should not modify files without next/font/google', () => {
-    const component = `import React from 'react';
-export default function Home() { return <div>Hello</div>; }`;
-
-    const result = replaceUnsupportedFonts(component);
-
-    expect(result.replaced).toBe(false);
-    expect(result.content).toBe(component);
   });
 });

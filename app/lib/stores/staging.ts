@@ -161,17 +161,24 @@ const DEFAULT_SETTINGS: StagingSettings = {
  */
 
 /**
- * Main staging store containing all staged changes
+ * Main staging store containing all staged changes.
+ * Uses import.meta.hot to preserve state across Vite HMR updates.
  */
-export const stagingStore: MapStore<StagingState> = map<StagingState>({
-  changes: {},
-  selectedChangePath: null,
-  isDiffModalOpen: false,
-  settings: loadSettingsFromStorage(),
-  pendingCommands: [],
-  isPreviewMode: false,
-  lastAcceptedMessageId: null,
-});
+export const stagingStore: MapStore<StagingState> =
+  import.meta.hot?.data.stagingStore ??
+  map<StagingState>({
+    changes: {},
+    selectedChangePath: null,
+    isDiffModalOpen: false,
+    settings: loadSettingsFromStorage(),
+    pendingCommands: [],
+    isPreviewMode: false,
+    lastAcceptedMessageId: null,
+  });
+
+if (import.meta.hot) {
+  import.meta.hot.data.stagingStore = stagingStore;
+}
 
 /*
  * ============================================================================
@@ -832,6 +839,49 @@ export async function applyAcceptedChanges(rt: {
   return { applied, failed };
 }
 
+/** Filesystem interface used by rejection revert operations */
+interface RevertFs {
+  writeFile: (path: string, content: string) => Promise<void>;
+  rm: (path: string, options?: { recursive?: boolean }) => Promise<void>;
+  mkdir: (path: string, options: { recursive: true }) => Promise<void>;
+}
+
+/**
+ * Revert a single staged change by restoring original content to the runtime filesystem.
+ * Shared logic for both applyRejectedChanges (batch) and applyRejectedChange (single).
+ */
+async function revertSingleFile(change: StagedChange, fs: RevertFs): Promise<void> {
+  /* Convert absolute path to relative path: "/home/project/src/file.ts" -> "src/file.ts" */
+  const relativePath = change.filePath.replace(/^\/home\/project\/?/, '');
+
+  if (change.type === 'create') {
+    /*
+     * File was newly created and staged — it was never written to the filesystem.
+     * Just remove from staging, no filesystem operation needed.
+     */
+    logger.debug(`Removing staged new file from tracking: ${relativePath}`);
+  } else if (change.type === 'delete' && change.originalContent !== null) {
+    /* File was deleted — recreate it with original content */
+    const pathParts = relativePath.split('/');
+    const dir = pathParts.slice(0, -1).join('/');
+
+    if (dir) {
+      try {
+        await fs.mkdir(dir, { recursive: true });
+      } catch {
+        /* Directory might already exist */
+      }
+    }
+
+    await fs.writeFile(relativePath, change.originalContent);
+    logger.debug(`Restored deleted file: ${relativePath}`);
+  } else if (change.originalContent !== null) {
+    /* File was modified — restore original content */
+    await fs.writeFile(relativePath, change.originalContent);
+    logger.debug(`Restored original content: ${relativePath}`);
+  }
+}
+
 /**
  * Revert all rejected changes by restoring original content to the runtime filesystem.
  * This actually restores the files — must be called after rejectChange/rejectAllChanges.
@@ -840,11 +890,7 @@ export async function applyAcceptedChanges(rt: {
  * @returns Object with arrays of reverted and failed file paths
  */
 export async function applyRejectedChanges(rt: {
-  fs: {
-    writeFile: (path: string, content: string) => Promise<void>;
-    rm: (path: string, options?: { recursive?: boolean }) => Promise<void>;
-    mkdir: (path: string, options: { recursive: true }) => Promise<void>;
-  };
+  fs: RevertFs;
 }): Promise<{ reverted: string[]; failed: Array<{ path: string; error: string }> }> {
   const rejected = getRejectedChanges();
   const reverted: string[] = [];
@@ -854,36 +900,7 @@ export async function applyRejectedChanges(rt: {
 
   for (const change of rejected) {
     try {
-      /* Convert absolute path to relative path: "/home/project/src/file.ts" -> "src/file.ts" */
-      const relativePath = change.filePath.replace(/^\/home\/project\/?/, '');
-
-      if (change.type === 'create') {
-        /*
-         * File was newly created and staged — it was never written to the filesystem.
-         * Just remove from staging, no filesystem operation needed.
-         */
-        logger.debug(`Removing staged new file from tracking: ${relativePath}`);
-      } else if (change.type === 'delete' && change.originalContent !== null) {
-        // File was deleted - recreate it with original content
-        const pathParts = relativePath.split('/');
-        const dir = pathParts.slice(0, -1).join('/');
-
-        if (dir) {
-          try {
-            await rt.fs.mkdir(dir, { recursive: true });
-          } catch {
-            /* Directory might already exist */
-          }
-        }
-
-        await rt.fs.writeFile(relativePath, change.originalContent);
-        logger.debug(`Restored deleted file: ${relativePath}`);
-      } else if (change.originalContent !== null) {
-        /* File was modified — restore original content */
-        await rt.fs.writeFile(relativePath, change.originalContent);
-        logger.debug(`Restored original content: ${relativePath}`);
-      }
-
+      await revertSingleFile(change, rt.fs);
       reverted.push(change.filePath);
 
       // Remove the change from staging now that it's reverted
@@ -912,11 +929,7 @@ export async function applyRejectedChanges(rt: {
 export async function applyRejectedChange(
   filePath: string,
   rt: {
-    fs: {
-      writeFile: (path: string, content: string) => Promise<void>;
-      rm: (path: string, options?: { recursive?: boolean }) => Promise<void>;
-      mkdir: (path: string, options: { recursive: true }) => Promise<void>;
-    };
+    fs: RevertFs;
   },
 ): Promise<{ success: boolean; error?: string }> {
   const change = getChangeForFile(filePath);
@@ -930,35 +943,7 @@ export async function applyRejectedChange(
   }
 
   try {
-    const relativePath = change.filePath.replace(/^\/home\/project\/?/, '');
-
-    if (change.type === 'create') {
-      /*
-       * File was newly created and staged — it was never written to the filesystem.
-       * Just remove from staging, no filesystem operation needed.
-       */
-      logger.debug(`Removing staged new file from tracking: ${relativePath}`);
-    } else if (change.type === 'delete' && change.originalContent !== null) {
-      /* File was deleted — recreate it with original content */
-      const pathParts = relativePath.split('/');
-      const dir = pathParts.slice(0, -1).join('/');
-
-      if (dir) {
-        try {
-          await rt.fs.mkdir(dir, { recursive: true });
-        } catch {
-          /* Directory might already exist */
-        }
-      }
-
-      await rt.fs.writeFile(relativePath, change.originalContent);
-      logger.debug(`Restored deleted file: ${relativePath}`);
-    } else if (change.originalContent !== null) {
-      /* File was modified — restore original content */
-      await rt.fs.writeFile(relativePath, change.originalContent);
-      logger.debug(`Restored original content: ${relativePath}`);
-    }
-
+    await revertSingleFile(change, rt.fs);
     removeChange(filePath);
 
     return { success: true };

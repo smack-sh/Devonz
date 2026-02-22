@@ -129,20 +129,3 @@ export function cleanPackageJson(packageJsonContent: string, projectFiles?: stri
     };
   }
 }
-
-/**
- * @deprecated No longer needed — local runtime supports all Next.js versions.
- * Kept as a no-op for backwards compatibility with existing callers.
- */
-export function cleanPackageJsonForWebContainer(packageJsonContent: string, projectFiles?: string[]): CleanupResult {
-  return cleanPackageJson(packageJsonContent, projectFiles);
-}
-
-/**
- * @deprecated No longer needed — local runtime supports all Next.js versions
- * and all Google Fonts are available natively.
- * Kept as a no-op for backwards compatibility with existing callers.
- */
-export function replaceUnsupportedFonts(content: string): { content: string; replaced: boolean } {
-  return { content, replaced: false };
-}

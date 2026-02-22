@@ -1,4 +1,4 @@
-import { atom, map } from 'nanostores';
+import { atom, map, type MapStore, type WritableAtom } from 'nanostores';
 import { createScopedLogger } from '~/utils/logger';
 import { saveVersions as saveVersionsToDB, getVersionsByChatId } from '~/lib/persistence/db';
 
@@ -19,15 +19,25 @@ export interface ProjectVersion {
 }
 
 class VersionsStore {
-  versions = map<Record<string, ProjectVersion>>({});
-  currentVersionId = atom<string | null>(null);
+  versions: MapStore<Record<string, ProjectVersion>> =
+    import.meta.hot?.data.versions ?? map<Record<string, ProjectVersion>>({});
+
+  currentVersionId: WritableAtom<string | null> = import.meta.hot?.data.currentVersionId ?? atom<string | null>(null);
 
   /** Bumped after a git commit SHA is stored — lets Versions.tsx auto-refresh. */
-  lastCommitTimestamp = atom<number>(0);
+  lastCommitTimestamp: WritableAtom<number> = import.meta.hot?.data.lastCommitTimestamp ?? atom<number>(0);
 
   private _db: IDBDatabase | undefined;
   private _chatId: string | undefined;
   private _pendingMeta: { totalTokens?: number; chatSummary?: string } | null = null;
+
+  constructor() {
+    if (import.meta.hot) {
+      import.meta.hot.data.versions = this.versions;
+      import.meta.hot.data.currentVersionId = this.currentVersionId;
+      import.meta.hot.data.lastCommitTimestamp = this.lastCommitTimestamp;
+    }
+  }
 
   /**
    * Set the database context for version persistence.

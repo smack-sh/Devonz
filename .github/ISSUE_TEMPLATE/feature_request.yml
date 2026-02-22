@@ -1,0 +1,107 @@
+name: Feature Request
+description: Suggest a new feature or improvement for Devonz
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Feature Request
+
+        Help us improve Devonz! Describe what you'd like to see added or changed.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: |
+        What problem does this feature solve? Describe the situation where you need this.
+        Focus on the *problem*, not the solution.
+      placeholder: |
+        When working with multiple AI providers, I need to compare outputs side-by-side,
+        but currently I can only use one model at a time and have to switch manually...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: |
+        How do you think this should work? Include example interactions, UI behavior, or expected output.
+      placeholder: |
+        Add a "Compare" mode that sends the same prompt to two selected models
+        and shows the results side-by-side in split panels.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: |
+        Have you tried any workarounds? Are there other approaches that could solve this?
+      placeholder: |
+        Currently I open two browser tabs with different providers selected,
+        but this doesn't share the conversation context and is awkward to manage.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Feature area
+      description: Which part of Devonz does this relate to?
+      options:
+        - "AI chat / code generation"
+        - "LLM provider support"
+        - "Code editor (CodeMirror)"
+        - "Terminal (xterm.js)"
+        - "Live preview"
+        - "Deployment integrations (GitHub, GitLab, Netlify, Vercel)"
+        - "MCP tool integration"
+        - "Template gallery"
+        - "Settings / configuration"
+        - "Docker / containerization"
+        - "Git integration"
+        - "UI / UX / design"
+        - "Security"
+        - "Performance"
+        - "Documentation"
+        - "Other"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      description: How big is this change?
+      options:
+        - "Small - Single component or minor addition"
+        - "Medium - Multiple components, moderate complexity"
+        - "Large - Cross-cutting change, new subsystem"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Your environment (optional)
+      description: |
+        If this feature depends on your environment, provide your setup:
+        - Node.js version, OS, browser
+        - Running via Docker or from source
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: |
+        Links, screenshots, mockups, references to other tools that do this well, or anything else.
+    validations:
+      required: false
