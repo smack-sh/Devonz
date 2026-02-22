@@ -302,6 +302,9 @@ export const ChatImpl = memo(
 
         logger.debug('Finished streaming');
 
+        // Finalize any actions stuck in 'running' (e.g. truncated closing tags)
+        workbenchStore.finalizeRunningActions();
+
         /*
          * Check if this was an auto-fix response
          * Wait for terminal/preview to run the code, then check if errors cleared

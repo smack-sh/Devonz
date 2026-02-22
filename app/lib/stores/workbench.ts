@@ -622,6 +622,18 @@ export class WorkbenchStore {
     this.artifacts.setKey(artifactId, { ...artifact, ...state });
   }
 
+  /**
+   * Finalize any actions still stuck in 'running' status across all artifacts.
+   * Called when the LLM response stream ends to prevent stuck spinners.
+   */
+  finalizeRunningActions(): void {
+    const artifacts = this.artifacts.get();
+
+    for (const artifact of Object.values(artifacts)) {
+      artifact.runner.finalizeRunningActions();
+    }
+  }
+
   addAction(data: ActionCallbackData) {
     logger.debug('addAction queued:', {
       artifactId: data.artifactId,

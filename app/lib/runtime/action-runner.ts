@@ -1458,6 +1458,23 @@ export class ActionRunner {
     }
   }
 
+  /**
+   * Transition all actions still in 'running' status to 'complete'.
+   * Called when the LLM response stream ends to ensure no actions are
+   * stuck with a spinner (e.g. due to a truncated closing tag).
+   * 'start' actions are excluded — they legitimately run indefinitely.
+   */
+  finalizeRunningActions(): void {
+    const actions = this.actions.get();
+
+    for (const [id, action] of Object.entries(actions)) {
+      if (action.status === 'running' && action.type !== 'start') {
+        logger.debug(`Finalizing stuck action: ${id} (type: ${action.type})`);
+        this.actions.setKey(id, { ...action, status: 'complete', executed: true });
+      }
+    }
+  }
+
   #updateAction(id: string, newState: ActionStateUpdate) {
     const actions = this.actions.get();
 
