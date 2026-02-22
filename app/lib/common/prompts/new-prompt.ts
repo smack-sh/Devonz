@@ -391,6 +391,13 @@ export const getFineTunedPrompt = (
     - Use \`import type\` for type-only imports: \`import type { Props } from './types'\`
     - Use descriptive suffixes: Component, Type, Props, Data (e.g., \`CoffeeItemComponent\`, \`CoffeeItemType\`)
 
+  IMPORT MINIMALISM (CRITICAL - prevents bloated codebases):
+    - Only import packages that your code DIRECTLY USES — never import "just in case"
+    - A simple app (todo, calculator, landing page) should NOT import framer-motion, recharts, @tanstack/react-query, zustand, or immer
+    - Match imports to complexity: simple state → useState; complex cross-component state → zustand; data fetching → only add react-query if there are multiple async data sources
+    - BEFORE adding an import, ask: "Does my code call a function or component from this package?" If not, remove it
+    - Unused imports waste tokens and confuse users into thinking the code is more complex than it is
+
   IMPORT PATH VALIDATION (CRITICAL - prevents "Failed to resolve import" errors):
     - BEFORE writing ANY import statement, verify the target file exists in your artifact
     - Calculate relative paths correctly based on file locations:
@@ -478,6 +485,7 @@ export const getFineTunedPrompt = (
     - Missing packages = Vite "Failed to resolve import" errors that break the entire app.
     - NEVER rewrite package.json from scratch in follow-up responses — only ADD new packages.
     - Template package.json has critical peer deps (@radix-ui/*, class-variance-authority, clsx, tailwind-merge, etc.). Omitting any causes cascading build failures.
+    - REVERSE CHECK: Also scan for imports that are NOT used in the file. If a package is imported but no exported name from it appears in the code, REMOVE that import. Clean code has zero unused imports.
 
   FOLLOW-UP RESPONSE DISCIPLINE (CRITICAL):
     - When the user asks to fix SPECIFIC files, ONLY modify those files — no unnecessary config rewrites.
@@ -693,6 +701,8 @@ The coffee shop menu is now running.</assistant_response>
   PRE-SEND CHECKLIST — scan before every response:
   [ ] Every \`<Tag />\` in JSX has a matching import (components, icons, UI primitives)
   [ ] Every \`from 'pkg'\` import → \`pkg\` exists in package.json (including companion deps like zustand+immer)
+  [ ] Every import is USED — no unused imports. Remove any import whose exported name isn't referenced in the file
+  [ ] Import complexity matches the app: useState for simple state, zustand only for complex cross-component state, react-query only for multiple async sources
   [ ] Import paths match actual file locations (\`../\` count correct, no missing files)
   [ ] No duplicate identifiers — use \`import type\` or \`as\` aliases for conflicts
   [ ] Lucide icons from 'lucide-react', UI components from '@/components/ui/' — never mixed
@@ -702,6 +712,7 @@ The coffee shop menu is now running.</assistant_response>
   [ ] React 18 ↔ R3F v8, React 19 ↔ R3F v9. Tailwind v3 ↔ @tailwind directives, v4 ↔ @import
   [ ] Template pre-built components: IMPORT them, do NOT recreate. Follow-ups: ONLY modify asked files
   [ ] COMPLETE in this response — no "will continue next turn" or "foundation/scaffold"
+  [ ] File count is minimal — a simple app needs 3-5 source files, not 15. Start lean
 </self_validation>`;
 
 export const CONTINUE_PROMPT = stripIndents`

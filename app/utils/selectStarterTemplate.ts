@@ -988,7 +988,8 @@ ${resolvedName.toLowerCase().includes('shadcn') ? `- Shadcn/ui template: All Rad
 
   userMessage += `
 Template "${displayName}" imported and running. All files are already created and installed — DO NOT recreate them.
-${archSummary ? `Architecture: ${archSummary}\n` : ''}${dirHint ? `Directories: ${dirHint}\n` : ''}Pre-installed packages (ready to import): ${availablePackageHint}.
+${archSummary ? `Architecture: ${archSummary}\n` : ''}${dirHint ? `Directories: ${dirHint}\n` : ''}Available packages (already in package.json — import ONLY the ones your code actually uses): ${availablePackageHint}.
+IMPORT DISCIPLINE: Do NOT import packages just because they're available. A todo app does NOT need framer-motion, recharts, or @tanstack/react-query. Only import what you directly use in your code.
 ${mainEntryFile ? `Primary file to modify: ${mainEntryFile}\n` : ''}${cnUtilityFile ? `Class utility: import { cn } from '${cnUtilityFile.startsWith('src/') ? `@/${cnUtilityFile.slice(4, -3)}` : `./${cnUtilityFile.slice(0, -3)}`}' — use cn() for conditional class merging.\n` : ''}${
     shadcnImportGuide
       ? `PRE-BUILT COMPONENTS — use these imports directly, do NOT recreate these files:
@@ -1023,7 +1024,7 @@ FRAMEWORK: SolidJS — Use createSignal(), createEffect(), createMemo(), JSX (lo
 RULES:
 1. MODIFY existing files — do NOT recreate config files (vite.config, tsconfig, tailwind.config, package.json).
 2. Follow existing directory structure. New components go in the components directory.
-3. USE pre-installed packages — do NOT install alternatives for what's already available.
+3. PREFER pre-installed packages over alternatives — but only import the ones your feature actually needs.
 4. Keep the template's styling approach. Build a COMPLETE working app — no placeholders or stubs.
 5. Only run npm install when adding NEW packages not already installed.
 6. If the app needs sample data, create a src/data/seed.ts file with a getInitialData() function — do NOT scatter hardcoded arrays across components.
@@ -1031,6 +1032,8 @@ RULES:
 8. If using react-router-dom: wrap the entire app in <BrowserRouter> inside App.tsx, define ALL <Route> elements matching every nav link. Every route MUST render a real page component.
 9. If using sonner for toasts: add <Toaster /> in App.tsx (import from 'sonner'). Call toast() from event handlers.
 10. When modifying the CSS entry file (index.css or globals.css), ALWAYS preserve the Tailwind directives at the top (@import "tailwindcss" for v4, or @tailwind base/components/utilities for v3) and existing @layer base definitions for CSS variables. Add your styles BELOW the existing content.
+11. MINIMAL IMPORTS: Only add import statements for packages you directly call/use in that file. Every import MUST have a corresponding usage. Never import a package "for later" or "just in case".
+12. CLEAN FILE STRUCTURE: Create the minimum number of files needed. A simple app needs 3-5 files, not 15. Start lean — users can always ask for more features.
 
 Implement the user's request below by modifying existing files and adding new ones as needed.
 `;
