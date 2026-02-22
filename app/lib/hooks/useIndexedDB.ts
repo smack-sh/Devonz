@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 /**
  * Hook to initialize and provide access to the IndexedDB database
@@ -8,6 +8,12 @@ export function useIndexedDB() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  /*
+   * Ref keeps track of the database instance so the cleanup function
+   * always has the current value (avoids stale-closure over `db` state).
+   */
+  const dbRef = useRef<IDBDatabase | null>(null);
+
   useEffect(() => {
     const initDB = async () => {
       try {
@@ -16,21 +22,22 @@ export function useIndexedDB() {
         const request = indexedDB.open('devonzDB', 1);
 
         request.onupgradeneeded = (event) => {
-          const db = (event.target as IDBOpenDBRequest).result;
+          const database = (event.target as IDBOpenDBRequest).result;
 
           // Create object stores if they don't exist
-          if (!db.objectStoreNames.contains('chats')) {
-            const chatStore = db.createObjectStore('chats', { keyPath: 'id' });
+          if (!database.objectStoreNames.contains('chats')) {
+            const chatStore = database.createObjectStore('chats', { keyPath: 'id' });
             chatStore.createIndex('updatedAt', 'updatedAt', { unique: false });
           }
 
-          if (!db.objectStoreNames.contains('settings')) {
-            db.createObjectStore('settings', { keyPath: 'key' });
+          if (!database.objectStoreNames.contains('settings')) {
+            database.createObjectStore('settings', { keyPath: 'key' });
           }
         };
 
         request.onsuccess = (event) => {
           const database = (event.target as IDBOpenDBRequest).result;
+          dbRef.current = database;
           setDb(database);
           setIsLoading(false);
         };
@@ -48,8 +55,9 @@ export function useIndexedDB() {
     initDB();
 
     return () => {
-      if (db) {
-        db.close();
+      if (dbRef.current) {
+        dbRef.current.close();
+        dbRef.current = null;
       }
     };
   }, []);
