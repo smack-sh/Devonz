@@ -1,17 +1,16 @@
-import JSZip from 'jszip';
-import fileSaver from 'file-saver';
 import type { FileMap } from '~/lib/stores/files';
 import { extractRelativePath } from '~/utils/diff';
 import { description } from '~/lib/persistence';
-
-const { saveAs } = fileSaver;
 
 /**
  * Download all non-binary files as a zip archive.
  * File name is derived from the project description with a timestamp hash.
  */
 export async function downloadFilesAsZip(files: FileMap): Promise<void> {
-  const zip = new JSZip();
+  const jsZipModule = await import('jszip');
+  const { saveAs } = await import('file-saver');
+
+  const zip = new jsZipModule.default();
 
   const projectName = (description.value ?? 'project').toLocaleLowerCase().split(' ').join('_');
 

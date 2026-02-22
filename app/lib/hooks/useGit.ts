@@ -1,8 +1,7 @@
 import type { RuntimeProvider } from '~/lib/runtime/runtime-provider';
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { runtime as runtimePromise } from '~/lib/runtime';
-import git, { type GitAuth, type PromiseFsClient } from 'isomorphic-git';
-import http from 'isomorphic-git/http/web';
+import type { GitAuth, PromiseFsClient } from 'isomorphic-git';
 import Cookies from 'js-cookie';
 import { toast } from 'react-toastify';
 import { createScopedLogger } from '~/utils/logger';
@@ -88,6 +87,11 @@ export function useGit() {
           await new Promise((resolve) => setTimeout(resolve, 1000 * retryCount));
           logger.debug(`Retrying git clone (attempt ${retryCount + 1})...`);
         }
+
+        const [{ default: git }, { default: http }] = await Promise.all([
+          import('isomorphic-git'),
+          import('isomorphic-git/http/web'),
+        ]);
 
         await git.clone({
           fs,

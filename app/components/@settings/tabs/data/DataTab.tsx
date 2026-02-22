@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, lazy, Suspense } from 'react';
 import { Button } from '~/components/ui/Button';
 import { ConfirmationDialog, SelectionDialog } from '~/components/ui/Dialog';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '~/components/ui/Card';
@@ -6,10 +6,11 @@ import { motion } from 'framer-motion';
 import { useDataOperations } from '~/lib/hooks/useDataOperations';
 import { openDatabase } from '~/lib/persistence/db';
 import { getAllChats, type Chat } from '~/lib/persistence/chats';
-import { DataVisualization } from './DataVisualization';
 import { classNames } from '~/utils/classNames';
 import { toast } from 'react-toastify';
 import { createScopedLogger } from '~/utils/logger';
+
+const DataVisualization = lazy(() => import('./DataVisualization').then((mod) => ({ default: mod.DataVisualization })));
 
 const logger = createScopedLogger('DataTab');
 
@@ -882,7 +883,16 @@ export function DataTab() {
           <h2 className="text-xl font-semibold mb-4 text-white">Data Usage</h2>
           <Card>
             <CardContent className="p-5">
-              <DataVisualization chats={availableChats} />
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center py-12 text-bolt-elements-textSecondary">
+                    <div className="i-svg-spinners:90-ring-with-bg text-2xl mr-2" />
+                    Loading charts…
+                  </div>
+                }
+              >
+                <DataVisualization chats={availableChats} />
+              </Suspense>
             </CardContent>
           </Card>
         </div>
