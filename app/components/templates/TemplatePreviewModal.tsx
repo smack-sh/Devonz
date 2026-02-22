@@ -101,6 +101,11 @@ export const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({ temp
     };
   }, [template, onClose]);
 
+  // All hooks must be above the early return to satisfy Rules of Hooks
+  const handleIframeLoad = useCallback(() => {
+    setIframeLoading(false);
+  }, []);
+
   if (!template) {
     return null;
   }
@@ -119,10 +124,6 @@ export const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({ temp
     const gitUrl = `https://github.com/${template.githubRepo}.git`;
     navigate(`/git?url=${encodeURIComponent(gitUrl)}`);
   };
-
-  const handleIframeLoad = useCallback(() => {
-    setIframeLoading(false);
-  }, []);
 
   const renderPreview = () => {
     const vercelUrl = template.vercelUrl?.trim();
