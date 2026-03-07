@@ -1,0 +1,82 @@
+@use 'variables.scss';
+@use 'z-index.scss';
+@use 'animations.scss';
+@use 'components/terminal.scss';
+@use 'components/resize-handle.scss';
+@use 'components/code.scss';
+@use 'components/editor.scss';
+@use 'components/toast.scss';
+
+@import 'diff-view.css';
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background-color: var(--devonz-elements-bg-depth-1);
+}
+
+// Tell the browser to style native UI elements (form controls, scrollbars) to match the theme
+html[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+html[data-theme='light'] {
+  color-scheme: light;
+}
+
+// Hide all scrollbars globally — scroll still works via trackpad/wheel/keyboard
+* {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+// Global keyboard focus indicator for accessibility
+:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+:root {
+  --gradient-opacity: 0.8;
+  --primary-color: rgba(30, 58, 138, var(--gradient-opacity));
+  --secondary-color: rgba(23, 37, 84, var(--gradient-opacity));
+  --accent-color: rgba(59, 130, 246, var(--gradient-opacity));
+  // Dark navy blue theme - replacing purple
+}
+
+.modern-scrollbar {
+  overflow: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.modern-scrollbar-invert {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+// Content visibility optimization for long message lists
+// Improves scroll performance by skipping rendering of off-screen content
+.message-item,
+.chat-message,
+[class*='Message'] {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 100px; // Estimated height for placeholder
+}
+
+// File tree items optimization for large directories
+.file-tree-item {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 24px;
+}

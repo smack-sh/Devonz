@@ -1,0 +1,659 @@
+import React from 'react';
+import { Button } from '~/components/ui/Button';
+import { Card, CardContent, CardHeader } from '~/components/ui/Card';
+
+// Setup Guide Component
+function SetupGuide({ onBack }: { onBack: () => void }) {
+  return (
+    <div className="space-y-6">
+      {/* Header with Back Button */}
+      <div className="flex items-center gap-4 mb-6">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onBack}
+          className="bg-transparent hover:bg-transparent text-devonz-elements-textSecondary hover:text-devonz-elements-textPrimary transition-all duration-200 p-2"
+          aria-label="Back to Dashboard"
+        >
+          <div className="i-ph:arrow-left w-4 h-4" />
+        </Button>
+        <div>
+          <h2 className="text-xl font-semibold text-devonz-elements-textPrimary">Local Provider Setup Guide</h2>
+          <p className="text-sm text-devonz-elements-textSecondary">
+            Complete setup instructions for running AI models locally
+          </p>
+        </div>
+      </div>
+
+      {/* Hardware Requirements Overview */}
+      <Card className="bg-gradient-to-r from-[#06B6D4]/10 to-[#06B6D4]/5 border border-devonz-elements-borderColorActive/20 shadow-sm">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+              <div className="i-ph:shield w-5 h-5 text-blue-500" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-devonz-elements-textPrimary">System Requirements</h3>
+              <p className="text-sm text-devonz-elements-textSecondary">Recommended hardware for optimal performance</p>
+            </div>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4 text-sm">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="i-ph:cpu w-4 h-4 text-green-500" />
+                <span className="font-medium text-devonz-elements-textPrimary">CPU</span>
+              </div>
+              <p className="text-devonz-elements-textSecondary">8+ cores, modern architecture</p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="i-ph:database w-4 h-4 text-blue-500" />
+                <span className="font-medium text-devonz-elements-textPrimary">RAM</span>
+              </div>
+              <p className="text-devonz-elements-textSecondary">16GB minimum, 32GB+ recommended</p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="i-ph:monitor w-4 h-4 text-devonz-elements-item-contentAccent" />
+                <span className="font-medium text-devonz-elements-textPrimary">GPU</span>
+              </div>
+              <p className="text-devonz-elements-textSecondary">NVIDIA RTX 30xx+ or AMD RX 6000+</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Ollama Setup Section */}
+      <Card className="bg-devonz-elements-background-depth-2 shadow-sm">
+        <CardHeader className="pb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#06B6D4]/20 to-[#06B6D4]/20 flex items-center justify-center ring-1 ring-devonz-elements-borderColorActive/30">
+              <div className="i-ph:hard-drive w-6 h-6 text-devonz-elements-item-contentAccent" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-semibold text-devonz-elements-textPrimary">Ollama Setup</h3>
+              <p className="text-sm text-devonz-elements-textSecondary">
+                Most popular choice for running open-source models locally with desktop app
+              </p>
+            </div>
+            <span className="px-3 py-1 bg-devonz-elements-item-backgroundAccent text-devonz-elements-item-contentAccent text-xs font-medium rounded-full">
+              Recommended
+            </span>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Installation Options */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-devonz-elements-textPrimary flex items-center gap-2">
+              <div className="i-ph:download w-4 h-4" />
+              1. Choose Installation Method
+            </h4>
+
+            {/* Desktop App - New and Recommended */}
+            <div className="p-4 rounded-lg bg-green-500/5 border border-green-500/20">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="i-ph:monitor w-5 h-5 text-green-500" />
+                <h5 className="font-medium text-green-500">🆕 Desktop App (Recommended)</h5>
+              </div>
+              <p className="text-sm text-devonz-elements-textSecondary mb-3">
+                New user-friendly desktop application with built-in model management and web interface.
+              </p>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="p-3 rounded-lg bg-devonz-elements-background-depth-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="i-ph:monitor w-4 h-4 text-devonz-elements-textPrimary" />
+                    <strong className="text-devonz-elements-textPrimary">macOS</strong>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full bg-gradient-to-r from-[#06B6D4]/10 to-[#06B6D4]/10 hover:from-[#06B6D4]/20 hover:to-[#06B6D4]/20 border-devonz-elements-borderColorActive/30 hover:border-devonz-elements-borderColorActive transition-all duration-300 gap-2 group shadow-sm hover:shadow-lg hover:shadow-[#06B6D4]/20 font-medium"
+                    _asChild
+                  >
+                    <a
+                      href="https://ollama.com/download/mac"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2"
+                    >
+                      <div className="i-ph:download w-4 h-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 flex-shrink-0" />
+                      <span className="flex-1 text-center font-medium">Download Desktop App</span>
+                      <div className="i-ph:arrow-square-out w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300 flex-shrink-0" />
+                    </a>
+                  </Button>
+                </div>
+                <div className="p-3 rounded-lg bg-devonz-elements-background-depth-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="i-ph:monitor w-4 h-4 text-devonz-elements-textPrimary" />
+                    <strong className="text-devonz-elements-textPrimary">Windows</strong>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full bg-gradient-to-r from-[#06B6D4]/10 to-[#06B6D4]/10 hover:from-[#06B6D4]/20 hover:to-[#06B6D4]/20 border-devonz-elements-borderColorActive/30 hover:border-devonz-elements-borderColorActive transition-all duration-300 gap-2 group shadow-sm hover:shadow-lg hover:shadow-[#06B6D4]/20 font-medium"
+                    _asChild
+                  >
+                    <a
+                      href="https://ollama.com/download/windows"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2"
+                    >
+                      <div className="i-ph:download w-4 h-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 flex-shrink-0" />
+                      <span className="flex-1 text-center font-medium">Download Desktop App</span>
+                      <div className="i-ph:arrow-square-out w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300 flex-shrink-0" />
+                    </a>
+                  </Button>
+                </div>
+              </div>
+              <div className="mt-3 p-3 rounded-lg bg-blue-500/5 border border-blue-500/20">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="i-ph:globe w-4 h-4 text-blue-500" />
+                  <span className="font-medium text-blue-500 text-sm">Built-in Web Interface</span>
+                </div>
+                <p className="text-xs text-devonz-elements-textSecondary">
+                  Desktop app includes a web interface at{' '}
+                  <code className="bg-devonz-elements-background-depth-4 px-1 rounded">http://localhost:11434</code>
+                </p>
+              </div>
+            </div>
+
+            {/* CLI Installation */}
+            <div className="p-4 rounded-lg bg-devonz-elements-background-depth-3">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="i-ph:terminal w-5 h-5 text-devonz-elements-textPrimary" />
+                <h5 className="font-medium text-devonz-elements-textPrimary">Command Line (Advanced)</h5>
+              </div>
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="p-3 rounded-lg bg-devonz-elements-background-depth-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="i-ph:monitor w-4 h-4 text-devonz-elements-textPrimary" />
+                    <strong className="text-devonz-elements-textPrimary">Windows</strong>
+                  </div>
+                  <div className="text-xs bg-devonz-elements-background-depth-4 p-2 rounded font-mono text-devonz-elements-textPrimary">
+                    winget install Ollama.Ollama
+                  </div>
+                </div>
+                <div className="p-3 rounded-lg bg-devonz-elements-background-depth-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="i-ph:monitor w-4 h-4 text-devonz-elements-textPrimary" />
+                    <strong className="text-devonz-elements-textPrimary">macOS</strong>
+                  </div>
+                  <div className="text-xs bg-devonz-elements-background-depth-4 p-2 rounded font-mono text-devonz-elements-textPrimary">
+                    brew install ollama
+                  </div>
+                </div>
+                <div className="p-3 rounded-lg bg-devonz-elements-background-depth-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="i-ph:terminal w-4 h-4 text-devonz-elements-textPrimary" />
+                    <strong className="text-devonz-elements-textPrimary">Linux</strong>
+                  </div>
+                  <div className="text-xs bg-devonz-elements-background-depth-4 p-2 rounded font-mono text-devonz-elements-textPrimary">
+                    curl -fsSL https://ollama.com/install.sh | sh
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Latest Model Recommendations */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-devonz-elements-textPrimary flex items-center gap-2">
+              <div className="i-ph:package w-4 h-4" />
+              2. Download Latest Models
+            </h4>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-lg bg-devonz-elements-background-depth-3">
+                <h5 className="font-medium text-devonz-elements-textPrimary mb-3 flex items-center gap-2">
+                  <div className="i-ph:code w-4 h-4 text-green-500" />
+                  Code & Development
+                </h5>
+                <div className="space-y-2 text-xs bg-devonz-elements-background-depth-4 p-3 rounded font-mono text-devonz-elements-textPrimary">
+                  <div># Latest Llama 3.2 for coding</div>
+                  <div>ollama pull llama3.2:3b</div>
+                  <div>ollama pull codellama:13b</div>
+                  <div>ollama pull deepseek-coder-v2</div>
+                  <div>ollama pull qwen2.5-coder:7b</div>
+                </div>
+              </div>
+              <div className="p-4 rounded-lg bg-devonz-elements-background-depth-3">
+                <h5 className="font-medium text-devonz-elements-textPrimary mb-3 flex items-center gap-2">
+                  <div className="i-ph:terminal w-4 h-4 text-blue-500" />
+                  General Purpose & Chat
+                </h5>
+                <div className="space-y-2 text-xs bg-devonz-elements-background-depth-4 p-3 rounded font-mono text-devonz-elements-textPrimary">
+                  <div># Latest general models</div>
+                  <div>ollama pull llama3.2:3b</div>
+                  <div>ollama pull mistral:7b</div>
+                  <div>ollama pull phi3.5:3.8b</div>
+                  <div>ollama pull qwen2.5:7b</div>
+                </div>
+              </div>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-lg bg-[#06B6D4]/5 border border-devonz-elements-borderColorActive/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="i-ph:activity w-4 h-4 text-devonz-elements-item-contentAccent" />
+                  <span className="font-medium text-devonz-elements-item-contentAccent">Performance Optimized</span>
+                </div>
+                <ul className="text-xs text-devonz-elements-textSecondary space-y-1">
+                  <li>• Llama 3.2: 3B - Fastest, 8GB RAM</li>
+                  <li>• Phi-3.5: 3.8B - Great balance</li>
+                  <li>• Qwen2.5: 7B - Excellent quality</li>
+                  <li>• Mistral: 7B - Popular choice</li>
+                </ul>
+              </div>
+              <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="i-ph:warning-circle w-4 h-4 text-yellow-500" />
+                  <span className="font-medium text-yellow-500">Pro Tips</span>
+                </div>
+                <ul className="text-xs text-devonz-elements-textSecondary space-y-1">
+                  <li>• Start with 3B-7B models for best performance</li>
+                  <li>• Use quantized versions for faster loading</li>
+                  <li>• Desktop app auto-manages model storage</li>
+                  <li>• Web UI available at localhost:11434</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop App Features */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-devonz-elements-textPrimary flex items-center gap-2">
+              <div className="i-ph:monitor w-4 h-4" />
+              3. Desktop App Features
+            </h4>
+            <div className="p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <h5 className="font-medium text-blue-500 mb-3">🖥️ User Interface</h5>
+                  <ul className="text-sm text-devonz-elements-textSecondary space-y-1">
+                    <li>• Model library browser</li>
+                    <li>• One-click model downloads</li>
+                    <li>• Built-in chat interface</li>
+                    <li>• System resource monitoring</li>
+                  </ul>
+                </div>
+                <div>
+                  <h5 className="font-medium text-blue-500 mb-3">🔧 Management Tools</h5>
+                  <ul className="text-sm text-devonz-elements-textSecondary space-y-1">
+                    <li>• Automatic updates</li>
+                    <li>• Model size optimization</li>
+                    <li>• GPU acceleration detection</li>
+                    <li>• Cross-platform compatibility</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Troubleshooting */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-devonz-elements-textPrimary flex items-center gap-2">
+              <div className="i-ph:gear w-4 h-4" />
+              4. Troubleshooting & Commands
+            </h4>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-lg bg-red-500/5 border border-red-500/20">
+                <h5 className="font-medium text-red-500 mb-2">Common Issues</h5>
+                <ul className="text-xs text-devonz-elements-textSecondary space-y-1">
+                  <li>• Desktop app not starting: Restart system</li>
+                  <li>• GPU not detected: Update drivers</li>
+                  <li>• Port 11434 blocked: Change port in settings</li>
+                  <li>• Models not loading: Check available disk space</li>
+                  <li>• Slow performance: Use smaller models or enable GPU</li>
+                </ul>
+              </div>
+              <div className="p-4 rounded-lg bg-green-500/5 border border-green-500/20">
+                <h5 className="font-medium text-green-500 mb-2">Useful Commands</h5>
+                <div className="text-xs bg-devonz-elements-background-depth-4 p-3 rounded font-mono text-devonz-elements-textPrimary space-y-1">
+                  <div># Check installed models</div>
+                  <div>ollama list</div>
+                  <div></div>
+                  <div># Remove unused models</div>
+                  <div>ollama rm model_name</div>
+                  <div></div>
+                  <div># Check GPU usage</div>
+                  <div>ollama ps</div>
+                  <div></div>
+                  <div># View logs</div>
+                  <div>ollama logs</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* LM Studio Setup Section */}
+      <Card className="bg-devonz-elements-background-depth-2 shadow-sm">
+        <CardHeader className="pb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/20 flex items-center justify-center ring-1 ring-blue-500/30">
+              <div className="i-ph:monitor w-6 h-6 text-blue-500" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-semibold text-devonz-elements-textPrimary">LM Studio Setup</h3>
+              <p className="text-sm text-devonz-elements-textSecondary">
+                User-friendly GUI for running local models with excellent model management
+              </p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Installation */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-devonz-elements-textPrimary flex items-center gap-2">
+              <div className="i-ph:download w-4 h-4" />
+              1. Download & Install
+            </h4>
+            <div className="p-4 rounded-lg bg-devonz-elements-background-depth-3">
+              <p className="text-sm text-devonz-elements-textSecondary mb-3">
+                Download LM Studio for Windows, macOS, or Linux from the official website.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-gradient-to-r from-blue-500/10 to-blue-600/10 hover:from-blue-500/20 hover:to-blue-600/20 border-blue-500/30 hover:border-blue-500/50 transition-all duration-300 gap-2 group shadow-sm hover:shadow-lg hover:shadow-blue-500/20 font-medium"
+                _asChild
+              >
+                <a
+                  href="https://lmstudio.ai/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2"
+                >
+                  <div className="i-ph:download w-4 h-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 flex-shrink-0" />
+                  <span className="flex-1 text-center font-medium">Download LM Studio</span>
+                  <div className="i-ph:arrow-square-out w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300 flex-shrink-0" />
+                </a>
+              </Button>
+            </div>
+          </div>
+
+          {/* Configuration */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-devonz-elements-textPrimary flex items-center gap-2">
+              <div className="i-ph:gear w-4 h-4" />
+              2. Configure Local Server
+            </h4>
+            <div className="space-y-3">
+              <div className="p-4 rounded-lg bg-devonz-elements-background-depth-3">
+                <h5 className="font-medium text-devonz-elements-textPrimary mb-2">Start Local Server</h5>
+                <ol className="text-xs text-devonz-elements-textSecondary space-y-1 list-decimal list-inside">
+                  <li>Download a model from the "My Models" tab</li>
+                  <li>Go to "Local Server" tab</li>
+                  <li>Select your downloaded model</li>
+                  <li>Set port to 1234 (default)</li>
+                  <li>Click "Start Server"</li>
+                </ol>
+              </div>
+
+              <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="i-ph:warning-circle w-4 h-4 text-red-500" />
+                  <span className="font-medium text-red-500">Critical: Enable CORS</span>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs text-devonz-elements-textSecondary">
+                    To work with Devonz DIY, you MUST enable CORS in LM Studio:
+                  </p>
+                  <ol className="text-xs text-devonz-elements-textSecondary space-y-1 list-decimal list-inside ml-2">
+                    <li>In Server Settings, check "Enable CORS"</li>
+                    <li>Set Network Interface to "0.0.0.0" for external access</li>
+                    <li>
+                      Alternatively, use CLI:{' '}
+                      <code className="bg-devonz-elements-background-depth-4 px-1 rounded">
+                        lms server start --cors
+                      </code>
+                    </li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Advantages */}
+          <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="i-ph:check-circle w-4 h-4 text-blue-500" />
+              <span className="font-medium text-blue-500">LM Studio Advantages</span>
+            </div>
+            <ul className="text-xs text-devonz-elements-textSecondary space-y-1 list-disc list-inside">
+              <li>Built-in model downloader with search</li>
+              <li>Easy model switching and management</li>
+              <li>Built-in chat interface for testing</li>
+              <li>GGUF format support (most compatible)</li>
+              <li>Regular updates with new features</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* LocalAI Setup Section */}
+      <Card className="bg-devonz-elements-background-depth-2 shadow-sm">
+        <CardHeader className="pb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500/20 to-green-600/20 flex items-center justify-center ring-1 ring-green-500/30">
+              <div className="i-ph:globe w-6 h-6 text-green-500" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-semibold text-devonz-elements-textPrimary">LocalAI Setup</h3>
+              <p className="text-sm text-devonz-elements-textSecondary">
+                Self-hosted OpenAI-compatible API server with extensive model support
+              </p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Installation */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-devonz-elements-textPrimary flex items-center gap-2">
+              <div className="i-ph:download w-4 h-4" />
+              Installation Options
+            </h4>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-lg bg-devonz-elements-background-depth-3">
+                <h5 className="font-medium text-devonz-elements-textPrimary mb-2">Quick Install</h5>
+                <div className="text-xs bg-devonz-elements-background-depth-4 p-3 rounded font-mono text-devonz-elements-textPrimary space-y-1">
+                  <div># One-line install</div>
+                  <div>curl https://localai.io/install.sh | sh</div>
+                </div>
+              </div>
+              <div className="p-4 rounded-lg bg-devonz-elements-background-depth-3">
+                <h5 className="font-medium text-devonz-elements-textPrimary mb-2">Docker (Recommended)</h5>
+                <div className="text-xs bg-devonz-elements-background-depth-4 p-3 rounded font-mono text-devonz-elements-textPrimary space-y-1">
+                  <div>docker run -p 8080:8080</div>
+                  <div>quay.io/go-skynet/local-ai:latest</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Configuration */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-devonz-elements-textPrimary flex items-center gap-2">
+              <div className="i-ph:gear w-4 h-4" />
+              Configuration
+            </h4>
+            <div className="p-4 rounded-lg bg-devonz-elements-background-depth-3">
+              <p className="text-sm text-devonz-elements-textSecondary mb-3">
+                LocalAI supports many model formats and provides a full OpenAI-compatible API.
+              </p>
+              <div className="text-xs bg-devonz-elements-background-depth-4 p-3 rounded font-mono text-devonz-elements-textPrimary space-y-1">
+                <div># Example configuration</div>
+                <div>models:</div>
+                <div>- name: llama3.1</div>
+                <div>backend: llama</div>
+                <div>parameters:</div>
+                <div>model: llama3.1.gguf</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Advantages */}
+          <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="i-ph:check-circle w-4 h-4 text-green-500" />
+              <span className="font-medium text-green-500">LocalAI Advantages</span>
+            </div>
+            <ul className="text-xs text-devonz-elements-textSecondary space-y-1 list-disc list-inside">
+              <li>Full OpenAI API compatibility</li>
+              <li>Supports multiple model formats</li>
+              <li>Docker deployment option</li>
+              <li>Built-in model gallery</li>
+              <li>REST API for model management</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Performance Optimization */}
+      <Card className="bg-gradient-to-r from-[#06B6D4]/10 to-[#06B6D4]/5 border border-devonz-elements-borderColorActive/20 shadow-sm">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-[#06B6D4]/20 flex items-center justify-center">
+              <div className="i-ph:activity w-5 h-5 text-devonz-elements-item-contentAccent" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-devonz-elements-textPrimary">Performance Optimization</h3>
+              <p className="text-sm text-devonz-elements-textSecondary">Tips to improve local AI performance</p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <h4 className="font-medium text-devonz-elements-textPrimary">Hardware Optimizations</h4>
+              <ul className="text-sm text-devonz-elements-textSecondary space-y-2">
+                <li className="flex items-start gap-2">
+                  <div className="i-ph:check-circle w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span>Use NVIDIA GPU with CUDA for 5-10x speedup</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="i-ph:check-circle w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span>Increase RAM for larger context windows</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="i-ph:check-circle w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span>Use SSD storage for faster model loading</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="i-ph:check-circle w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span>Close other applications to free up RAM</span>
+                </li>
+              </ul>
+            </div>
+            <div className="space-y-3">
+              <h4 className="font-medium text-devonz-elements-textPrimary">Software Optimizations</h4>
+              <ul className="text-sm text-devonz-elements-textSecondary space-y-2">
+                <li className="flex items-start gap-2">
+                  <div className="i-ph:check-circle w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <span>Use smaller models for faster responses</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="i-ph:check-circle w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <span>Enable quantization (4-bit, 8-bit models)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="i-ph:check-circle w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <span>Reduce context length for chat applications</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="i-ph:check-circle w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <span>Use streaming responses for better UX</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Alternative Options */}
+      <Card className="bg-devonz-elements-background-depth-2 shadow-sm">
+        <CardHeader className="pb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500/20 to-red-500/20 flex items-center justify-center ring-1 ring-orange-500/30">
+              <div className="i-ph:wifi-high w-6 h-6 text-orange-500" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-devonz-elements-textPrimary">Alternative Options</h3>
+              <p className="text-sm text-devonz-elements-textSecondary">
+                Other local AI solutions and cloud alternatives
+              </p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <h4 className="font-medium text-devonz-elements-textPrimary">Other Local Solutions</h4>
+              <div className="space-y-3">
+                <div className="p-3 rounded-lg bg-devonz-elements-background-depth-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="i-ph:package w-4 h-4 text-blue-500" />
+                    <span className="font-medium text-devonz-elements-textPrimary">Jan.ai</span>
+                  </div>
+                  <p className="text-xs text-devonz-elements-textSecondary">
+                    Modern interface with built-in model marketplace
+                  </p>
+                </div>
+                <div className="p-3 rounded-lg bg-devonz-elements-background-depth-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="i-ph:terminal w-4 h-4 text-green-500" />
+                    <span className="font-medium text-devonz-elements-textPrimary">Oobabooga</span>
+                  </div>
+                  <p className="text-xs text-devonz-elements-textSecondary">
+                    Advanced text generation web UI with extensions
+                  </p>
+                </div>
+                <div className="p-3 rounded-lg bg-devonz-elements-background-depth-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="i-ph:plugs-connected w-4 h-4 text-devonz-elements-item-contentAccent" />
+                    <span className="font-medium text-devonz-elements-textPrimary">KoboldAI</span>
+                  </div>
+                  <p className="text-xs text-devonz-elements-textSecondary">
+                    Focus on creative writing and storytelling
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <h4 className="font-medium text-devonz-elements-textPrimary">Cloud Alternatives</h4>
+              <div className="space-y-3">
+                <div className="p-3 rounded-lg bg-devonz-elements-background-depth-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="i-ph:globe w-4 h-4 text-orange-500" />
+                    <span className="font-medium text-devonz-elements-textPrimary">OpenRouter</span>
+                  </div>
+                  <p className="text-xs text-devonz-elements-textSecondary">
+                    Access to 100+ models through unified API
+                  </p>
+                </div>
+                <div className="p-3 rounded-lg bg-devonz-elements-background-depth-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="i-ph:hard-drive w-4 h-4 text-red-500" />
+                    <span className="font-medium text-devonz-elements-textPrimary">Together AI</span>
+                  </div>
+                  <p className="text-xs text-devonz-elements-textSecondary">Fast inference with open-source models</p>
+                </div>
+                <div className="p-3 rounded-lg bg-devonz-elements-background-depth-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="i-ph:activity w-4 h-4 text-pink-500" />
+                    <span className="font-medium text-devonz-elements-textPrimary">Groq</span>
+                  </div>
+                  <p className="text-xs text-devonz-elements-textSecondary">
+                    Ultra-fast LPU inference for Llama models
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export default SetupGuide;

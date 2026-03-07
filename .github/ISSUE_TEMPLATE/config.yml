@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/zebbern/Devonz/tree/main/docs
+    about: Read the Devonz documentation before opening an issue
+  - name: Discussions
+    url: https://github.com/zebbern/Devonz/discussions
+    about: Ask questions and share ideas in GitHub Discussions
+  - name: Contributing Guide
+    url: https://github.com/zebbern/Devonz/blob/main/docs/CONTRIBUTING.md
+    about: Read the contributing guidelines before submitting a PR

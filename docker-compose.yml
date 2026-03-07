@@ -1,0 +1,81 @@
+# ─────────────────────────────────────────────────────────────
+# Devonz (devonz.diy) — Docker Compose
+# Local development & production profiles
+#
+# Usage:
+#   docker compose up -d              → pull from GHCR + run
+#   docker compose up -d --build      → build locally + run
+#   docker compose pull                → pull latest image
+#   docker compose --profile dev up    → dev mode (hot reload)
+# ─────────────────────────────────────────────────────────────
+
+services:
+  # ── Production ────────────────────────────────────────────
+  # Pulls from GHCR by default. Use --build to build locally.
+  devonz:
+    image: ghcr.io/zebbern/devonz:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: devonz
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5173}:5173"
+    env_file:
+      - .env.local
+    environment:
+      - NODE_ENV=production
+      - RUNNING_IN_DOCKER=true
+    labels:
+      - "com.centurylinklabs.watchtower.scope=devonz"
+      - "com.centurylinklabs.watchtower.enable=true"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:5173/api/health').then(r=>{if(!r.ok)throw 1})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ── Development (hot reload via bind mount) ───────────────
+  devonz-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: deps
+    container_name: devonz-dev
+    profiles: ["dev"]
+    ports:
+      - "${PORT:-5173}:5173"
+    env_file:
+      - .env.local
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: pnpm dev
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:5173/api/health').then(r=>{if(!r.ok)throw 1})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ── Auto-Update (optional) ───────────────────────────────
+  # Enable with: docker compose --profile auto-update up -d
+  # Polls GHCR every 5 minutes for new images and restarts
+  watchtower:
+    image: containrrr/watchtower
+    container_name: devonz-watchtower
+    profiles: ["auto-update"]
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=300
+      - WATCHTOWER_INCLUDE_STOPPED=false
+      - WATCHTOWER_LABEL_ENABLE=true
+    command: --label-enable
+    labels:
+      - "com.centurylinklabs.watchtower.scope=devonz"

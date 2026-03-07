@@ -1,0 +1,145 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in Devonz
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Bug Report
+
+        Thanks for reporting a bug! Please fill out the sections below so we can reproduce and fix it.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: |
+        Describe the bug clearly. What did you expect to happen vs what actually happened?
+      placeholder: |
+        When I tried to generate a React component, the AI prompt completed but the preview showed a blank page...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: |
+        Provide the exact steps to reproduce the issue.
+      placeholder: |
+        1. Open Devonz at http://localhost:5173
+        2. Select Anthropic Claude 3.5 Sonnet as the model
+        3. Type "Create a todo app with React"
+        4. Wait for generation to complete
+        5. Preview shows blank page — see error in browser console
+    validations:
+      required: true
+
+  - type: textarea
+    id: error-output
+    attributes:
+      label: Error output
+      description: |
+        Paste any error output from the browser console, terminal, or Devonz UI.
+        Use the browser DevTools (F12 → Console) to capture errors.
+      render: shell
+      placeholder: |
+        TypeError: Cannot read properties of undefined (reading 'map')
+            at ChatMessages (ChatMessages.tsx:42)
+            at renderWithHooks (react-dom.development.js:16305)
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen instead?
+      placeholder: |
+        I expected the generated todo app to render correctly in the preview panel.
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Environment diagnostics
+      description: |
+        Please provide the following information:
+        - Node.js version (`node --version`)
+        - pnpm version (`pnpm --version`)
+        - Browser and version
+        - Operating system
+        - How you're running Devonz (Docker or from source)
+      render: shell
+      placeholder: |
+        Node.js: v20.11.0
+        pnpm: 9.14.4
+        Browser: Chrome 121.0.6167.85
+        OS: Windows 11 / macOS 14.3 / Ubuntu 22.04
+        Running via: pnpm run dev / Docker Compose
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: Installation method
+      description: How are you running Devonz?
+      options:
+        - "Docker Compose (docker compose up -d)"
+        - "Docker build (docker build + docker run)"
+        - "From source (git clone + pnpm install + pnpm dev)"
+        - "Other (describe below)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How much does this impact your workflow?
+      options:
+        - "Blocker - Cannot use Devonz at all"
+        - "Major - Core feature broken, no workaround"
+        - "Moderate - Feature broken but workaround exists"
+        - "Minor - Cosmetic or edge case"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      description: Which part of Devonz is affected?
+      options:
+        - "AI chat / code generation"
+        - "Code editor"
+        - "Terminal"
+        - "Live preview"
+        - "Deployment (GitHub, Netlify, Vercel)"
+        - "MCP tool integration"
+        - "Settings / configuration"
+        - "Docker setup"
+        - "LLM provider connection"
+        - "Template gallery"
+        - "Git integration"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: |
+        Any other details that might help. Examples:
+        - Which AI provider and model you were using
+        - Screenshots or screen recordings
+        - Related issues or PRs
+        - Contents of your `.env.local` (redact API keys!)
+      placeholder: |
+        I'm using Anthropic Claude 3.5 Sonnet. This started after pulling the latest changes...
+    validations:
+      required: false

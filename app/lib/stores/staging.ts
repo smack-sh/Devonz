@@ -1,0 +1,1346 @@
+import { computed, map, type MapStore } from 'nanostores';
+import { createScopedLogger } from '~/utils/logger';
+
+const logger = createScopedLogger('StagingStore');
+
+/*
+ * ============================================================================
+ * Types
+ * ============================================================================
+ */
+
+/**
+ * Type of file change being staged
+ */
+export type ChangeType = 'create' | 'modify' | 'delete';
+
+/**
+ * Status of a staged change
+ */
+export type ChangeStatus = 'pending' | 'accepted' | 'rejected';
+
+/**
+ * Represents a single staged file change
+ */
+export interface StagedChange {
+  /** Unique identifier for this change */
+  id: string;
+
+  /** Full path to the file being changed */
+  filePath: string;
+
+  /** Type of change: create, modify, or delete */
+  type: ChangeType;
+
+  /** Original file content (null for new files) */
+  originalContent: string | null;
+
+  /** New content to be written (empty string for deletions) */
+  newContent: string;
+
+  /** Timestamp when change was staged */
+  timestamp: number;
+
+  /** Current status of this change */
+  status: ChangeStatus;
+
+  /** Reference to the action that created this change */
+  actionId: string;
+
+  /** ID of the message that created this change - used for rewind on reject */
+  messageId?: string;
+
+  /** Whether this change was auto-approved by pattern matching */
+  autoApproved?: boolean;
+
+  /** Optional description of what this change does */
+  description?: string;
+}
+
+/**
+ * Settings for the staging system
+ */
+export interface StagingSettings {
+  /** Whether staging/confirmation is enabled */
+  isEnabled: boolean;
+
+  /** Whether to auto-approve changes matching certain patterns */
+  autoApproveEnabled: boolean;
+
+  /** Glob patterns for files that should be auto-approved */
+  autoApprovePatterns: string[];
+
+  /** Whether to always require confirmation for deletions */
+  requireDeleteConfirmation: boolean;
+
+  /** Whether to show inline diff preview on hover */
+  showInlineDiffPreview: boolean;
+
+  /** Whether to auto-create version checkpoint before batch accept */
+  autoCheckpointOnAccept: boolean;
+}
+
+/**
+ * Full staging store state
+ */
+export interface StagingState {
+  /** All staged changes indexed by file path */
+  changes: Record<string, StagedChange>;
+
+  /** Currently selected change for preview (file path) */
+  selectedChangePath: string | null;
+
+  /** Whether the diff preview modal is open */
+  isDiffModalOpen: boolean;
+
+  /** Settings for staging behavior */
+  settings: StagingSettings;
+
+  /** Pending shell/start commands queued until files are accepted */
+  pendingCommands: PendingCommand[];
+
+  /** Whether preview mode is active (pending files temporarily applied to runtime filesystem) */
+  isPreviewMode: boolean;
+
+  /** Last message ID where changes were accepted - used for rewind on reject */
+  lastAcceptedMessageId: string | null;
+}
+
+/**
+ * Represents a queued shell or start command
+ */
+export interface PendingCommand {
+  /** Unique identifier for this command */
+  id: string;
+
+  /** Type of command: shell or start */
+  type: 'shell' | 'start';
+
+  /** The command content to execute */
+  command: string;
+
+  /** Timestamp when command was queued */
+  timestamp: number;
+
+  /** Reference to the artifact that generated this command */
+  artifactId: string;
+
+  /** Optional title/description */
+  title?: string;
+}
+
+/*
+ * ============================================================================
+ * Default Values
+ * ============================================================================
+ */
+
+const DEFAULT_AUTO_APPROVE_PATTERNS = [
+  'package-lock.json',
+  'pnpm-lock.yaml',
+  'yarn.lock',
+  '*.lock',
+  'node_modules/**',
+  '.git/**',
+  '*.log',
+];
+
+const DEFAULT_SETTINGS: StagingSettings = {
+  isEnabled: true,
+  autoApproveEnabled: true,
+  autoApprovePatterns: DEFAULT_AUTO_APPROVE_PATTERNS,
+  requireDeleteConfirmation: true,
+  showInlineDiffPreview: true,
+  autoCheckpointOnAccept: true,
+};
+
+/*
+ * ============================================================================
+ * Store Atoms
+ * ============================================================================
+ */
+
+/**
+ * Main staging store containing all staged changes.
+ * Uses import.meta.hot to preserve state across Vite HMR updates.
+ */
+export const stagingStore: MapStore<StagingState> =
+  import.meta.hot?.data.stagingStore ??
+  map<StagingState>({
+    changes: {},
+    selectedChangePath: null,
+    isDiffModalOpen: false,
+    settings: loadSettingsFromStorage(),
+    pendingCommands: [],
+    isPreviewMode: false,
+    lastAcceptedMessageId: null,
+  });
+
+if (import.meta.hot) {
+  import.meta.hot.data.stagingStore = stagingStore;
+}
+
+/*
+ * ============================================================================
+ * Computed Stores
+ * ============================================================================
+ */
+
+/**
+ * Computed store: Array of all pending changes
+ */
+export const pendingChanges = computed(stagingStore, (state) => {
+  return Object.values(state.changes).filter((change) => change.status === 'pending');
+});
+
+/**
+ * Computed store: Count of pending changes
+ */
+export const pendingCount = computed(pendingChanges, (changes) => changes.length);
+
+/**
+ * Computed store: Whether there are any pending changes
+ */
+export const hasPendingChanges = computed(pendingCount, (count) => count > 0);
+
+/**
+ * Computed store: Changes grouped by type
+ */
+export const changesByType = computed(pendingChanges, (changes) => {
+  return {
+    create: changes.filter((c) => c.type === 'create'),
+    modify: changes.filter((c) => c.type === 'modify'),
+    delete: changes.filter((c) => c.type === 'delete'),
+  };
+});
+
+/**
+ * Computed store: Statistics about staging
+ */
+export const stagingStats = computed(stagingStore, (state) => {
+  const all = Object.values(state.changes);
+  const pending = all.filter((c) => c.status === 'pending');
+  const accepted = all.filter((c) => c.status === 'accepted');
+  const rejected = all.filter((c) => c.status === 'rejected');
+
+  return {
+    total: all.length,
+    pending: pending.length,
+    accepted: accepted.length,
+    rejected: rejected.length,
+    reviewed: accepted.length + rejected.length,
+  };
+});
+
+/**
+ * Computed store: Currently selected change
+ */
+export const selectedChange = computed(stagingStore, (state) => {
+  if (!state.selectedChangePath) {
+    return null;
+  }
+
+  return state.changes[state.selectedChangePath] ?? null;
+});
+
+/**
+ * Computed store: Array of all pending commands
+ */
+export const pendingCommandsList = computed(stagingStore, (state) => {
+  return state.pendingCommands;
+});
+
+/**
+ * Computed store: Count of pending commands
+ */
+export const pendingCommandsCount = computed(pendingCommandsList, (commands) => commands.length);
+
+/**
+ * Computed store: Whether there are any pending commands
+ */
+export const hasPendingCommands = computed(pendingCommandsCount, (count) => count > 0);
+
+/*
+ * ============================================================================
+ * Helper Functions
+ * ============================================================================
+ */
+
+/**
+ * Generate a unique change ID
+ */
+function generateChangeId(): string {
+  return `change-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+}
+
+/**
+ * Patterns for files that require a hard refresh after modification
+ * because Vite's HMR cannot properly handle config file changes.
+ * These files are typically read at server startup and cached in memory.
+ */
+const CONFIG_FILE_PATTERNS = [
+  // Build tool configs
+  /tailwind\.config\.(js|ts|mjs|cjs)$/i,
+  /vite\.config\.(js|ts|mjs|cjs)$/i,
+  /postcss\.config\.(js|cjs|mjs)$/i,
+  /webpack\.config\.(js|ts)$/i,
+  /babel\.config\.(js|json|cjs)$/i,
+  /\.babelrc(\.json)?$/i,
+
+  // Framework configs
+  /next\.config\.(js|ts|mjs)$/i,
+  /svelte\.config\.js$/i,
+  /nuxt\.config\.(js|ts)$/i,
+  /astro\.config\.(js|ts|mjs)$/i,
+  /remix\.config\.(js|ts)$/i,
+  /angular\.json$/i,
+
+  // TypeScript configs
+  /tsconfig(\.[^/]+)?\.json$/i,
+  /jsconfig\.json$/i,
+
+  // Environment files (often require restart)
+  /\.env(\.[^/]+)?$/i,
+];
+
+/**
+ * Check if a file path matches config file patterns that require hard refresh.
+ * Config files are typically cached by build tools and require a full page reload
+ * for changes to take effect (HMR is insufficient).
+ */
+export function isConfigFile(filePath: string): boolean {
+  const fileName = filePath.split('/').pop() || '';
+  return CONFIG_FILE_PATTERNS.some((pattern) => pattern.test(fileName));
+}
+
+/**
+ * Load settings from localStorage
+ */
+function loadSettingsFromStorage(): StagingSettings {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('devonz-staging-settings');
+
+      if (saved) {
+        const parsed = JSON.parse(saved);
+
+        return { ...DEFAULT_SETTINGS, ...parsed };
+      }
+    }
+  } catch (error) {
+    logger.error('Failed to load staging settings from localStorage', error);
+  }
+
+  return DEFAULT_SETTINGS;
+}
+
+/**
+ * Save settings to localStorage
+ */
+function saveSettingsToStorage(settings: StagingSettings): void {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('devonz-staging-settings', JSON.stringify(settings));
+    }
+  } catch (error) {
+    logger.error('Failed to save staging settings to localStorage', error);
+  }
+}
+
+/**
+ * Check if a file path matches any of the auto-approve patterns
+ */
+export function matchesAutoApprovePattern(filePath: string, patterns: string[]): boolean {
+  const normalizedPath = filePath.replace(/\\/g, '/');
+
+  for (const pattern of patterns) {
+    // Simple glob matching
+    if (pattern.includes('**')) {
+      // Handle ** glob for directory matching
+      const parts = pattern.split('**');
+
+      if (parts.length === 2) {
+        const [prefix, suffix] = parts;
+
+        if (normalizedPath.startsWith(prefix) && normalizedPath.endsWith(suffix)) {
+          return true;
+        }
+      }
+    } else if (pattern.includes('*')) {
+      // Handle * glob for single segment matching
+      const regex = new RegExp('^' + pattern.replace(/\./g, '\\.').replace(/\*/g, '.*') + '$');
+
+      // Check both full path and filename
+      const fileName = normalizedPath.split('/').pop() ?? '';
+
+      if (regex.test(normalizedPath) || regex.test(fileName)) {
+        return true;
+      }
+    } else {
+      // Exact match or filename match
+      const fileName = normalizedPath.split('/').pop() ?? '';
+
+      if (normalizedPath === pattern || fileName === pattern) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/*
+ * ============================================================================
+ * Store Actions
+ * ============================================================================
+ */
+
+/**
+ * Get the earliest messageId from pending changes
+ * This is used to determine which message to rewind to when rejecting all changes
+ */
+export function getEarliestPendingMessageId(): string | null {
+  const state = stagingStore.get();
+  const pendingChanges = Object.values(state.changes).filter((c) => c.status === 'pending');
+
+  if (pendingChanges.length === 0) {
+    return null;
+  }
+
+  // Sort by timestamp to find the earliest change
+  pendingChanges.sort((a, b) => a.timestamp - b.timestamp);
+
+  // Return the messageId of the earliest pending change
+  const earliest = pendingChanges[0];
+
+  if (earliest.messageId) {
+    return earliest.messageId;
+  }
+
+  return null;
+}
+
+/**
+ * Get the last accepted message ID
+ * This is the message ID to rewind to when rejecting changes
+ */
+export function getLastAcceptedMessageId(): string | null {
+  return stagingStore.get().lastAcceptedMessageId;
+}
+
+/**
+ * Set the last accepted message ID
+ * Called when changes are accepted to track the last good state
+ */
+export function setLastAcceptedMessageId(messageId: string | null): void {
+  stagingStore.setKey('lastAcceptedMessageId', messageId);
+}
+
+/**
+ * Stage a new file change
+ */
+export function stageChange(
+  change: Omit<StagedChange, 'id' | 'timestamp' | 'status' | 'autoApproved'>,
+): StagedChange | null {
+  const state = stagingStore.get();
+  const { settings } = state;
+
+  // Check if staging is enabled
+  if (!settings.isEnabled) {
+    logger.debug(`Staging disabled, skipping: ${change.filePath}`);
+
+    return null;
+  }
+
+  // Check for auto-approve
+  let autoApproved = false;
+
+  if (settings.autoApproveEnabled) {
+    // Don't auto-approve deletions if requireDeleteConfirmation is enabled
+    if (change.type === 'delete' && settings.requireDeleteConfirmation) {
+      autoApproved = false;
+    } else {
+      autoApproved = matchesAutoApprovePattern(change.filePath, settings.autoApprovePatterns);
+    }
+  }
+
+  const stagedChange: StagedChange = {
+    ...change,
+    id: generateChangeId(),
+    timestamp: Date.now(),
+    status: autoApproved ? 'accepted' : 'pending',
+    autoApproved,
+  };
+
+  // Update store
+  stagingStore.setKey('changes', {
+    ...state.changes,
+    [change.filePath]: stagedChange,
+  });
+
+  logger.info(`Staged change: ${change.type} ${change.filePath}${autoApproved ? ' (auto-approved)' : ''}`);
+
+  return stagedChange;
+}
+
+/**
+ * Accept a single staged change
+ * Returns the change if successful, null if not found or already processed
+ */
+export function acceptChange(filePathOrId: string): StagedChange | null {
+  const state = stagingStore.get();
+
+  // Find change by path or ID
+  let change: StagedChange | undefined;
+  let changePath: string | undefined;
+
+  if (state.changes[filePathOrId]) {
+    change = state.changes[filePathOrId];
+    changePath = filePathOrId;
+  } else {
+    // Search by ID
+    for (const [path, c] of Object.entries(state.changes)) {
+      if (c.id === filePathOrId) {
+        change = c;
+        changePath = path;
+        break;
+      }
+    }
+  }
+
+  if (!change || !changePath || change.status !== 'pending') {
+    return null;
+  }
+
+  // Update status
+  const updatedChange: StagedChange = {
+    ...change,
+    status: 'accepted',
+  };
+
+  stagingStore.setKey('changes', {
+    ...state.changes,
+    [changePath]: updatedChange,
+  });
+
+  logger.info(`Accepted change: ${change.type} ${changePath}`);
+
+  return updatedChange;
+}
+
+/**
+ * Reject a single staged change
+ * Returns the change if successful, null if not found or already processed
+ */
+export function rejectChange(filePathOrId: string): StagedChange | null {
+  const state = stagingStore.get();
+
+  // Find change by path or ID
+  let change: StagedChange | undefined;
+  let changePath: string | undefined;
+
+  if (state.changes[filePathOrId]) {
+    change = state.changes[filePathOrId];
+    changePath = filePathOrId;
+  } else {
+    // Search by ID
+    for (const [path, c] of Object.entries(state.changes)) {
+      if (c.id === filePathOrId) {
+        change = c;
+        changePath = path;
+        break;
+      }
+    }
+  }
+
+  if (!change || !changePath || change.status !== 'pending') {
+    return null;
+  }
+
+  // Update status
+  const updatedChange: StagedChange = {
+    ...change,
+    status: 'rejected',
+  };
+
+  stagingStore.setKey('changes', {
+    ...state.changes,
+    [changePath]: updatedChange,
+  });
+
+  logger.info(`Rejected change: ${change.type} ${changePath}`);
+
+  return updatedChange;
+}
+
+/**
+ * Accept all pending changes
+ * Returns array of accepted changes
+ */
+export function acceptAllChanges(): StagedChange[] {
+  const state = stagingStore.get();
+  const accepted: StagedChange[] = [];
+  const updatedChanges = { ...state.changes };
+  let latestMessageId: string | null = null;
+
+  for (const [path, change] of Object.entries(state.changes)) {
+    if (change.status === 'pending') {
+      const updatedChange: StagedChange = {
+        ...change,
+        status: 'accepted',
+      };
+      updatedChanges[path] = updatedChange;
+      accepted.push(updatedChange);
+
+      // Track the messageId from accepted changes for rewind on future reject
+      if (change.messageId) {
+        latestMessageId = change.messageId;
+      }
+    }
+  }
+
+  if (accepted.length > 0) {
+    stagingStore.setKey('changes', updatedChanges);
+
+    // Update lastAcceptedMessageId for potential rewind on reject
+    if (latestMessageId) {
+      stagingStore.setKey('lastAcceptedMessageId', latestMessageId);
+      logger.info(`Updated lastAcceptedMessageId to: ${latestMessageId}`);
+    }
+
+    logger.info(`Accepted ${accepted.length} changes`);
+  }
+
+  return accepted;
+}
+
+/**
+ * Reject all pending changes
+ * Returns array of rejected changes
+ */
+export function rejectAllChanges(): StagedChange[] {
+  const state = stagingStore.get();
+  const rejected: StagedChange[] = [];
+  const updatedChanges = { ...state.changes };
+
+  for (const [path, change] of Object.entries(state.changes)) {
+    if (change.status === 'pending') {
+      const updatedChange: StagedChange = {
+        ...change,
+        status: 'rejected',
+      };
+      updatedChanges[path] = updatedChange;
+      rejected.push(updatedChange);
+    }
+  }
+
+  if (rejected.length > 0) {
+    stagingStore.setKey('changes', updatedChanges);
+    logger.info(`Rejected ${rejected.length} changes`);
+  }
+
+  return rejected;
+}
+
+/**
+ * Clear all changes from staging (accepted, rejected, and pending)
+ */
+export function clearStaging(): void {
+  stagingStore.set({
+    ...stagingStore.get(),
+    changes: {},
+    selectedChangePath: null,
+    isDiffModalOpen: false,
+  });
+  logger.info('Staging cleared');
+}
+
+/**
+ * Clear only processed changes (accepted and rejected), keep pending
+ */
+export function clearProcessedChanges(): void {
+  const state = stagingStore.get();
+  const pendingOnly: Record<string, StagedChange> = {};
+
+  for (const [path, change] of Object.entries(state.changes)) {
+    if (change.status === 'pending') {
+      pendingOnly[path] = change;
+    }
+  }
+
+  stagingStore.setKey('changes', pendingOnly);
+  logger.info('Processed changes cleared');
+}
+
+/*
+ * ============================================================================
+ * Pending Commands Functions
+ * ============================================================================
+ */
+
+/**
+ * Check if a command with the same type and content already exists in the queue.
+ * This prevents duplicate commands from being queued (e.g., from session restore or parsing issues).
+ */
+function isDuplicateCommand(
+  existingCommands: PendingCommand[],
+  newCommand: Omit<PendingCommand, 'id' | 'timestamp'>,
+): boolean {
+  // Normalize command string for comparison (trim whitespace, normalize line endings)
+  const normalizedNewCommand = newCommand.command.trim().replace(/\r\n/g, '\n');
+
+  return existingCommands.some((existing) => {
+    const normalizedExisting = existing.command.trim().replace(/\r\n/g, '\n');
+
+    return existing.type === newCommand.type && normalizedExisting === normalizedNewCommand;
+  });
+}
+
+/**
+ * Queue a shell or start command for execution after files are accepted.
+ * Automatically deduplicates commands to prevent the same command from being queued multiple times.
+ */
+export function queueCommand(command: Omit<PendingCommand, 'id' | 'timestamp'>): PendingCommand | null {
+  const state = stagingStore.get();
+
+  // Check for duplicate command before adding
+  if (isDuplicateCommand(state.pendingCommands, command)) {
+    logger.debug(`Skipping duplicate ${command.type} command: ${command.command.substring(0, 50)}...`);
+
+    return null; // Return null to indicate command was not queued (duplicate)
+  }
+
+  const pendingCommand: PendingCommand = {
+    ...command,
+    id: generateChangeId(),
+    timestamp: Date.now(),
+  };
+
+  stagingStore.setKey('pendingCommands', [...state.pendingCommands, pendingCommand]);
+
+  logger.info(`Queued ${command.type} command: ${command.command.substring(0, 50)}...`);
+
+  return pendingCommand;
+}
+
+/**
+ * Get all pending commands
+ */
+export function getPendingCommands(): PendingCommand[] {
+  return stagingStore.get().pendingCommands;
+}
+
+/**
+ * Clear all pending commands
+ */
+export function clearPendingCommands(): void {
+  stagingStore.setKey('pendingCommands', []);
+  logger.info('Pending commands cleared');
+}
+
+/**
+ * Remove a specific pending command by ID
+ */
+export function removePendingCommand(commandId: string): boolean {
+  const state = stagingStore.get();
+  const filtered = state.pendingCommands.filter((cmd) => cmd.id !== commandId);
+
+  if (filtered.length < state.pendingCommands.length) {
+    stagingStore.setKey('pendingCommands', filtered);
+    logger.info(`Removed pending command: ${commandId}`);
+
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Get a specific change by file path
+ */
+export function getChangeForFile(filePath: string): StagedChange | null {
+  return stagingStore.get().changes[filePath] ?? null;
+}
+
+/**
+ * Get all accepted changes that need to be applied
+ */
+export function getAcceptedChanges(): StagedChange[] {
+  return Object.values(stagingStore.get().changes).filter((change) => change.status === 'accepted');
+}
+
+/**
+ * Get all rejected changes that need to be reverted
+ */
+export function getRejectedChanges(): StagedChange[] {
+  return Object.values(stagingStore.get().changes).filter((change) => change.status === 'rejected');
+}
+
+/**
+ * Apply all accepted changes to the runtime filesystem.
+ * This actually writes the files — must be called after acceptChange/acceptAllChanges.
+ *
+ * @param rt - The runtime instance to write files to
+ * @returns Object with arrays of applied and failed file paths
+ */
+export async function applyAcceptedChanges(rt: {
+  fs: {
+    writeFile: (path: string, content: string) => Promise<void>;
+    rm: (path: string, options?: { recursive?: boolean }) => Promise<void>;
+    mkdir: (path: string, options: { recursive: true }) => Promise<void>;
+  };
+}): Promise<{ applied: string[]; failed: Array<{ path: string; error: string }> }> {
+  const accepted = getAcceptedChanges();
+  const applied: string[] = [];
+  const failed: Array<{ path: string; error: string }> = [];
+
+  logger.info(`Applying ${accepted.length} accepted changes to runtime filesystem`);
+
+  for (const change of accepted) {
+    try {
+      /* Convert absolute path to relative path: "/home/project/src/file.ts" -> "src/file.ts" */
+      const relativePath = change.filePath.replace(/^\/home\/project\/?/, '');
+
+      if (change.type === 'delete') {
+        await rt.fs.rm(relativePath, { recursive: false });
+        logger.debug(`Deleted file: ${relativePath}`);
+      } else {
+        /* Create directory if needed */
+        const pathParts = relativePath.split('/');
+        const dir = pathParts.slice(0, -1).join('/');
+
+        if (dir) {
+          try {
+            await rt.fs.mkdir(dir, { recursive: true });
+          } catch {
+            /* Directory might already exist */
+          }
+        }
+
+        await rt.fs.writeFile(relativePath, change.newContent);
+        logger.debug(`Wrote file: ${relativePath}`);
+      }
+
+      applied.push(change.filePath);
+
+      // Remove the change from staging now that it's applied
+      removeChange(change.filePath);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      failed.push({ path: change.filePath, error: errorMessage });
+      logger.error(`Failed to apply change: ${change.filePath}`, error);
+
+      // Don't remove failed changes - leave them for retry
+    }
+  }
+
+  logger.info(`Applied ${applied.length} changes, ${failed.length} failed`);
+
+  return { applied, failed };
+}
+
+/** Filesystem interface used by rejection revert operations */
+interface RevertFs {
+  writeFile: (path: string, content: string) => Promise<void>;
+  rm: (path: string, options?: { recursive?: boolean }) => Promise<void>;
+  mkdir: (path: string, options: { recursive: true }) => Promise<void>;
+}
+
+/**
+ * Revert a single staged change by restoring original content to the runtime filesystem.
+ * Shared logic for both applyRejectedChanges (batch) and applyRejectedChange (single).
+ */
+async function revertSingleFile(change: StagedChange, fs: RevertFs): Promise<void> {
+  /* Convert absolute path to relative path: "/home/project/src/file.ts" -> "src/file.ts" */
+  const relativePath = change.filePath.replace(/^\/home\/project\/?/, '');
+
+  if (change.type === 'create') {
+    /*
+     * File was newly created and staged — it was never written to the filesystem.
+     * Just remove from staging, no filesystem operation needed.
+     */
+    logger.debug(`Removing staged new file from tracking: ${relativePath}`);
+  } else if (change.type === 'delete' && change.originalContent !== null) {
+    /* File was deleted — recreate it with original content */
+    const pathParts = relativePath.split('/');
+    const dir = pathParts.slice(0, -1).join('/');
+
+    if (dir) {
+      try {
+        await fs.mkdir(dir, { recursive: true });
+      } catch {
+        /* Directory might already exist */
+      }
+    }
+
+    await fs.writeFile(relativePath, change.originalContent);
+    logger.debug(`Restored deleted file: ${relativePath}`);
+  } else if (change.originalContent !== null) {
+    /* File was modified — restore original content */
+    await fs.writeFile(relativePath, change.originalContent);
+    logger.debug(`Restored original content: ${relativePath}`);
+  }
+}
+
+/**
+ * Revert all rejected changes by restoring original content to the runtime filesystem.
+ * This actually restores the files — must be called after rejectChange/rejectAllChanges.
+ *
+ * @param rt - The runtime instance to write files to
+ * @returns Object with arrays of reverted and failed file paths
+ */
+export async function applyRejectedChanges(rt: {
+  fs: RevertFs;
+}): Promise<{ reverted: string[]; failed: Array<{ path: string; error: string }> }> {
+  const rejected = getRejectedChanges();
+  const reverted: string[] = [];
+  const failed: Array<{ path: string; error: string }> = [];
+
+  logger.info(`Reverting ${rejected.length} rejected changes in runtime filesystem`);
+
+  for (const change of rejected) {
+    try {
+      await revertSingleFile(change, rt.fs);
+      reverted.push(change.filePath);
+
+      // Remove the change from staging now that it's reverted
+      removeChange(change.filePath);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      failed.push({ path: change.filePath, error: errorMessage });
+      logger.error(`Failed to revert change: ${change.filePath}`, error);
+
+      // Don't remove failed changes - leave them for retry
+    }
+  }
+
+  logger.info(`Reverted ${reverted.length} changes, ${failed.length} failed`);
+
+  return { reverted, failed };
+}
+
+/**
+ * Revert a single rejected change by restoring original content to the runtime filesystem.
+ *
+ * @param filePath - The file path of the rejected change to revert
+ * @param rt - The runtime instance to write files to
+ * @returns Object indicating success or failure
+ */
+export async function applyRejectedChange(
+  filePath: string,
+  rt: {
+    fs: RevertFs;
+  },
+): Promise<{ success: boolean; error?: string }> {
+  const change = getChangeForFile(filePath);
+
+  if (!change) {
+    return { success: false, error: 'Change not found' };
+  }
+
+  if (change.status !== 'rejected') {
+    return { success: false, error: 'Change is not rejected' };
+  }
+
+  try {
+    await revertSingleFile(change, rt.fs);
+    removeChange(filePath);
+
+    return { success: true };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(`Failed to revert change: ${filePath}`, error);
+
+    return { success: false, error: errorMessage };
+  }
+}
+
+/**
+ * Remove a change from staging (after it's been applied or discarded)
+ */
+export function removeChange(filePath: string): void {
+  const state = stagingStore.get();
+  const { [filePath]: removed, ...remaining } = state.changes;
+
+  if (removed) {
+    stagingStore.setKey('changes', remaining);
+
+    // Clear selection if this was selected
+    if (state.selectedChangePath === filePath) {
+      stagingStore.setKey('selectedChangePath', null);
+    }
+
+    logger.debug(`Removed change: ${filePath}`);
+  }
+}
+
+/*
+ * ============================================================================
+ * Preview Mode Actions
+ * ============================================================================
+ */
+
+/**
+ * Check if preview mode is currently active
+ */
+export function isInPreviewMode(): boolean {
+  return stagingStore.get().isPreviewMode;
+}
+
+/**
+ * Enter preview mode by temporarily applying pending changes to the runtime filesystem.
+ * This writes all pending files to the filesystem so the user can see the result.
+ * Call exitPreviewMode() to restore original content.
+ *
+ * @param rt - The runtime instance to write files to
+ * @returns Object with arrays of applied and failed file paths, plus requiresHardRefresh flag
+ */
+export async function enterPreviewMode(rt: {
+  fs: {
+    writeFile: (path: string, content: string) => Promise<void>;
+    mkdir: (path: string, options: { recursive: true }) => Promise<void>;
+  };
+}): Promise<{ applied: string[]; failed: Array<{ path: string; error: string }>; requiresHardRefresh: boolean }> {
+  const state = stagingStore.get();
+
+  if (state.isPreviewMode) {
+    logger.debug('Already in preview mode');
+
+    return { applied: [], failed: [], requiresHardRefresh: false };
+  }
+
+  const pending = pendingChanges.get();
+  const applied: string[] = [];
+  const failed: Array<{ path: string; error: string }> = [];
+  let requiresHardRefresh = false;
+
+  logger.info(`Entering preview mode: applying ${pending.length} pending changes temporarily`);
+
+  for (const change of pending) {
+    try {
+      /* Convert absolute path to relative path: "/home/project/src/file.ts" -> "src/file.ts" */
+      const relativePath = change.filePath.replace(/^\/home\/project\/?/, '');
+
+      logger.debug(
+        `Preview: processing ${change.type} change: ${relativePath} (${change.newContent?.length ?? 0} bytes)`,
+      );
+
+      if (isConfigFile(relativePath)) {
+        requiresHardRefresh = true;
+        logger.debug(`Preview: config file detected, will require hard refresh: ${relativePath}`);
+      }
+
+      if (change.type === 'delete') {
+        /* For deletions in preview, we don't actually delete — just skip */
+        logger.debug(`Preview: skipping delete for ${relativePath} (preview only)`);
+      } else {
+        /* Create directory if needed */
+        const pathParts = relativePath.split('/');
+        const dir = pathParts.slice(0, -1).join('/');
+
+        if (dir) {
+          try {
+            await rt.fs.mkdir(dir, { recursive: true });
+          } catch {
+            /* Directory might already exist */
+          }
+        }
+
+        await rt.fs.writeFile(relativePath, change.newContent);
+        logger.debug(`Preview: wrote file: ${relativePath}`);
+      }
+
+      applied.push(change.filePath);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      failed.push({ path: change.filePath, error: errorMessage });
+      logger.error(`Preview: failed to apply ${change.filePath}: ${errorMessage}`, error);
+    }
+  }
+
+  stagingStore.setKey('isPreviewMode', true);
+
+  logger.info(
+    `Entered preview mode: ${applied.length} files applied, ${failed.length} failed, requiresHardRefresh: ${requiresHardRefresh}`,
+  );
+
+  return { applied, failed, requiresHardRefresh };
+}
+
+/**
+ * Exit preview mode by restoring original content to the runtime filesystem.
+ * This reverts all pending changes back to their original state.
+ *
+ * @param rt - The runtime instance to write files to
+ * @returns Object with arrays of restored and failed file paths
+ */
+export async function exitPreviewMode(rt: {
+  fs: {
+    writeFile: (path: string, content: string) => Promise<void>;
+    mkdir: (path: string, options: { recursive: true }) => Promise<void>;
+  };
+}): Promise<{ restored: string[]; failed: Array<{ path: string; error: string }> }> {
+  const state = stagingStore.get();
+
+  if (!state.isPreviewMode) {
+    logger.debug('Not in preview mode');
+
+    return { restored: [], failed: [] };
+  }
+
+  const pending = pendingChanges.get();
+  const restored: string[] = [];
+  const failed: Array<{ path: string; error: string }> = [];
+
+  logger.info(`Exiting preview mode: restoring ${pending.length} files to original state`);
+
+  for (const change of pending) {
+    try {
+      const relativePath = change.filePath.replace(/^\/home\/project\/?/, '');
+
+      if (change.type === 'create') {
+        /*
+         * File was newly created — in preview we wrote it, now we should undo.
+         * Since staging prevented the original write, the file shouldn't exist originally.
+         * Skip delete operations in exit preview — handled when user accepts or rejects.
+         */
+        logger.debug(`Preview exit: skipping cleanup of new file ${relativePath}`);
+      } else if (change.originalContent !== null) {
+        /* Restore original content */
+        await rt.fs.writeFile(relativePath, change.originalContent);
+        logger.debug(`Preview exit: restored ${relativePath}`);
+      }
+
+      restored.push(change.filePath);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      failed.push({ path: change.filePath, error: errorMessage });
+      logger.error(`Preview exit: failed to restore ${change.filePath}`, error);
+    }
+  }
+
+  stagingStore.setKey('isPreviewMode', false);
+
+  logger.info(`Exited preview mode: ${restored.length} files restored, ${failed.length} failed`);
+
+  return { restored, failed };
+}
+
+/*
+ * ============================================================================
+ * Selection & Modal Actions
+ * ============================================================================
+ */
+
+/**
+ * Select a change for preview
+ */
+export function selectChange(filePath: string | null): void {
+  stagingStore.setKey('selectedChangePath', filePath);
+}
+
+/**
+ * Open the diff preview modal for a specific file
+ */
+export function openDiffModal(filePath: string): void {
+  stagingStore.set({
+    ...stagingStore.get(),
+    selectedChangePath: filePath,
+    isDiffModalOpen: true,
+  });
+}
+
+/**
+ * Close the diff preview modal
+ */
+export function closeDiffModal(): void {
+  stagingStore.setKey('isDiffModalOpen', false);
+}
+
+/**
+ * Navigate to the next pending change
+ */
+export function selectNextChange(): string | null {
+  const pending = pendingChanges.get();
+
+  if (pending.length === 0) {
+    return null;
+  }
+
+  const currentPath = stagingStore.get().selectedChangePath;
+
+  if (!currentPath) {
+    const firstPath = pending[0].filePath;
+    selectChange(firstPath);
+
+    return firstPath;
+  }
+
+  const currentIndex = pending.findIndex((c) => c.filePath === currentPath);
+  const nextIndex = (currentIndex + 1) % pending.length;
+  const nextPath = pending[nextIndex].filePath;
+
+  selectChange(nextPath);
+
+  return nextPath;
+}
+
+/**
+ * Navigate to the previous pending change
+ */
+export function selectPreviousChange(): string | null {
+  const pending = pendingChanges.get();
+
+  if (pending.length === 0) {
+    return null;
+  }
+
+  const currentPath = stagingStore.get().selectedChangePath;
+
+  if (!currentPath) {
+    const lastPath = pending[pending.length - 1].filePath;
+    selectChange(lastPath);
+
+    return lastPath;
+  }
+
+  const currentIndex = pending.findIndex((c) => c.filePath === currentPath);
+  const prevIndex = currentIndex <= 0 ? pending.length - 1 : currentIndex - 1;
+  const prevPath = pending[prevIndex].filePath;
+
+  selectChange(prevPath);
+
+  return prevPath;
+}
+
+/*
+ * ============================================================================
+ * Settings Actions
+ * ============================================================================
+ */
+
+/**
+ * Update staging settings
+ */
+export function updateSettings(updates: Partial<StagingSettings>): void {
+  const currentSettings = stagingStore.get().settings;
+  const newSettings = { ...currentSettings, ...updates };
+
+  stagingStore.setKey('settings', newSettings);
+  saveSettingsToStorage(newSettings);
+
+  logger.info('Staging settings updated');
+}
+
+/**
+ * Toggle staging enabled/disabled
+ */
+export function toggleStaging(): boolean {
+  const isEnabled = !stagingStore.get().settings.isEnabled;
+  updateSettings({ isEnabled });
+
+  return isEnabled;
+}
+
+/**
+ * Add an auto-approve pattern
+ */
+export function addAutoApprovePattern(pattern: string): void {
+  const settings = stagingStore.get().settings;
+
+  if (!settings.autoApprovePatterns.includes(pattern)) {
+    updateSettings({
+      autoApprovePatterns: [...settings.autoApprovePatterns, pattern],
+    });
+  }
+}
+
+/**
+ * Remove an auto-approve pattern
+ */
+export function removeAutoApprovePattern(pattern: string): void {
+  const settings = stagingStore.get().settings;
+  updateSettings({
+    autoApprovePatterns: settings.autoApprovePatterns.filter((p) => p !== pattern),
+  });
+}
+
+/**
+ * Reset settings to defaults
+ */
+export function resetSettings(): void {
+  updateSettings(DEFAULT_SETTINGS);
+}
+
+/*
+ * ============================================================================
+ * Version Integration
+ * ============================================================================
+ */
+
+import { versionsStore } from './versions';
+
+/**
+ * Create a version checkpoint before accepting changes
+ * This allows users to restore to before the changes were applied
+ */
+export function createCheckpointBeforeAccept(): string | null {
+  const pending = pendingChanges.get();
+
+  if (pending.length === 0) {
+    return null;
+  }
+
+  const settings = stagingStore.get().settings;
+
+  if (!settings.autoCheckpointOnAccept) {
+    return null;
+  }
+
+  // Build a simple summary of changes for the version description
+  const summary = pending.map((c) => `${c.type}: ${c.filePath.split('/').pop()}`).join(', ');
+
+  // Create version with original file contents
+  const files: Record<string, { content: string; type: string }> = {};
+
+  for (const change of pending) {
+    if (change.originalContent !== null) {
+      files[change.filePath] = {
+        content: change.originalContent,
+        type: 'file',
+      };
+    }
+  }
+
+  const version = versionsStore.createVersion(
+    `checkpoint-${Date.now()}`,
+    `Before accepting ${pending.length} changes`,
+    summary,
+    files,
+  );
+
+  versionsStore.scheduleThumbnailCapture(version.id);
+
+  logger.info(`Created checkpoint: ${version.id}`);
+
+  return version.id;
+}
+
+/**
+ * Accept all changes with optional checkpoint creation
+ * Returns the checkpoint version ID if created, null otherwise
+ */
+export function acceptAllWithCheckpoint(): { accepted: StagedChange[]; checkpointId: string | null } {
+  const checkpointId = createCheckpointBeforeAccept();
+  const accepted = acceptAllChanges();
+
+  return { accepted, checkpointId };
+}
+
+/*
+ * ============================================================================
+ * Export type for external use
+ * ============================================================================
+ */
+
+export type { MapStore };

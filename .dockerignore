@@ -1,0 +1,62 @@
+# ─────────────────────────────────────────────────────────────
+# .dockerignore — Devonz (devonz.diy)
+# Keep Docker context small and fast
+# ─────────────────────────────────────────────────────────────
+
+# Dependencies (installed in container)
+node_modules
+
+# Build output (rebuilt in container)
+build
+dist
+dist-ssr
+
+# Git
+.git
+.gitignore
+
+# IDE / Editor
+.vscode
+.idea
+*.sw?
+
+# Environment files (passed via env_file / compose)
+.env
+.env.local
+.env.production
+.dev.vars
+*.vars
+
+# Docker files themselves
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# CI / misc
+.github
+.husky
+.wrangler
+.cache
+.history
+
+# Docs and plans (not needed at runtime)
+docs
+plan
+
+# Test files
+**/*.spec.ts
+**/*.test.ts
+vitest.config.*
+
+# Supabase local config
+supabase

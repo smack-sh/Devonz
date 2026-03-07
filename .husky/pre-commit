@@ -1,0 +1,6 @@
+# Auto-stage pnpm-lock.yaml if it has unstaged changes
+if git diff --name-only | grep -q "pnpm-lock.yaml"; then
+  git add pnpm-lock.yaml
+fi
+
+npx lint-staged
