@@ -141,7 +141,7 @@ export const AssistantMessage = memo(
           <div className="w-6 h-6 rounded-full bg-devonz-elements-bg-depth-3 border border-devonz-elements-borderColor flex items-center justify-center">
             <span className="text-xs font-bold text-devonz-elements-textPrimary">D</span>
           </div>
-          <span className="text-sm font-medium text-devonz-elements-textSecondary">Devonz</span>
+          <span className="text-sm font-medium text-devonz-elements-textSecondary">Devonz AI</span>
           {(codeContext || chatSummary) && (
             <Popover
               side="right"

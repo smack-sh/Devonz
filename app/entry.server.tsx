@@ -90,7 +90,7 @@ export default async function handleRequest(
 
           // Write the HTML shell
           body.write(
-            `<!DOCTYPE html><html lang="en" data-theme="${themeStore.value}"><head>${head}</head><body><noscript><p style="padding:2rem;color:#fff;background:#0a0a0a;text-align:center">JavaScript is required to use Devonz.</p></noscript><div id="root" class="w-full h-full">`,
+            `<!DOCTYPE html><html lang="en" data-theme="${themeStore.value}"><head>${head}</head><body><noscript><p style="padding:2rem;color:#fff;background:#0a0a0a;text-align:center">JavaScript is required to use Devonz AI.</p></noscript><div id="root" class="w-full h-full">`,
           );
 
           resolve(

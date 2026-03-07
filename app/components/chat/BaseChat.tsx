@@ -441,9 +441,8 @@ export const BaseChat = React.memo(
                       <div id="intro" className="mt-[8vh] max-w-2xl mx-auto text-center px-4 lg:px-0 relative">
                         {/* Liquid Metal 3D Text */}
                         <div className="liquid-metal-container">
-                          <h1 className="liquid-metal-text" aria-label="Devonz">
-                            Devonz
-                          </h1>
+                          <h1 className="liquid-metal-text" aria-label="Devonz AI">
+                                      Devonz AI                          </h1>
                         </div>
 
                         {/* Subtitle below the 3D text */}
