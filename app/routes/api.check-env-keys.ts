@@ -1,6 +1,6 @@
 import { type LoaderFunctionArgs, json } from '@remix-run/node';
 import { LLMManager } from '~/lib/modules/llm/manager';
-import { getApiKeysFromCookie } from '~/lib/api/cookies';
+import { getApiKeysFromCookie, getCookieValue } from '~/lib/api/cookies';
 import { withSecurity } from '~/lib/security';
 
 /**
@@ -35,6 +35,13 @@ async function checkEnvKeysLoader({ context, request }: LoaderFunctionArgs) {
 
     result[providerName] = { hasEnvKey, hasCookieKey };
   }
+
+  // Add Appetize API key check
+  const appetizeApiKeyEnv =
+    (context?.cloudflare?.env as Record<string, any>)?.APPETIZE_API_KEY || process.env.APPETIZE_API_KEY;
+  const appetizeApiKeyCookie = getCookieValue(cookieHeader, 'APPETIZE_API_KEY');
+  result['appetize'] = { hasEnvKey: !!appetizeApiKeyEnv, hasCookieKey: !!appetizeApiKeyCookie?.trim() };
+
 
   return json(result);
 }
