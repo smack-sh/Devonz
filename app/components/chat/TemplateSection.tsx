@@ -1,29 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from '@remix-run/react';
 import type { ShowcaseTemplate } from '~/types/showcase-template';
-import type { TemplateCategory } from '~/types/showcase-template';
+import { CATEGORY_LABELS, type TemplateCategory } from '~/types/showcase-template';
 import { loadShowcaseTemplates } from '~/utils/showcase-templates';
-
-const CATEGORY_BADGE_COLORS: Record<string, { text: string; bg: string }> = {
-  'landing-page': { text: '#22d3ee', bg: 'rgba(34, 211, 238, 0.12)' },
-  portfolio: { text: '#818cf8', bg: 'rgba(129, 140, 248, 0.12)' },
-  'online-store': { text: '#4ade80', bg: 'rgba(74, 222, 128, 0.12)' },
-  dashboard: { text: '#fb923c', bg: 'rgba(251, 146, 60, 0.12)' },
-  saas: { text: '#c084fc', bg: 'rgba(192, 132, 252, 0.12)' },
-  'ai-app': { text: '#f472b6', bg: 'rgba(244, 114, 182, 0.12)' },
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  'landing-page': 'Landing Page',
-  portfolio: 'Portfolio',
-  'online-store': 'Online Store',
-  dashboard: 'Dashboard',
-  saas: 'SaaS',
-  'ai-app': 'AI App',
-};
+import { TEMPLATE_CATEGORY_BADGE_COLORS, TEMPLATE_UI_COLORS } from '~/components/templates/templateTheme';
 
 function getCategoryBadge(category: TemplateCategory) {
-  const colors = CATEGORY_BADGE_COLORS[category] ?? { text: '#9ca3af', bg: 'rgba(156,163,175,0.12)' };
+  const colors = TEMPLATE_CATEGORY_BADGE_COLORS[category] ?? {
+    text: TEMPLATE_UI_COLORS.textMuted,
+    bg: 'rgba(156,163,175,0.12)',
+  };
   const label = CATEGORY_LABELS[category] ?? category;
 
   return { colors, label };
@@ -118,7 +104,7 @@ export const TemplateSection: React.FC = () => {
                 style={{
                   flex: `0 0 ${CARD_WIDTH}px`,
                   height: 112,
-                  backgroundColor: '#1a1a1a',
+                  backgroundColor: TEMPLATE_UI_COLORS.cardBg,
                   position: 'relative',
                 }}
                 aria-label={`Open ${template.name} template`}
@@ -149,7 +135,7 @@ export const TemplateSection: React.FC = () => {
                     display: 'none',
                     position: 'absolute',
                     inset: 0,
-                    background: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)',
+                    background: `linear-gradient(135deg, ${TEMPLATE_UI_COLORS.cardBg} 0%, ${TEMPLATE_UI_COLORS.pageBg} 100%)`,
                   }}
                   aria-hidden="true"
                 >
@@ -207,12 +193,12 @@ export const TemplateSection: React.FC = () => {
           to="/templates"
           prefetch="intent"
           className="text-xs font-medium px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center gap-1.5 group border border-[#333333] hover:border-[#555555] hover:bg-[#2a2a2a] no-underline"
-          style={{ color: '#9ca3af', backgroundColor: '#1a1a1a' }}
+          style={{ color: TEMPLATE_UI_COLORS.textMuted, backgroundColor: TEMPLATE_UI_COLORS.cardBg }}
           onMouseEnter={(e) => {
             e.currentTarget.style.color = '#ffffff';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = '#9ca3af';
+            e.currentTarget.style.color = TEMPLATE_UI_COLORS.textMuted;
           }}
         >
           View All Templates

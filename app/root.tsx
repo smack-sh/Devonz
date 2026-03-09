@@ -1,22 +1,19 @@
 import { useStore } from '@nanostores/react';
 import type { LinksFunction } from '@remix-run/node';
-import { Links, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLocation } from '@remix-run/react';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
 import { createHead } from 'remix-island';
-import { useEffect } from 'react';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { ClientOnly } from 'remix-utils/client-only';
+import { lazy, Suspense, useEffect } from 'react';
 import { cssTransition, ToastContainer } from 'react-toastify';
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
 import globalStyles from './styles/index.scss?url';
-import liquidMetalStyles from './styles/liquid-metal.css?url';
-import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 
 import 'virtual:uno.css';
+
+const DndProviderWrapper = lazy(() => import('~/components/providers/DndProviderWrapper.client'));
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -40,8 +37,6 @@ export const links: LinksFunction = () => [
   { rel: 'stylesheet', href: reactToastifyStyles },
   { rel: 'stylesheet', href: tailwindReset },
   { rel: 'stylesheet', href: globalStyles },
-  { rel: 'stylesheet', href: liquidMetalStyles },
-  { rel: 'stylesheet', href: xtermStyles },
   {
     rel: 'preconnect',
     href: 'https://fonts.googleapis.com',
@@ -104,14 +99,24 @@ export const Head = createHead(() => (
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const theme = useStore(themeStore);
+  const location = useLocation();
+  const isTemplatesRoute = location.pathname.startsWith('/templates');
 
   useEffect(() => {
     document.querySelector('html')?.setAttribute('data-theme', theme);
   }, [theme]);
 
+  const appContent = isTemplatesRoute ? (
+    children
+  ) : (
+    <Suspense fallback={<div className="h-full w-full bg-devonz-elements-bg-depth-1" />}>
+      <DndProviderWrapper>{children}</DndProviderWrapper>
+    </Suspense>
+  );
+
   return (
     <>
-      <DndProvider backend={HTML5Backend}>{children}</DndProvider>
+      {appContent}
       <ToastContainer
         closeButton={({ closeToast }) => {
           return (

@@ -7,6 +7,7 @@ import type { ShowcaseTemplate, TemplateCategory } from '~/types/showcase-templa
 import { TEMPLATE_CATEGORIES, CATEGORY_LABELS } from '~/types/showcase-template';
 import { loadShowcaseTemplates } from '~/utils/showcase-templates';
 import { TemplatePreviewModal } from '~/components/templates/TemplatePreviewModal';
+import { TEMPLATE_CATEGORY_BADGE_COLORS, TEMPLATE_UI_COLORS } from '~/components/templates/templateTheme';
 
 // ── Route metadata ──────────────────────────────────────────────────────────
 
@@ -90,7 +91,7 @@ function TemplatesGallery() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto modern-scrollbar" style={{ backgroundColor: '#0a0a0a' }}>
+    <div className="flex-1 overflow-y-auto modern-scrollbar" style={{ backgroundColor: TEMPLATE_UI_COLORS.pageBg }}>
       {/* Hero Section */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-6">
         <div className="flex items-center gap-3 mb-4">
@@ -98,12 +99,12 @@ function TemplatesGallery() {
             to="/"
             prefetch="intent"
             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-medium no-underline transition-all duration-200 group border border-[#333333] hover:border-[#555555] hover:bg-[#2a2a2a]"
-            style={{ color: '#9ca3af', backgroundColor: '#1a1a1a' }}
+            style={{ color: TEMPLATE_UI_COLORS.textMuted, backgroundColor: TEMPLATE_UI_COLORS.cardBg }}
             onMouseEnter={(e) => {
               e.currentTarget.style.color = '#ffffff';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = '#9ca3af';
+              e.currentTarget.style.color = TEMPLATE_UI_COLORS.textMuted;
             }}
           >
             <div className="i-ph:arrow-left text-base transition-transform duration-200 group-hover:-translate-x-0.5" />
@@ -126,7 +127,7 @@ function TemplatesGallery() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm text-white placeholder-[#666] outline-none transition-colors border border-[#333333] focus:border-[#3b82f6]"
-            style={{ backgroundColor: '#1a1a1a' }}
+            style={{ backgroundColor: TEMPLATE_UI_COLORS.cardBg }}
           />
         </div>
 
@@ -172,17 +173,6 @@ function TemplatesGallery() {
   );
 }
 
-// ── Card colors ─────────────────────────────────────────────────────────────
-
-const CATEGORY_BADGE_COLORS: Record<string, { text: string; bg: string }> = {
-  'landing-page': { text: '#22d3ee', bg: 'rgba(34, 211, 238, 0.12)' },
-  portfolio: { text: '#818cf8', bg: 'rgba(129, 140, 248, 0.12)' },
-  'online-store': { text: '#4ade80', bg: 'rgba(74, 222, 128, 0.12)' },
-  dashboard: { text: '#fb923c', bg: 'rgba(251, 146, 60, 0.12)' },
-  saas: { text: '#c084fc', bg: 'rgba(192, 132, 252, 0.12)' },
-  'ai-app': { text: '#f472b6', bg: 'rgba(244, 114, 182, 0.12)' },
-};
-
 // ── Gallery card (static screenshot thumbnail) ──────────────────────────────
 
 interface TemplateGalleryCardProps {
@@ -192,7 +182,10 @@ interface TemplateGalleryCardProps {
 
 function TemplateGalleryCard({ template, onClick }: TemplateGalleryCardProps) {
   const [imgError, setImgError] = useState(false);
-  const badgeColors = CATEGORY_BADGE_COLORS[template.category] || { text: '#9ca3af', bg: 'rgba(156, 163, 175, 0.12)' };
+  const badgeColors = TEMPLATE_CATEGORY_BADGE_COLORS[template.category] || {
+    text: TEMPLATE_UI_COLORS.textMuted,
+    bg: 'rgba(156, 163, 175, 0.12)',
+  };
   const screenshotUrl = `/screenshots/${template.id}.png`;
 
   return (
@@ -201,7 +194,10 @@ function TemplateGalleryCard({ template, onClick }: TemplateGalleryCardProps) {
       className="group text-left rounded-xl overflow-hidden transition-all duration-300 bg-[#1a1a1a] border border-[#333333] hover:border-[#555555] hover:-translate-y-1 hover:shadow-xl hover:shadow-black/30"
     >
       {/* Screenshot preview */}
-      <div className="relative aspect-[16/10] overflow-hidden" style={{ backgroundColor: '#141414' }}>
+      <div
+        className="relative aspect-[16/10] overflow-hidden"
+        style={{ backgroundColor: TEMPLATE_UI_COLORS.cardBgAlt }}
+      >
         {!imgError ? (
           <img
             src={screenshotUrl}
@@ -222,7 +218,7 @@ function TemplateGalleryCard({ template, onClick }: TemplateGalleryCardProps) {
         {!imgError && (
           <div
             className="absolute inset-x-0 bottom-0 h-20 pointer-events-none"
-            style={{ background: 'linear-gradient(to top, #1a1a1a 0%, transparent 100%)' }}
+            style={{ background: `linear-gradient(to top, ${TEMPLATE_UI_COLORS.cardBg} 0%, transparent 100%)` }}
           />
         )}
 
@@ -260,7 +256,7 @@ function TemplateGalleryCard({ template, onClick }: TemplateGalleryCardProps) {
 
 export default function TemplatesRoute() {
   return (
-    <main className="flex flex-col h-full w-full" style={{ backgroundColor: '#0a0a0a' }}>
+    <main className="flex flex-col h-full w-full" style={{ backgroundColor: TEMPLATE_UI_COLORS.pageBg }}>
       <Header />
       <ClientOnly>{() => <TemplatesGallery />}</ClientOnly>
     </main>

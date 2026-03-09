@@ -1,6 +1,7 @@
 import type { JSONValue, Message } from 'ai';
 import React, { type RefCallback, lazy, memo, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
+import '~/styles/liquid-metal.css';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST } from '~/utils/constants';
@@ -442,7 +443,8 @@ export const BaseChat = React.memo(
                         {/* Liquid Metal 3D Text */}
                         <div className="liquid-metal-container">
                           <h1 className="liquid-metal-text" aria-label="Devonz AI">
-                                      Devonz AI                          </h1>
+                            Devonz AI{' '}
+                          </h1>
                         </div>
 
                         {/* Subtitle below the 3D text */}
