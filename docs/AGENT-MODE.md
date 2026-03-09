@@ -293,5 +293,6 @@ The agent has built-in error recovery:
 2. **Build errors** can be detected via `devonz_get_errors` tool
 3. **Iteration warnings** prompt the user when approaching the limit
 4. **Session errors** set status to `error` with an error message
+5. **Post-run validation** (client-side) automatically calls `devonz_get_errors` when an agent response finishes; if errors exist it starts auto-fix, otherwise it switches the workbench to live preview immediately.
 
 The LLM is prompted to check for errors after making changes and self-correct when possible.

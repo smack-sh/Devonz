@@ -46,10 +46,20 @@ import {
   unregisterPreviewAutoFixCallback,
 } from '~/utils/previewErrorHandler';
 import { createAutoFixHandler, handleFixSuccess, isAutoFixActive } from '~/lib/services/autoFixService';
-import { hasExceededMaxRetries, recordFixAttempt, resetAutoFix } from '~/lib/stores/autofix';
+import {
+  autoFixStore,
+  hasExceededMaxRetries,
+  recordFixAttempt,
+  resetAutoFix,
+  shouldContinueFix,
+  startAutoFix,
+} from '~/lib/stores/autofix';
 import { planActionAtom, clearPlanAction } from '~/lib/stores/plan';
+import { processAgentToolInvocation } from '~/lib/services/agentChatIntegration';
 
 const logger = createScopedLogger('Chat');
+
+type AutoFixErrorSource = 'terminal' | 'preview' | 'build';
 
 export function Chat() {
   renderLogger.trace('Chat');
@@ -349,6 +359,7 @@ export const ChatImpl = memo(
             if (pollCount >= MAX_POLLS) {
               // Full window elapsed with no new errors — fix was successful
               handleFixSuccess();
+              openLivePreview();
               logger.info('Auto-fix successful - no new errors detected after 15s');
 
               return;
@@ -361,6 +372,9 @@ export const ChatImpl = memo(
           // Start first poll after initial delay for file writes to flush
           setTimeout(pollForErrors, POLL_INTERVAL_MS);
         }
+
+        // Agent completion guardrail: validate errors and trigger fix flow if needed.
+        void triggerAgentPostRunValidation();
       },
       initialMessages,
       initialInput: Cookies.get(PROMPT_COOKIE_KEY) || '',
@@ -851,6 +865,92 @@ export const ChatImpl = memo(
     const modelRef = useRef(model);
     const providerRef = useRef(provider);
     const appendRef = useRef(append);
+    const autoFixHandlerRef = useRef<
+      ((error: { source: AutoFixErrorSource; type: string; message: string; content: string }) => Promise<void>) | null
+    >(null);
+
+    const openLivePreview = useCallback((): boolean => {
+      const previews = workbenchStore.previews.get();
+
+      if (previews.length === 0) {
+        return false;
+      }
+
+      if (!workbenchStore.showWorkbench.get()) {
+        workbenchStore.showWorkbench.set(true);
+      }
+
+      workbenchStore.currentView.set('preview');
+
+      return true;
+    }, []);
+
+    const triggerAgentPostRunValidation = useCallback(async () => {
+      const { settings } = agentModeStore.get();
+
+      // Only run this workflow when agent mode is enabled and no fix loop is already active.
+      if (!settings.enabled || isAutoFixActive()) {
+        return;
+      }
+
+      const result = await processAgentToolInvocation('devonz_get_errors', { source: 'all' });
+
+      if (!result.success) {
+        logger.warn('Post-agent validation failed to fetch errors', { error: result.error });
+        openLivePreview();
+
+        return;
+      }
+
+      const errorResult = result.result as
+        | {
+            hasErrors?: boolean;
+            errors?: Array<{
+              source?: string;
+              type?: string;
+              message?: string;
+              content?: string;
+            }>;
+          }
+        | undefined;
+      const errors = Array.isArray(errorResult?.errors) ? errorResult.errors : [];
+
+      if (!errorResult?.hasErrors || errors.length === 0) {
+        openLivePreview();
+        return;
+      }
+
+      if (!shouldContinueFix()) {
+        logger.warn('Auto-fix skipped after agent completion due to retry/session safeguards');
+        return;
+      }
+
+      const primaryError = errors[0];
+      const source: AutoFixErrorSource =
+        primaryError.source === 'preview' || primaryError.source === 'build' ? primaryError.source : 'terminal';
+      const type = primaryError.type || 'agent-post-run-validation';
+      const message = primaryError.message || 'Post-agent validation detected an error.';
+      const content = primaryError.content || message;
+
+      const started = startAutoFix({ source, type, message, content });
+
+      if (!started) {
+        return;
+      }
+
+      const handler = autoFixHandlerRef.current;
+      const delayMs = autoFixStore.get().settings.delayBetweenAttempts;
+
+      if (!handler) {
+        logger.warn('Auto-fix callback unavailable for post-agent validation');
+        return;
+      }
+
+      setTimeout(() => {
+        void handler({ source, type, message, content });
+      }, delayMs);
+      logger.info('Triggered auto-fix from post-agent validation', { source, type });
+    }, [openLivePreview]);
 
     // Keep refs up to date
     useEffect(() => {
@@ -886,6 +986,7 @@ export const ChatImpl = memo(
 
       // Register the callback for both terminal and preview errors
       const handler = createAutoFixHandler(autoFixSendMessage);
+      autoFixHandlerRef.current = handler;
       registerAutoFixCallback(handler);
       registerPreviewAutoFixCallback(handler);
 
@@ -893,6 +994,7 @@ export const ChatImpl = memo(
       return () => {
         unregisterAutoFixCallback();
         unregisterPreviewAutoFixCallback();
+        autoFixHandlerRef.current = null;
 
         // Reset auto-fix state so it doesn't stay stuck if component unmounts mid-fix
         if (isAutoFixActive()) {
