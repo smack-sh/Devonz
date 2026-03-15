@@ -78,7 +78,3 @@ export async function loadShowcaseTemplates(): Promise<ShowcaseTemplate[]> {
     return [];
   }
 }
-
-export function clearTemplateCache(): void {
-  _cachedTemplates = null;
-}

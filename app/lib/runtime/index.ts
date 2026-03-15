@@ -21,6 +21,7 @@
 import type { RuntimeProvider } from './runtime-provider';
 import { RuntimeClient } from './runtime-client';
 import { createScopedLogger } from '~/utils/logger';
+import { workbenchStore } from '~/lib/stores/workbench';
 
 const logger = createScopedLogger('Runtime');
 
@@ -115,6 +116,7 @@ export async function bootRuntime(projectId: string): Promise<RuntimeProvider> {
   if (runtimeInstance && runtimeContext.projectId !== projectId) {
     logger.info(`Switching runtime from "${runtimeContext.projectId}" to "${projectId}"`);
     await runtimeInstance.teardown();
+    workbenchStore.resetPreviews();
     runtimeInstance = null;
     runtimeContext.loaded = false;
   }

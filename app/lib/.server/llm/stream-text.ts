@@ -17,6 +17,10 @@ import { createFilesContext, extractPropertiesFromMessage } from './utils';
 import { discussPrompt } from '~/lib/common/prompts/discuss-prompt';
 import type { DesignScheme } from '~/types/design-scheme';
 import { resolveModel } from './resolve-model';
+import { resolveModelForOperation, type OperationType, type ModelRoutingConfig } from './model-router';
+import { runPhasePipeline, buildPhaseEvent, getPhaseNames } from './phase-pipeline';
+import type { WebSocket } from 'ws';
+import { pushChatEvent } from '~/lib/.server/ws/ws-handlers';
 
 export type Messages = Message[];
 
@@ -190,6 +194,10 @@ export async function streamText(props: {
   chatMode?: 'discuss' | 'build';
   designScheme?: DesignScheme;
   planMode?: boolean;
+  operationType?: OperationType;
+  modelRoutingConfig?: ModelRoutingConfig;
+  phaseWise?: boolean;
+  wsConnection?: WebSocket;
 }) {
   const {
     messages,
@@ -207,6 +215,9 @@ export async function streamText(props: {
   } = props;
   const planMode = props.planMode ?? false;
   const enableThinking = props.enableThinking ?? false;
+  const operationType = props.operationType;
+  const modelRoutingConfig = props.modelRoutingConfig;
+  const phaseWise = props.phaseWise ?? false;
 
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
@@ -231,6 +242,14 @@ export async function streamText(props: {
 
     return newMessage;
   });
+
+  // Apply per-operation model routing if an operation type is specified
+  if (operationType) {
+    const routed = resolveModelForOperation(operationType, modelRoutingConfig, currentProvider, currentModel);
+    logger.info(`Model routing: operation="${operationType}" → ${routed.provider}/${routed.model}`);
+    currentProvider = routed.provider;
+    currentModel = routed.model;
+  }
 
   const provider = PROVIDER_LIST.find((p) => p.name === currentProvider) || DEFAULT_PROVIDER;
   const modelDetails = await resolveModel({
@@ -543,5 +562,147 @@ ${fileList.map((f) => `- ${f}`).join('\n')}
     ),
   );
 
-  return await _streamText(streamParams);
+  // ── Phase-wise pipeline (opt-in) ────────────────────────────────────────
+  if (phaseWise) {
+    logger.info('Phase-wise pipeline enabled — running 4-phase generation');
+
+    const pipelineResult = await runPhasePipeline({
+      getModelInstance: (routedProvider: string, routedModel: string) => {
+        const prov = PROVIDER_LIST.find((p) => p.name === routedProvider) || provider;
+
+        return prov.getModelInstance({
+          model: routedModel,
+          serverEnv,
+          apiKeys,
+          providerSettings,
+        });
+      },
+      modelRoutingConfig,
+      defaultProvider: currentProvider,
+      defaultModel: currentModel,
+      systemPrompt: typeof streamParams.system === 'string' ? streamParams.system : '',
+      messages: processedMessages,
+      maxTokens: safeMaxTokens,
+    });
+
+    logger.info(
+      `Phase pipeline complete: reviewPassed=${pipelineResult.reviewPassed}, ` +
+        `correctionRetries=${pipelineResult.correctionRetries}`,
+    );
+
+    // Build a synthetic response that includes phase-event markers and the final output
+    const phaseNames = getPhaseNames();
+    const parts: string[] = [];
+
+    for (const phase of phaseNames) {
+      parts.push(buildPhaseEvent(phase));
+
+      if (phase === 'implement') {
+        // Emit the final implementation as the visible output
+        parts.push(pipelineResult.output);
+      }
+    }
+
+    if (!pipelineResult.reviewPassed) {
+      parts.push(
+        `\n\n<!-- Phase pipeline warning: review did not pass after ${pipelineResult.correctionRetries} correction retries. Output is best-effort. -->`,
+      );
+    }
+
+    const syntheticText = parts.join('\n');
+
+    /*
+     * Return a streamText result that simply emits the pre-generated text.
+     * This reuses the same Vercel AI SDK streamText interface so the caller
+     * (api.chat.ts) does not need to differentiate between pipeline and
+     * single-pass modes.
+     */
+    const phaseResult = await _streamText({
+      ...streamParams,
+      messages: convertToCoreMessages([
+        { role: 'user', content: 'Return the following text verbatim, with no changes:\n' + syntheticText },
+      ] as any),
+    });
+
+    if (props.wsConnection) {
+      pipeStreamToWebSocket(phaseResult, props.wsConnection);
+    }
+
+    return phaseResult;
+  }
+
+  const result = await _streamText(streamParams);
+
+  if (props.wsConnection) {
+    pipeStreamToWebSocket(result, props.wsConnection);
+  }
+
+  return result;
+}
+
+/**
+ * Pipe an AI SDK stream result to a WebSocket connection.
+ *
+ * Iterates over `fullStream` and sends each chunk as a JSON message
+ * using the `chat` message type. Also pushes events to any globally
+ * subscribed WebSocket clients via `pushChatEvent`.
+ *
+ * The SSE path is NOT affected — the caller still receives the stream
+ * result and can merge it into an SSE data stream as before.
+ */
+function pipeStreamToWebSocket(streamResult: Awaited<ReturnType<typeof _streamText>>, ws: WebSocket): void {
+  const streamId = `stream-${Date.now()}`;
+  const WS_OPEN = 1; // WebSocket.OPEN
+
+  (async () => {
+    for await (const part of streamResult.fullStream) {
+      if (ws.readyState !== WS_OPEN) {
+        logger.debug('WebSocket closed during stream pipe, stopping');
+        break;
+      }
+
+      const event: {
+        streamId: string;
+        partType: string;
+        textDelta?: string;
+        error?: string;
+        finished?: boolean;
+      } = {
+        streamId,
+        partType: part.type,
+      };
+
+      if (part.type === 'text-delta') {
+        event.textDelta = part.textDelta;
+      } else if (part.type === 'error') {
+        event.error = part.error instanceof Error ? part.error.message : String(part.error);
+      }
+
+      // Send directly to the connected client
+      try {
+        ws.send(JSON.stringify({ type: 'chat', payload: event }));
+      } catch {
+        logger.debug('Failed to send stream chunk to WebSocket');
+        break;
+      }
+
+      // Also push to globally subscribed chat clients
+      pushChatEvent(event);
+    }
+
+    // Send completion marker
+    if (ws.readyState === WS_OPEN) {
+      const finishEvent = { streamId, partType: 'finish', finished: true };
+
+      try {
+        ws.send(JSON.stringify({ type: 'chat', payload: finishEvent }));
+      } catch {
+        // Client may have disconnected
+      }
+
+      pushChatEvent(finishEvent);
+    }
+  })().catch((err) => {
+    logger.error('WebSocket stream pipe error:', err instanceof Error ? err.message : String(err));
+  });
 }

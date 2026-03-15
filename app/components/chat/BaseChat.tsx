@@ -5,6 +5,7 @@ import { Menu } from '~/components/sidebar/Menu.client';
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST } from '~/utils/constants';
 import { getApiKeysFromCookies } from './APIKeyManager';
+import { encryptApiKeyValue, isEncryptedValue } from '~/lib/api/encrypt-value';
 import Cookies from 'js-cookie';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import styles from './BaseChat.module.scss';
@@ -253,7 +254,20 @@ export const BaseChat = React.memo(
           let parsedApiKeys: Record<string, string> | undefined = {};
 
           try {
-            parsedApiKeys = getApiKeysFromCookies();
+            const rawKeys = getApiKeysFromCookies();
+
+            /*
+             * Encrypted values should not be surfaced in the UI state — the
+             * server reads them directly from the cookie.  Replace encrypted
+             * entries with empty strings so the UI knows a key is "set" only
+             * through the provider key-status check, not via the raw value.
+             */
+            parsedApiKeys = {};
+
+            for (const [k, v] of Object.entries(rawKeys)) {
+              parsedApiKeys[k] = isEncryptedValue(v) ? '' : v;
+            }
+
             setApiKeys(parsedApiKeys);
           } catch (error) {
             logger.error('Error loading API keys from cookies:', error);
@@ -288,7 +302,12 @@ export const BaseChat = React.memo(
         async (providerName: string, apiKey: string) => {
           const newApiKeys = { ...apiKeys, [providerName]: apiKey };
           setApiKeys(newApiKeys);
-          Cookies.set('apiKeys', JSON.stringify(newApiKeys), {
+
+          // Encrypt the key before storing in cookies
+          const encryptedKey = await encryptApiKeyValue(apiKey);
+          const cookieKeys = { ...apiKeys, [providerName]: encryptedKey };
+
+          Cookies.set('apiKeys', JSON.stringify(cookieKeys), {
             secure: window.location.protocol === 'https:',
             sameSite: 'strict',
             expires: 30,

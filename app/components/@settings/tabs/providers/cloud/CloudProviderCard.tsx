@@ -7,6 +7,7 @@ import { classNames } from '~/utils/classNames';
 import { Switch } from '~/components/ui/Switch';
 import { getApiKeysFromCookies } from '~/components/chat/APIKeyManager';
 import { envKeyStatusStore, preferredModelsStore, updatePreferredModel } from '~/lib/stores/settings';
+import { encryptApiKeyValue, isEncryptedValue } from '~/lib/api/encrypt-value';
 import type { IProviderConfig } from '~/types/model';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 
@@ -46,8 +47,14 @@ export function CloudProviderCard({ provider, index, onToggle, iconClass, descri
     const keys = getApiKeysFromCookies();
     const existing = keys[provider.name] || '';
 
-    setApiKey(existing);
-    setHasKey(existing.length > 0);
+    if (existing && isEncryptedValue(existing)) {
+      // Encrypted key present — don't display ciphertext in the input
+      setApiKey('');
+      setHasKey(true);
+    } else {
+      setApiKey(existing);
+      setHasKey(existing.length > 0);
+    }
   }, [provider.name]);
 
   // No need for cookie-based preferred model loading — handled reactively via preferredModelsStore
@@ -93,13 +100,14 @@ export function CloudProviderCard({ provider, index, onToggle, iconClass, descri
   );
 
   const saveApiKey = useCallback(
-    (value: string) => {
+    async (value: string) => {
       try {
         const raw = Cookies.get('apiKeys');
         const parsed: Record<string, string> = raw ? JSON.parse(raw) : {};
 
         if (value.trim()) {
-          parsed[provider.name] = value.trim();
+          const encrypted = await encryptApiKeyValue(value.trim());
+          parsed[provider.name] = encrypted;
         } else {
           delete parsed[provider.name];
         }

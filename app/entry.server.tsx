@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/remix';
 import type { AppLoadContext, EntryContext } from '@remix-run/node';
 import { RemixServer } from '@remix-run/react';
 import { isbot } from 'isbot';
@@ -7,6 +8,14 @@ import { Head } from './root';
 import { themeStore } from '~/lib/stores/theme';
 import { PassThrough, Transform } from 'node:stream';
 import { createScopedLogger } from '~/utils/logger';
+
+// Register AES-256-GCM decryptor for encrypted cookie values (side-effect import)
+import '~/lib/.server/init-decryptor';
+
+// Re-export WebSocket upgrade handler for custom server (server.ts) consumption
+export { handleUpgrade as handleWebSocketUpgrade } from '~/lib/.server/ws/ws-server';
+
+export const handleError = Sentry.wrapHandleErrorWithSentry;
 
 const logger = createScopedLogger('EntryServer');
 

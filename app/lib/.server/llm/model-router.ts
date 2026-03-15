@@ -1,0 +1,78 @@
+import { createScopedLogger } from '~/utils/logger';
+
+const logger = createScopedLogger('ModelRouter');
+
+/**
+ * Operation types that can be routed to specific provider+model pairs.
+ * Each type represents a distinct phase of LLM interaction.
+ */
+export const OPERATION_TYPES = ['code_generation', 'planning', 'error_correction', 'summarization', 'general'] as const;
+
+export type OperationType = (typeof OPERATION_TYPES)[number];
+
+export interface ModelRouteConfig {
+  provider: string;
+  model: string;
+}
+
+/**
+ * Per-operation model routing configuration.
+ * Keys are operation types, values are provider+model assignments.
+ * Missing keys mean "use the default model" (the currently selected one).
+ */
+export type ModelRoutingConfig = Partial<Record<OperationType, ModelRouteConfig>>;
+
+/**
+ * Validates whether a string is a known operation type.
+ */
+export function isValidOperationType(value: string): value is OperationType {
+  return (OPERATION_TYPES as readonly string[]).includes(value);
+}
+
+/**
+ * Resolves the provider+model pair for a given operation type.
+ *
+ * Resolution order:
+ * 1. If userRoutingConfig has an entry for the operation type with both provider and model set, use it.
+ * 2. Otherwise, fall back to the default model (currentProvider + currentModel from the chat).
+ *
+ * @param operationType - The type of operation being performed
+ * @param userRoutingConfig - Per-operation overrides from user settings (may be undefined/empty)
+ * @param defaultProvider - The user's currently selected provider in the chat
+ * @param defaultModel - The user's currently selected model in the chat
+ * @returns The resolved {provider, model} pair
+ */
+export function resolveModelForOperation(
+  operationType: string,
+  userRoutingConfig: ModelRoutingConfig | undefined | null,
+  defaultProvider: string,
+  defaultModel: string,
+): ModelRouteConfig {
+  const fallback: ModelRouteConfig = { provider: defaultProvider, model: defaultModel };
+
+  if (!operationType) {
+    logger.warn('Empty operation type provided, using default model');
+    return fallback;
+  }
+
+  if (!isValidOperationType(operationType)) {
+    logger.warn(`Unknown operation type "${operationType}", using default model`);
+    return fallback;
+  }
+
+  if (!userRoutingConfig) {
+    logger.debug(`No routing config, using default for "${operationType}"`);
+    return fallback;
+  }
+
+  const override = userRoutingConfig[operationType];
+
+  if (!override || !override.provider || !override.model) {
+    logger.debug(`No override for "${operationType}", using default model`);
+    return fallback;
+  }
+
+  logger.info(`Routing "${operationType}" to ${override.provider}/${override.model}`);
+
+  return { provider: override.provider, model: override.model };
+}

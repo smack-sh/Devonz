@@ -1,4 +1,5 @@
 import { vitePlugin as remixVitePlugin } from '@remix-run/dev';
+import { sentryVitePlugin } from '@sentry/vite-plugin';
 import { visualizer } from 'rollup-plugin-visualizer';
 import UnoCSS from 'unocss/vite';
 import type { PluginOption } from 'vite';
@@ -23,6 +24,7 @@ export default defineConfig((config) => {
     },
     build: {
       target: 'esnext',
+      sourcemap: true,
       rollupOptions: {
         // Externalize undici and util/types for client builds - these are server-only modules
         external: ['undici', 'util/types', 'node:util/types'],
@@ -92,6 +94,17 @@ export default defineConfig((config) => {
             brotliSize: true,
           })
         : false,
+      config.mode === 'production' &&
+        process.env.SENTRY_AUTH_TOKEN &&
+        sentryVitePlugin({
+          org: process.env.SENTRY_ORG,
+          project: process.env.SENTRY_PROJECT,
+          authToken: process.env.SENTRY_AUTH_TOKEN,
+          sourcemaps: {
+            filesToDeleteAfterUpload: ['./build/**/*.map'],
+          },
+          telemetry: false,
+        }),
     ].filter(Boolean) as PluginOption[],
     envPrefix: [
       'VITE_',
@@ -100,6 +113,7 @@ export default defineConfig((config) => {
       'OLLAMA_API_BASE_URL',
       'LMSTUDIO_API_BASE_URL',
       'TOGETHER_API_BASE_URL',
+      'SENTRY_DSN',
     ],
     css: {
       preprocessorOptions: {

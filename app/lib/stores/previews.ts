@@ -334,6 +334,11 @@ export class PreviewsStore {
         this.broadcastFileChange(previewId);
       }
     }
+
+    // BroadcastChannel only delivers to OTHER tabs; use a CustomEvent for same-tab refresh
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('devonz:refresh-preview'));
+    }
   }
 
   /**
@@ -361,6 +366,18 @@ export class PreviewsStore {
     }
 
     logger.info('Broadcasted hard-refresh to all previews');
+  }
+
+  /**
+   * Reset the store — clears all preview entries, disposes port-event
+   * listeners, and resets internal tracking maps.  Called on chat switch
+   * so stale previews from the previous project are not displayed.
+   */
+  reset() {
+    this.previews.set([]);
+    this.#availablePreviews.clear();
+    this.#disposePortEvents?.();
+    this.#disposePortEvents = undefined;
   }
 }
 

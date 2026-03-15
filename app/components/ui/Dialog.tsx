@@ -418,9 +418,8 @@ export function SelectionDialog({
                   itemCount={items.length}
                   itemSize={60}
                   className="scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-devonz-elements-bg-depth-3"
-                >
-                  {ItemRenderer}
-                </FixedSizeList>
+                  rowComponent={ItemRenderer}
+                />
               ) : (
                 <div className="text-center py-4 text-sm text-devonz-elements-textTertiary">No items to display</div>
               )}

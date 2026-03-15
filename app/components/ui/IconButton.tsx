@@ -1,4 +1,4 @@
-import { memo, forwardRef, type ForwardedRef } from 'react';
+import { memo, forwardRef, type ForwardedRef, type ComponentPropsWithoutRef } from 'react';
 import { classNames } from '~/utils/classNames';
 
 type IconSize = 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
@@ -16,12 +16,14 @@ interface BaseIconButtonProps {
 type IconButtonWithoutChildrenProps = {
   icon: string;
   children?: undefined;
-} & BaseIconButtonProps;
+} & BaseIconButtonProps &
+  Omit<ComponentPropsWithoutRef<'button'>, keyof BaseIconButtonProps | 'icon' | 'children'>;
 
 type IconButtonWithChildrenProps = {
   icon?: undefined;
   children: string | JSX.Element | JSX.Element[];
-} & BaseIconButtonProps;
+} & BaseIconButtonProps &
+  Omit<ComponentPropsWithoutRef<'button'>, keyof BaseIconButtonProps | 'icon' | 'children'>;
 
 type IconButtonProps = IconButtonWithoutChildrenProps | IconButtonWithChildrenProps;
 
@@ -39,12 +41,14 @@ export const IconButton = memo(
         title,
         onClick,
         children,
+        ...rest
       }: IconButtonProps,
       ref: ForwardedRef<HTMLButtonElement>,
     ) => {
       return (
         <button
           ref={ref}
+          {...rest}
           className={classNames(
             'flex items-center text-devonz-elements-item-contentDefault bg-transparent enabled:hover:text-devonz-elements-item-contentActive rounded-md p-1 enabled:hover:bg-devonz-elements-item-backgroundActive disabled:cursor-not-allowed focus:outline-none',
             {

@@ -202,13 +202,17 @@ export const ChatImpl = memo(
     // Boot the local runtime when a chat session is established
     useEffect(() => {
       if (!currentChatId) {
-        return;
+        return undefined;
       }
 
       bootRuntime(currentChatId).catch((error) => {
         logger.error('Failed to boot runtime:', error);
         toast.error('Failed to initialize project runtime');
       });
+
+      return () => {
+        workbenchStore.resetPreviews();
+      };
     }, [currentChatId]);
 
     const {

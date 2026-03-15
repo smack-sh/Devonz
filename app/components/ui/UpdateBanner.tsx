@@ -73,6 +73,15 @@ export function UpdateBanner() {
       >
         <span className="i-ph:warning text-base" style={{ color: '#9ca3af' }} />
         <span style={{ color: '#9ca3af' }}>Unable to check for updates</span>
+        <button
+          type="button"
+          onClick={dismiss}
+          className="ml-auto transition-colors"
+          style={{ color: '#9ca3af' }}
+          aria-label="Dismiss update notification"
+        >
+          <span className="i-ph:x text-sm inline-block" />
+        </button>
       </div>
     );
   }
@@ -210,7 +219,7 @@ export function UpdateBanner() {
             style={{ color: '#9ca3af' }}
             aria-label="Dismiss update notification"
           >
-            <span className="i-ph:x text-sm" />
+            <span className="i-ph:x text-sm inline-block" />
           </button>
         </div>
       </div>

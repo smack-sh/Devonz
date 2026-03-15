@@ -3,6 +3,7 @@ import { ClientOnly } from 'remix-utils/client-only';
 import { BaseChat } from '~/components/chat/BaseChat';
 import { Chat } from '~/components/chat/Chat.client';
 import { Header } from '~/components/header/Header';
+import { MigrationBanner } from '~/components/chat/MigrationBanner.client';
 import { UpdateBanner } from '~/components/ui/UpdateBanner';
 
 export const meta: MetaFunction = () => {
@@ -33,6 +34,7 @@ export default function Index() {
       id="main-content"
       className="flex flex-col h-full w-full overflow-hidden bg-devonz-elements-background-depth-1"
     >
+      <ClientOnly>{() => <MigrationBanner />}</ClientOnly>
       <ClientOnly>{() => <UpdateBanner />}</ClientOnly>
       <Header />
       <ClientOnly fallback={<BaseChat />}>{() => <Chat />}</ClientOnly>

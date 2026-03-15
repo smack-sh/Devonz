@@ -40,7 +40,6 @@ export interface Shortcuts {
   previousChange: Shortcut;
 }
 
-export const URL_CONFIGURABLE_PROVIDERS = ['Ollama', 'LMStudio', 'OpenAILike'];
 export const LOCAL_PROVIDERS = ['OpenAILike', 'LMStudio', 'Ollama'];
 
 export type ProviderSetting = Record<string, IProviderConfig>;
@@ -409,9 +408,6 @@ const autoEnableConfiguredProviders = async () => {
 export const providersStore: MapStore<ProviderSetting> =
   import.meta.hot?.data.providersStore ?? map<ProviderSetting>(getInitialProviderSettings());
 
-// Export the auto-enable function for use in components
-export const initializeProviders = autoEnableConfiguredProviders;
-
 // Initialize providers when the module loads (in browser only, skip on HMR)
 if (isBrowser && !import.meta.hot?.data.providersStore) {
   // Use a small delay to ensure DOM and other resources are ready
@@ -616,3 +612,29 @@ export const resetTabConfiguration = () => {
   tabConfigurationStore.set(defaultConfig);
   localStorage.setItem('devonz_tab_configuration', JSON.stringify(defaultConfig));
 };
+
+// --- Model Routing Configuration ---
+
+import type { ModelRoutingConfig } from '~/lib/.server/llm/model-router';
+
+const MODEL_ROUTING_KEY = 'model_routing_config';
+
+const getInitialModelRoutingConfig = (): ModelRoutingConfig => {
+  if (!isBrowser) {
+    return {};
+  }
+
+  try {
+    const saved = localStorage.getItem(MODEL_ROUTING_KEY);
+
+    if (!saved) {
+      return {};
+    }
+
+    return JSON.parse(saved) as ModelRoutingConfig;
+  } catch {
+    return {};
+  }
+};
+
+export const modelRoutingConfigStore = map<ModelRoutingConfig>(getInitialModelRoutingConfig());

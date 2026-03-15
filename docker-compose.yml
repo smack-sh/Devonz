@@ -26,6 +26,8 @@ services:
     environment:
       - NODE_ENV=production
       - RUNNING_IN_DOCKER=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     labels:
       - "com.centurylinklabs.watchtower.scope=devonz"
       - "com.centurylinklabs.watchtower.enable=true"

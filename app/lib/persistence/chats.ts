@@ -1,13 +1,19 @@
 /**
- * Functions for managing chat data in IndexedDB
+ * Hybrid chat persistence — after migration, reads/writes route to SQLite via
+ * the server API (`/api/db/chats`).  Before migration (or when the API is
+ * unreachable), the original IndexedDB path is used as a fallback.
+ *
+ * IndexedDB data is **never** deleted — it is preserved as a read-only backup.
  */
 
 import type { Message } from 'ai';
-import type { IChatMetadata } from './db'; // Import IChatMetadata
+import type { IChatMetadata } from './db';
 import { clearProjectPlanMode } from './projectPlanMode';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('ChatsDB');
+
+const MIGRATION_FLAG_KEY = 'devonz_migration_complete';
 
 export interface ChatMessage {
   id: string;
@@ -25,12 +31,121 @@ export interface Chat {
   metadata?: IChatMetadata;
 }
 
-/**
- * Get all chats from the database
- * @param db The IndexedDB database instance
- * @returns A promise that resolves to an array of chats
+/*
+ * ---------------------------------------------------------------------------
+ * Hybrid routing helper
+ * ---------------------------------------------------------------------------
  */
-export async function getAllChats(db: IDBDatabase): Promise<Chat[]> {
+
+function isMigrated(): boolean {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem(MIGRATION_FLAG_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * SQLite API helpers (used post-migration)
+ * ---------------------------------------------------------------------------
+ */
+
+async function sqliteGetAllChats(): Promise<Chat[]> {
+  const res = await fetch('/api/db/chats?limit=100');
+
+  if (!res.ok) {
+    throw new Error(`SQLite API error: ${res.status}`);
+  }
+
+  const data = await res.json();
+
+  return (data.chats ?? []).map((row: Record<string, unknown>) => ({
+    id: row.id as string,
+    urlId: (row.urlId ?? row.url_id) as string | undefined,
+    description: row.description as string | undefined,
+    timestamp: (row.timestamp ?? row.created_at) as string,
+    messages: [],
+    metadata: row.metadata as IChatMetadata | undefined,
+  }));
+}
+
+async function sqliteGetChatById(id: string): Promise<Chat | null> {
+  const res = await fetch(`/api/db/chats/${encodeURIComponent(id)}`);
+
+  if (res.status === 404) {
+    return null;
+  }
+
+  if (!res.ok) {
+    throw new Error(`SQLite API error: ${res.status}`);
+  }
+
+  const data = await res.json();
+  const row = data.chat;
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id as string,
+    urlId: (row.urlId ?? row.url_id) as string | undefined,
+    description: row.description as string | undefined,
+    timestamp: (row.timestamp ?? row.created_at) as string,
+    messages: (row.messages ?? []) as Message[],
+    metadata: row.metadata as IChatMetadata | undefined,
+  };
+}
+
+async function sqliteDeleteChat(id: string): Promise<void> {
+  const res = await fetch(`/api/db/chats/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+
+  if (!res.ok && res.status !== 404) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as Record<string, string>).error || `SQLite delete failed: ${res.status}`);
+  }
+}
+
+async function sqliteDeleteAllChats(): Promise<void> {
+  const res = await fetch('/api/db/chats', {
+    method: 'DELETE',
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as Record<string, string>).error || `SQLite bulk delete failed: ${res.status}`);
+  }
+}
+
+async function sqliteSaveChat(chat: Chat): Promise<void> {
+  const res = await fetch('/api/db/chats', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id: chat.id,
+      urlId: chat.urlId,
+      description: chat.description,
+      timestamp: chat.timestamp,
+      metadata: chat.metadata,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as Record<string, string>).error || `SQLite save failed: ${res.status}`);
+  }
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Public API — IndexedDB functions (always available for legacy / read-only)
+ * ---------------------------------------------------------------------------
+ */
+
+function idbGetAllChats(db: IDBDatabase): Promise<Chat[]> {
   logger.debug(`getAllChats: Using database '${db.name}', version ${db.version}`);
 
   return new Promise((resolve, reject) => {
@@ -56,13 +171,7 @@ export async function getAllChats(db: IDBDatabase): Promise<Chat[]> {
   });
 }
 
-/**
- * Get a chat by ID
- * @param db The IndexedDB database instance
- * @param id The ID of the chat to get
- * @returns A promise that resolves to the chat or null if not found
- */
-export async function getChatById(db: IDBDatabase, id: string): Promise<Chat | null> {
+function idbGetChatById(db: IDBDatabase, id: string): Promise<Chat | null> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(['chats'], 'readonly');
     const store = transaction.objectStore('chats');
@@ -78,13 +187,7 @@ export async function getChatById(db: IDBDatabase, id: string): Promise<Chat | n
   });
 }
 
-/**
- * Save a chat to the database
- * @param db The IndexedDB database instance
- * @param chat The chat to save
- * @returns A promise that resolves when the chat is saved
- */
-export async function saveChat(db: IDBDatabase, chat: Chat): Promise<void> {
+function idbSaveChat(db: IDBDatabase, chat: Chat): Promise<void> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(['chats'], 'readwrite');
     const store = transaction.objectStore('chats');
@@ -100,13 +203,7 @@ export async function saveChat(db: IDBDatabase, chat: Chat): Promise<void> {
   });
 }
 
-/**
- * Delete a chat by ID
- * @param db The IndexedDB database instance
- * @param id The ID of the chat to delete
- * @returns A promise that resolves when the chat is deleted
- */
-export async function deleteChat(db: IDBDatabase, id: string): Promise<void> {
+function idbDeleteChat(db: IDBDatabase, id: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(['chats'], 'readwrite');
     const store = transaction.objectStore('chats');
@@ -123,12 +220,7 @@ export async function deleteChat(db: IDBDatabase, id: string): Promise<void> {
   });
 }
 
-/**
- * Delete all chats
- * @param db The IndexedDB database instance
- * @returns A promise that resolves when all chats are deleted
- */
-export async function deleteAllChats(db: IDBDatabase): Promise<void> {
+function idbDeleteAllChats(db: IDBDatabase): Promise<void> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(['chats'], 'readwrite');
     const store = transaction.objectStore('chats');
@@ -142,4 +234,79 @@ export async function deleteAllChats(db: IDBDatabase): Promise<void> {
       reject(request.error);
     };
   });
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Hybrid public API — routes to SQLite when migrated, else IndexedDB
+ * ---------------------------------------------------------------------------
+ */
+
+export async function getAllChats(db: IDBDatabase): Promise<Chat[]> {
+  if (isMigrated()) {
+    try {
+      return await sqliteGetAllChats();
+    } catch (err) {
+      logger.warn('SQLite getAllChats failed, falling back to IndexedDB:', err);
+    }
+  }
+
+  return idbGetAllChats(db);
+}
+
+export async function getChatById(db: IDBDatabase, id: string): Promise<Chat | null> {
+  if (isMigrated()) {
+    try {
+      return await sqliteGetChatById(id);
+    } catch (err) {
+      logger.warn('SQLite getChatById failed, falling back to IndexedDB:', err);
+    }
+  }
+
+  return idbGetChatById(db, id);
+}
+
+export async function saveChat(db: IDBDatabase, chat: Chat): Promise<void> {
+  if (isMigrated()) {
+    try {
+      await sqliteSaveChat(chat);
+    } catch (err) {
+      logger.warn('SQLite saveChat failed, falling back to IndexedDB:', err);
+    }
+  }
+
+  // Always write to IndexedDB to keep the local copy current
+  return idbSaveChat(db, chat);
+}
+
+export async function deleteChat(db: IDBDatabase, id: string): Promise<void> {
+  if (!isMigrated()) {
+    return idbDeleteChat(db, id);
+  }
+
+  // Post-migration: delete from SQLite only; IndexedDB is preserved as read-only backup
+  try {
+    await sqliteDeleteChat(id);
+  } catch (err) {
+    logger.warn('SQLite deleteChat failed:', err);
+  }
+
+  clearProjectPlanMode(id);
+
+  return undefined;
+}
+
+export async function deleteAllChats(db: IDBDatabase): Promise<void> {
+  if (!isMigrated()) {
+    return idbDeleteAllChats(db);
+  }
+
+  // Post-migration: delete from SQLite only; IndexedDB is preserved as read-only backup
+  try {
+    await sqliteDeleteAllChats();
+  } catch (err) {
+    logger.warn('SQLite deleteAllChats failed:', err);
+  }
+
+  return undefined;
 }

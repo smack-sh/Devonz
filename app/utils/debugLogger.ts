@@ -1155,99 +1155,6 @@ export const debugLogger = new DebugLogger({
   debounceTerminal: 100,
 });
 
-// Helper function to download debug log
-export async function downloadDebugLog(filename?: string): Promise<void> {
-  try {
-    const debugData = await debugLogger.generateDebugLog();
-
-    // Create a formatted summary
-    const summary = createDebugSummary(debugData);
-    const fullContent = `${summary}\n\n=== DETAILED DEBUG DATA ===\n\n${JSON.stringify(debugData, null, 2)}`;
-
-    const blob = new Blob([fullContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename || `devonz-debug-${new Date().toISOString().split('T')[0]}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    URL.revokeObjectURL(url);
-
-    logger.info('Debug log downloaded successfully');
-  } catch (error) {
-    logger.error('Failed to download debug log:', error);
-  }
-}
-
-// Create a human-readable summary of the debug data
-function createDebugSummary(data: DebugLogData): string {
-  const summary = [
-    '=== DEVONZ DEBUG LOG SUMMARY ===',
-    `Generated: ${new Date(data.timestamp).toLocaleString()}`,
-    `Session ID: ${data.sessionId}`,
-    '',
-    '=== SYSTEM INFORMATION ===',
-    `Platform: ${data.systemInfo.platform}`,
-    `Browser: ${data.systemInfo.userAgent.split(' ').slice(0, 2).join(' ')}`,
-    `Screen: ${data.systemInfo.screenResolution}`,
-    `Mobile: ${data.systemInfo.isMobile ? 'Yes' : 'No'}`,
-    `Timezone: ${data.systemInfo.timezone}`,
-    '',
-    '=== APPLICATION INFORMATION ===',
-    `Version: ${data.appInfo.version}`,
-    `Current Model: ${data.appInfo.currentModel}`,
-    `Current Provider: ${data.appInfo.currentProvider}`,
-    `Project Type: ${data.appInfo.projectType}`,
-    `Workbench View: ${data.appInfo.workbenchView}`,
-    `Active Preview: ${data.appInfo.hasActivePreview ? 'Yes' : 'No'}`,
-    `Unsaved Files: ${data.appInfo.unsavedFiles}`,
-    '',
-    '=== GIT INFORMATION ===',
-    data.appInfo.gitInfo
-      ? [
-          `Branch: ${data.appInfo.gitInfo.branch}`,
-          `Commit: ${data.appInfo.gitInfo.commit.substring(0, 8)}`,
-          `Working Directory: ${data.appInfo.gitInfo.isDirty ? 'Dirty' : 'Clean'}`,
-          data.appInfo.gitInfo.remoteUrl ? `Remote: ${data.appInfo.gitInfo.remoteUrl}` : '',
-          data.appInfo.gitInfo.lastCommit
-            ? `Last Commit: ${data.appInfo.gitInfo.lastCommit.message.substring(0, 50)}...`
-            : '',
-        ]
-          .filter(Boolean)
-          .join('\n')
-      : 'Git information not available',
-    '',
-    '=== SESSION STATISTICS ===',
-    `Total Logs: ${data.logs.length}`,
-    `Errors: ${data.errors.length}`,
-    `Network Requests: ${data.networkRequests.length}`,
-    `User Actions: ${data.userActions.length}`,
-    `Terminal Logs: ${data.terminalLogs.length}`,
-    '',
-    '=== RECENT ALERTS ===',
-    ...data.state.alerts.slice(0, 5).map((alert) => `${alert.type.toUpperCase()}: ${alert.title}`),
-    '',
-    '=== PERFORMANCE ===',
-    `Page Load Time: ${data.performance.loadTime}ms`,
-    `DOM Content Loaded: ${data.performance.domContentLoaded}ms`,
-    data.performance.memoryUsage
-      ? `Memory Usage: ${(data.performance.memoryUsage.used / 1024 / 1024).toFixed(2)} MB`
-      : 'Memory Usage: N/A',
-    '',
-    '=== WORKBENCH STATE ===',
-    `Current View: ${data.state.currentView}`,
-    `Show Workbench: ${data.state.showWorkbench}`,
-    `Show Terminal: ${data.state.showTerminal}`,
-    `Artifacts: ${data.state.artifactsCount}`,
-    `Files: ${data.state.filesCount}`,
-  ];
-
-  return summary.join('\n');
-}
-
 // Utility functions for capturing additional data
 export function captureTerminalLog(
   content: string,
@@ -1269,38 +1176,6 @@ export function captureTerminalLog(
   } catch (error) {
     console.error('Failed to capture terminal log:', error);
   }
-}
-
-export function captureUserAction(action: string, target?: string, data?: Record<string, unknown>): void {
-  try {
-    debugLogger.captureUserAction(action, target, data);
-  } catch (error) {
-    console.error('Failed to capture user action:', error);
-  }
-}
-
-export function getDebugLogger(): DebugLogger {
-  return debugLogger;
-}
-
-// Utility function to enable debug mode on demand
-export function enableDebugMode(): void {
-  debugLogger.enableDebugMode();
-}
-
-// Utility function to disable debug mode
-export function disableDebugMode(): void {
-  debugLogger.disableDebugMode();
-}
-
-// Utility function to get debug logger status
-export function getDebugStatus(): { initialized: boolean; capturing: boolean; enabled: boolean } {
-  return debugLogger.getStatus();
-}
-
-// Utility function to update debug configuration
-export function updateDebugConfig(config: Partial<DebugLoggerConfig>): void {
-  debugLogger.updateConfig(config);
 }
 
 // Initialize debug logger when this module is imported

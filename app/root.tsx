@@ -1,6 +1,8 @@
+import * as Sentry from '@sentry/remix';
+import { captureRemixErrorBoundaryError, withSentry } from '@sentry/remix';
 import { useStore } from '@nanostores/react';
 import type { LinksFunction } from '@remix-run/node';
-import { Links, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError, isRouteErrorResponse } from '@remix-run/react';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
@@ -144,9 +146,36 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 import { logStore } from './lib/stores/logs';
-import { ErrorBoundary } from './components/ui/ErrorBoundary';
+import { ErrorBoundary as AppErrorBoundary } from './components/ui/ErrorBoundary';
 
-export default function App() {
+export function SentryErrorBoundary() {
+  const error = useRouteError();
+  captureRemixErrorBoundaryError(error);
+
+  if (isRouteErrorResponse(error)) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-devonz-elements-background-depth-1 text-devonz-elements-textPrimary">
+        <h1 className="text-4xl font-bold mb-4">
+          {error.status} {error.statusText}
+        </h1>
+        <p className="text-devonz-elements-textSecondary">{error.data}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-devonz-elements-background-depth-1 text-devonz-elements-textPrimary">
+      <h1 className="text-4xl font-bold mb-4">Unexpected Error</h1>
+      <p className="text-devonz-elements-textSecondary">
+        {error instanceof Error ? error.message : 'An unknown error occurred'}
+      </p>
+    </div>
+  );
+}
+
+export { SentryErrorBoundary as ErrorBoundary };
+
+function App() {
   const theme = useStore(themeStore);
 
   useEffect(() => {
@@ -184,9 +213,19 @@ export default function App() {
       >
         Skip to content
       </a>
-      <ErrorBoundary category="root" title="Application Error">
+      <AppErrorBoundary
+        category="root"
+        title="Application Error"
+        onError={(error) => {
+          if (Sentry.isInitialized()) {
+            Sentry.captureException(error);
+          }
+        }}
+      >
         <Outlet />
-      </ErrorBoundary>
+      </AppErrorBoundary>
     </Layout>
   );
 }
+
+export default withSentry(App);
