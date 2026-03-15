@@ -17,10 +17,16 @@ import { createFilesContext, extractPropertiesFromMessage } from './utils';
 import { discussPrompt } from '~/lib/common/prompts/discuss-prompt';
 import type { DesignScheme } from '~/types/design-scheme';
 import { resolveModel } from './resolve-model';
-import { resolveModelForOperation, type OperationType, type ModelRoutingConfig } from './model-router';
+import {
+  resolveModelForOperation,
+  parseFallbackModel,
+  type OperationType,
+  type ModelRoutingConfig,
+} from './model-router';
 import { runPhasePipeline, buildPhaseEvent, getPhaseNames } from './phase-pipeline';
 import type { WebSocket } from 'ws';
 import { pushChatEvent } from '~/lib/.server/ws/ws-handlers';
+import type { FallbackEvent } from '~/types/api-types';
 
 export type Messages = Message[];
 
@@ -34,9 +40,53 @@ export interface StreamingOptions extends Omit<Parameters<typeof _streamText>[0]
     };
   };
   agentMode?: boolean;
+  operationType?: OperationType;
+  modelRoutingConfig?: ModelRoutingConfig;
 }
 
 const logger = createScopedLogger('stream-text');
+
+/**
+ * Categorizes an LLM provider error for fallback decision-making.
+ * Only errors that indicate the model/provider is unavailable warrant a fallback attempt.
+ */
+function categorizeLLMError(error: unknown): FallbackEvent['errorCategory'] {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  const status = (error as { status?: number })?.status ?? (error as { statusCode?: number })?.statusCode;
+
+  if (status === 429 || message.includes('rate limit') || message.includes('quota')) {
+    return 'rate_limit';
+  }
+
+  if (status === 401 || status === 403 || message.includes('unauthorized') || message.includes('api key')) {
+    return 'auth_failure';
+  }
+
+  if (
+    message.includes('timeout') ||
+    message.includes('timed out') ||
+    message.includes('econnrefused') ||
+    message.includes('enotfound') ||
+    message.includes('network')
+  ) {
+    return 'timeout';
+  }
+
+  if (status !== undefined && status >= 500) {
+    return 'provider_error';
+  }
+
+  return 'unknown';
+}
+
+/**
+ * Determines whether an error category warrants a fallback attempt.
+ * Client-side errors (bad request, validation) should NOT trigger fallback
+ * because the same request will likely fail on any model.
+ */
+function shouldAttemptFallback(errorCategory: FallbackEvent['errorCategory']): boolean {
+  return errorCategory !== 'unknown';
+}
 
 // getCompletionTokenLimit is imported from ./constants
 
@@ -198,6 +248,12 @@ export async function streamText(props: {
   modelRoutingConfig?: ModelRoutingConfig;
   phaseWise?: boolean;
   wsConnection?: WebSocket;
+
+  /** Callback invoked for each text delta chunk. Used by api.chat to feed the ServerOutputParser. */
+  onTextDelta?: (delta: string) => void;
+
+  /** Callback invoked for each error-validation event from the phase pipeline. Used by api.chat to emit SSE events. */
+  onErrorValidation?: (event: import('~/types/streaming-events').ErrorValidationEvent) => void;
 }) {
   const {
     messages,
@@ -218,6 +274,8 @@ export async function streamText(props: {
   const operationType = props.operationType;
   const modelRoutingConfig = props.modelRoutingConfig;
   const phaseWise = props.phaseWise ?? false;
+  const onTextDelta = props.onTextDelta;
+  const onErrorValidation = props.onErrorValidation;
 
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
@@ -542,6 +600,17 @@ ${fileList.map((f) => `- ${f}`).join('\n')}
 
     // Inject provider-specific thinking options (Anthropic thinking / Google thinkingConfig)
     ...(thinkingProviderOptions ? { providerOptions: thinkingProviderOptions } : {}),
+
+    // Wire onTextDelta into the AI SDK's onChunk callback for server-side parsing
+    ...(onTextDelta
+      ? {
+          onChunk: ({ chunk }: { chunk: { type: string; textDelta?: string } }) => {
+            if (chunk.type === 'text-delta' && chunk.textDelta) {
+              onTextDelta(chunk.textDelta);
+            }
+          },
+        }
+      : {}),
   };
 
   // DEBUG: Log final streaming parameters
@@ -587,8 +656,18 @@ ${fileList.map((f) => `- ${f}`).join('\n')}
 
     logger.info(
       `Phase pipeline complete: reviewPassed=${pipelineResult.reviewPassed}, ` +
-        `correctionRetries=${pipelineResult.correctionRetries}`,
+        `correctionRetries=${pipelineResult.correctionRetries}, ` +
+        `errorValidationEvents=${pipelineResult.errorValidationEvents.length}`,
     );
+
+    // Forward error-validation events to the SSE stream via the callback
+    if (onErrorValidation && pipelineResult.errorValidationEvents.length > 0) {
+      for (const event of pipelineResult.errorValidationEvents) {
+        onErrorValidation(event);
+      }
+
+      logger.info(`Emitted ${pipelineResult.errorValidationEvents.length} error_validation events to SSE stream`);
+    }
 
     // Build a synthetic response that includes phase-event markers and the final output
     const phaseNames = getPhaseNames();
@@ -631,7 +710,67 @@ ${fileList.map((f) => `- ${f}`).join('\n')}
     return phaseResult;
   }
 
-  const result = await _streamText(streamParams);
+  // ── Primary call with fallback chain (max 1 fallback attempt) ───────────
+  const fallbackRoute = parseFallbackModel(modelDetails);
+
+  let result: Awaited<ReturnType<typeof _streamText>>;
+
+  try {
+    result = await _streamText(streamParams);
+  } catch (primaryError: unknown) {
+    const errorCategory = categorizeLLMError(primaryError);
+    const primaryLabel = `${provider.name}/${modelDetails.name}`;
+
+    logger.error(
+      `Primary model ${primaryLabel} failed (${errorCategory}):`,
+      primaryError instanceof Error ? primaryError.message : String(primaryError),
+    );
+
+    if (!fallbackRoute || !shouldAttemptFallback(errorCategory)) {
+      // No fallback configured or error doesn't warrant retry — surface original error
+      throw primaryError;
+    }
+
+    logger.info(`Attempting fallback: ${primaryLabel} → ${fallbackRoute.provider}/${fallbackRoute.model}`);
+
+    // Resolve fallback provider + model through the same resolution path as primary
+    const fallbackProvider = PROVIDER_LIST.find((p) => p.name === fallbackRoute.provider) || DEFAULT_PROVIDER;
+    const fallbackModelDetails = await resolveModel({
+      provider: fallbackProvider,
+      currentModel: fallbackRoute.model,
+      apiKeys,
+      providerSettings,
+      serverEnv,
+      logger,
+    });
+
+    const fallbackModelInstance = fallbackProvider.getModelInstance({
+      model: fallbackModelDetails.name,
+      serverEnv,
+      apiKeys,
+      providerSettings,
+    });
+
+    try {
+      result = await _streamText({
+        ...streamParams,
+        model: fallbackModelInstance,
+      });
+
+      logger.info(
+        `Fallback succeeded: ${fallbackRoute.provider}/${fallbackModelDetails.name} ` +
+          `(primary ${primaryLabel} failed with ${errorCategory})`,
+      );
+    } catch (fallbackError: unknown) {
+      logger.error(
+        `Fallback model ${fallbackRoute.provider}/${fallbackModelDetails.name} also failed:`,
+        fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+      );
+
+      // Both failed — surface the original primary error to the caller
+      throw primaryError;
+    }
+  }
 
   if (props.wsConnection) {
     pipeStreamToWebSocket(result, props.wsConnection);

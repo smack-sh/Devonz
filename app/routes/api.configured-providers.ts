@@ -1,21 +1,11 @@
-import type { LoaderFunctionArgs } from '@remix-run/node';
-import { json } from '@remix-run/node';
+import type { LoaderFunctionArgs } from 'react-router';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
 import { createScopedLogger } from '~/utils/logger';
 import { withSecurity } from '~/lib/security';
+import type { ConfiguredProvider } from '~/types/api-types';
 
 const logger = createScopedLogger('ConfiguredProviders');
-
-interface ConfiguredProvider {
-  name: string;
-  isConfigured: boolean;
-  configMethod: 'environment' | 'none';
-}
-
-interface ConfiguredProvidersResponse {
-  providers: ConfiguredProvider[];
-}
 
 /**
  * API endpoint that detects which providers are configured via environment variables
@@ -96,14 +86,14 @@ async function configuredProvidersLoader({ context }: LoaderFunctionArgs) {
       });
     }
 
-    return json<ConfiguredProvidersResponse>({
+    return Response.json({
       providers: configuredProviders,
     });
   } catch (error) {
     logger.error('Error detecting configured providers:', error);
 
     // Return default state on error
-    return json<ConfiguredProvidersResponse>({
+    return Response.json({
       providers: LOCAL_PROVIDERS.map((name) => ({
         name,
         isConfigured: false,

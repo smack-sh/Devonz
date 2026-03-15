@@ -1,16 +1,12 @@
-import * as Sentry from '@sentry/remix';
-import { captureRemixErrorBoundaryError, withSentry } from '@sentry/remix';
+import * as Sentry from '@sentry/react';
 import { useStore } from '@nanostores/react';
-import type { LinksFunction } from '@remix-run/node';
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError, isRouteErrorResponse } from '@remix-run/react';
+import type { LinksFunction } from 'react-router';
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError, isRouteErrorResponse } from 'react-router';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
-import { createHead } from 'remix-island';
-import { useEffect } from 'react';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { ClientOnly } from 'remix-utils/client-only';
+import { lazy, Suspense, useEffect } from 'react';
+import { useSentryUser } from './hooks/useSentryUser';
 import { cssTransition, ToastContainer } from 'react-toastify';
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
@@ -19,6 +15,14 @@ import liquidMetalStyles from './styles/liquid-metal.css?url';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 
 import 'virtual:uno.css';
+
+const DndWrapper = lazy(async () => {
+  if (typeof window === 'undefined') {
+    return { default: ({ children }: { children: React.ReactNode }) => <>{children}</> };
+  }
+
+  return import('./components/DndWrapper.client');
+});
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -93,64 +97,73 @@ const inlineThemeCode = stripIndents`
   }
 `;
 
-export const Head = createHead(() => (
-  <>
-    <meta charSet="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <Meta />
-    <meta name="theme-color" content="#0a0a0a" />
-    <Links />
-    <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
-  </>
-));
-
 export function Layout({ children }: { children: React.ReactNode }) {
   const theme = useStore(themeStore);
+
+  useSentryUser();
 
   useEffect(() => {
     document.querySelector('html')?.setAttribute('data-theme', theme);
   }, [theme]);
 
   return (
-    <>
-      <ClientOnly>{() => <DndProvider backend={HTML5Backend}>{children}</DndProvider>}</ClientOnly>
-      <ToastContainer
-        closeButton={({ closeToast }) => {
-          return (
-            <button className="Toastify__close-button" aria-label="Close notification" onClick={closeToast}>
-              <div className="i-ph:x text-lg" />
-            </button>
-          );
-        }}
-        icon={({ type }) => {
-          switch (type) {
-            case 'success': {
-              return <div className="i-ph:check-bold text-devonz-elements-icon-success text-2xl" />;
-            }
-            case 'error': {
-              return <div className="i-ph:warning-circle-bold text-devonz-elements-icon-error text-2xl" />;
-            }
-          }
+    <html lang="en" data-theme={theme}>
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <Meta />
+        <meta name="theme-color" content="#0a0a0a" />
+        <Links />
+        <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
+      </head>
+      <body>
+        <noscript>
+          <p style={{ padding: '2rem', color: '#fff', background: '#0a0a0a', textAlign: 'center' }}>
+            JavaScript is required to use Devonz.
+          </p>
+        </noscript>
+        <div id="root" className="w-full h-full">
+          <Suspense fallback={<>{children}</>}>
+            <DndWrapper>{children}</DndWrapper>
+          </Suspense>
+          <ToastContainer
+            closeButton={({ closeToast }) => {
+              return (
+                <button className="Toastify__close-button" aria-label="Close notification" onClick={closeToast}>
+                  <div className="i-ph:x text-lg" />
+                </button>
+              );
+            }}
+            icon={({ type }) => {
+              switch (type) {
+                case 'success': {
+                  return <div className="i-ph:check-bold text-devonz-elements-icon-success text-2xl" />;
+                }
+                case 'error': {
+                  return <div className="i-ph:warning-circle-bold text-devonz-elements-icon-error text-2xl" />;
+                }
+              }
 
-          return undefined;
-        }}
-        position="bottom-right"
-        pauseOnFocusLoss
-        transition={toastAnimation}
-        autoClose={3000}
-      />
-      <ScrollRestoration />
-      <Scripts />
-    </>
+              return undefined;
+            }}
+            position="bottom-right"
+            pauseOnFocusLoss
+            transition={toastAnimation}
+            autoClose={3000}
+          />
+        </div>
+        <ScrollRestoration />
+        <Scripts />
+      </body>
+    </html>
   );
 }
 
 import { logStore } from './lib/stores/logs';
-import { ErrorBoundary as AppErrorBoundary } from './components/ui/ErrorBoundary';
 
 export function SentryErrorBoundary() {
   const error = useRouteError();
-  captureRemixErrorBoundaryError(error);
+  Sentry.captureException(error);
 
   if (isRouteErrorResponse(error)) {
     return (
@@ -206,26 +219,52 @@ function App() {
   }, []);
 
   return (
-    <Layout>
+    <>
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-accent-500 focus:text-white focus:rounded-lg"
       >
         Skip to content
       </a>
-      <AppErrorBoundary
-        category="root"
-        title="Application Error"
-        onError={(error) => {
-          if (Sentry.isInitialized()) {
-            Sentry.captureException(error);
-          }
-        }}
+      <Sentry.ErrorBoundary
+        showDialog={false}
+        fallback={({ error, resetError }: { error: Error; resetError: () => void }) => (
+          <div className="flex flex-col items-center justify-center p-6 rounded-lg border border-devonz-elements-borderColor bg-devonz-elements-background-depth-2 text-center min-h-[200px]">
+            <div className="i-ph:warning-circle-duotone text-4xl text-devonz-elements-button-danger-text mb-4" />
+            <h3 className="text-lg font-medium text-devonz-elements-textPrimary mb-2">Application Error</h3>
+            <p className="text-sm text-devonz-elements-textSecondary mb-4 max-w-md">An unexpected error occurred.</p>
+            <div className="flex gap-2">
+              <button
+                onClick={resetError}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-devonz-elements-button-primary-background text-devonz-elements-button-primary-text hover:bg-devonz-elements-button-primary-backgroundHover transition-colors duration-200"
+              >
+                Try Again
+              </button>
+            </div>
+            {process.env.NODE_ENV === 'development' && error instanceof Error && (
+              <details className="mt-4 w-full max-w-lg text-left">
+                <summary className="cursor-pointer text-sm text-devonz-elements-textTertiary hover:text-devonz-elements-textSecondary">
+                  Error Details
+                </summary>
+                <div className="mt-2 p-3 bg-devonz-elements-background-depth-3 rounded-lg overflow-auto">
+                  <p className="text-xs text-devonz-elements-textSecondary font-mono mb-2">
+                    {error.name}: {error.message}
+                  </p>
+                  {error.stack && (
+                    <pre className="text-xs text-devonz-elements-textTertiary whitespace-pre-wrap break-words">
+                      {error.stack}
+                    </pre>
+                  )}
+                </div>
+              </details>
+            )}
+          </div>
+        )}
       >
         <Outlet />
-      </AppErrorBoundary>
-    </Layout>
+      </Sentry.ErrorBoundary>
+    </>
   );
 }
 
-export default withSentry(App);
+export default App;

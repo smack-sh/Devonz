@@ -11,8 +11,7 @@
  *   - portEvents: SSE stream of port open/close events
  */
 
-import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
-import { json } from '@remix-run/node';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 import { RuntimeManager } from '~/lib/runtime/local-runtime';
 import { isValidProjectId, isSafePath } from '~/lib/runtime/runtime-provider';
 import { validateCommand, auditCommand, DEFAULT_EXEC_TIMEOUT_MS } from '~/lib/runtime/command-safety';
@@ -34,7 +33,7 @@ async function execLoader({ request }: LoaderFunctionArgs) {
   const projectId = url.searchParams.get('projectId');
 
   if (!projectId || !isValidProjectId(projectId)) {
-    return json({ error: 'Invalid or missing projectId' }, { status: 400 });
+    return Response.json({ error: 'Invalid or missing projectId' }, { status: 400 });
   }
 
   switch (op) {
@@ -91,7 +90,7 @@ async function execLoader({ request }: LoaderFunctionArgs) {
     }
 
     default: {
-      return json({ error: `Unknown GET operation: ${op}` }, { status: 400 });
+      return Response.json({ error: `Unknown GET operation: ${op}` }, { status: 400 });
     }
   }
 }
@@ -108,7 +107,7 @@ async function execAction({ request }: ActionFunctionArgs) {
   try {
     rawBody = await request.json();
   } catch {
-    return json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    return Response.json({ error: 'Invalid JSON in request body' }, { status: 400 });
   }
 
   const parsed = parseOrError(execRequestSchema, rawBody, 'RuntimeExec');
@@ -133,7 +132,7 @@ async function execAction({ request }: ActionFunctionArgs) {
          */
         await runtime.cleanSessions();
 
-        return json({
+        return Response.json({
           success: true,
           workdir: runtime.workdir,
           projectId: runtime.projectId,
@@ -142,7 +141,7 @@ async function execAction({ request }: ActionFunctionArgs) {
         const message = error instanceof Error ? error.message : 'Boot failed';
         logger.error(`Boot failed for "${projectId}":`, error);
 
-        return json({ error: message }, { status: 500 });
+        return Response.json({ error: message }, { status: 500 });
       }
     }
 
@@ -150,7 +149,7 @@ async function execAction({ request }: ActionFunctionArgs) {
       const { command, cwd, env } = body;
 
       if (cwd && !isSafePath(cwd)) {
-        return json({ error: 'Invalid cwd: traversal detected' }, { status: 400 });
+        return Response.json({ error: 'Invalid cwd: traversal detected' }, { status: 400 });
       }
 
       const validation = validateCommand(command);
@@ -158,7 +157,7 @@ async function execAction({ request }: ActionFunctionArgs) {
       if (!validation.allowed) {
         logger.warn(`Blocked command for project "${projectId}": ${command}`);
 
-        return json(
+        return Response.json(
           {
             error: `Command blocked: ${validation.reason}`,
             exitCode: 1,
@@ -176,24 +175,24 @@ async function execAction({ request }: ActionFunctionArgs) {
 
         const result = await runtime.exec(command, { cwd, env, timeout: timeoutMs });
 
-        return json(result);
+        return Response.json(result);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Exec failed';
         logger.error(`Exec failed: ${command}`, error);
 
-        return json({ error: message, exitCode: 1, output: message }, { status: 500 });
+        return Response.json({ error: message, exitCode: 1, output: message }, { status: 500 });
       }
     }
 
     case 'teardown': {
       try {
         await manager.removeRuntime(projectId);
-        return json({ success: true });
+        return Response.json({ success: true });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Teardown failed';
         logger.error(`Teardown failed for "${projectId}":`, error);
 
-        return json({ error: message }, { status: 500 });
+        return Response.json({ error: message }, { status: 500 });
       }
     }
 
@@ -202,17 +201,17 @@ async function execAction({ request }: ActionFunctionArgs) {
         const runtime = await manager.getRuntime(projectId);
         const port = await runtime.allocatePort();
 
-        return json({ port });
+        return Response.json({ port });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Port allocation failed';
         logger.error(`Port allocation failed for "${projectId}":`, error);
 
-        return json({ error: message }, { status: 500 });
+        return Response.json({ error: message }, { status: 500 });
       }
     }
 
     default: {
-      return json({ error: `Unknown operation: ${op}` }, { status: 400 });
+      return Response.json({ error: `Unknown operation: ${op}` }, { status: 400 });
     }
   }
 }

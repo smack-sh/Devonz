@@ -1,5 +1,5 @@
 import { timingSafeEqual } from 'node:crypto';
-import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('API');

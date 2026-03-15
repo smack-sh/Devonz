@@ -4,6 +4,7 @@ import { atom, map, type MapStore } from 'nanostores';
 import type {
   ActionAlert,
   DevonzAction,
+  DiffAction,
   DeployAlert,
   FileHistory,
   SupabaseAction,
@@ -12,6 +13,9 @@ import type {
   TaskUpdateAction,
   PlanTaskData,
 } from '~/types/actions';
+import { applySearchReplaceDiff } from '~/lib/runtime/diff/apply-diff';
+import { isFileLocked } from '~/lib/persistence/lockedFiles';
+import { getCurrentChatId } from '~/utils/fileLocks';
 import { createScopedLogger } from '~/utils/logger';
 import { rewriteUnsupportedCommand } from '~/utils/command-rewriter';
 import { repairMalformedCommand } from '~/utils/command-repair';
@@ -234,6 +238,10 @@ export class ActionRunner {
         }
         case 'file': {
           await this.#runFileAction(action);
+          break;
+        }
+        case 'diff': {
+          await this.#runDiffAction(action as DiffAction & ActionState);
           break;
         }
         case 'supabase': {
@@ -554,6 +562,68 @@ export class ActionRunner {
     }
 
     return resp;
+  }
+
+  async #runDiffAction(action: DiffAction & ActionState) {
+    const runtime = await this.#runtime;
+    const relativePath = toRelativePath(runtime.workdir, action.filePath);
+
+    // Check file locking before applying diff
+    const chatId = getCurrentChatId();
+    const lockStatus = isFileLocked(chatId, action.filePath);
+
+    if (lockStatus.locked) {
+      const lockedBy = lockStatus.lockedBy ? ` (locked by ${lockStatus.lockedBy})` : '';
+      throw new Error(`Cannot apply diff to locked file: ${action.filePath}${lockedBy}`);
+    }
+
+    // Read current file content; treat missing file as empty
+    let currentContent = '';
+
+    try {
+      currentContent = await runtime.fs.readFile(relativePath, 'utf-8');
+    } catch {
+      logger.info(`File ${relativePath} does not exist — treating as empty for diff application`);
+    }
+
+    // Apply search-replace diff blocks
+    const { result, appliedCount, failedBlocks } = applySearchReplaceDiff(currentContent, action.diffBlocks);
+
+    if (failedBlocks.length > 0) {
+      const failedSummaries = failedBlocks.map(
+        (block, i) => `  Block ${i + 1}: search starts with "${block.search.slice(0, 60)}..."`,
+      );
+      logger.warn(
+        `Diff action on ${relativePath}: ${failedBlocks.length} block(s) failed to match:\n${failedSummaries.join('\n')}`,
+      );
+    }
+
+    if (appliedCount === 0) {
+      throw new Error(
+        `Diff action failed: all ${action.diffBlocks.length} block(s) failed to match in ${action.filePath}. ` +
+          `Failed blocks: ${failedBlocks.map((b) => `"${b.search.slice(0, 60)}..."`).join(', ')}`,
+      );
+    }
+
+    // Ensure parent directory exists
+    let folder = nodePath.dirname(relativePath);
+    folder = folder.replace(/\/+$/g, '');
+
+    if (folder !== '.') {
+      try {
+        await runtime.fs.mkdir(folder, { recursive: true });
+      } catch (error) {
+        logger.error('Failed to create folder for diff target\n\n', error);
+        throw error;
+      }
+    }
+
+    // Write the result back to the file
+    await runtime.fs.writeFile(relativePath, result);
+    logger.debug(
+      `Diff applied to ${relativePath}: ${appliedCount}/${action.diffBlocks.length} blocks succeeded` +
+        (failedBlocks.length > 0 ? `, ${failedBlocks.length} failed` : ''),
+    );
   }
 
   async #runFileAction(action: ActionState | FileWriteInput) {

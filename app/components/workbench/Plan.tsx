@@ -1,15 +1,37 @@
-import React, { memo, useCallback, useEffect } from 'react';
+import React, { memo, useCallback, useEffect, useState } from 'react';
 import { useStore } from '@nanostores/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { planStore, planProgress, approvePlan, rejectPlan, modifyPlan, type PlanTask } from '~/lib/stores/plan';
+import {
+  planStore,
+  planProgress,
+  subTaskProgress,
+  approvePlan,
+  rejectPlan,
+  modifyPlan,
+  type PlanTask,
+} from '~/lib/stores/plan';
 import { classNames } from '~/utils/classNames';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/components/ui/Collapsible';
 import { Button } from '~/components/ui/Button';
 import { Progress } from '~/components/ui/Progress';
+import type { SubTask, SubTaskStatus } from '~/lib/agent/types';
 
 interface PlanProps {
   className?: string;
 }
+
+const taskStatusColors: Record<PlanTask['status'], string> = {
+  'not-started': 'text-devonz-elements-textSecondary',
+  'in-progress': 'text-blue-500',
+  completed: 'text-green-500',
+};
+
+const subTaskStatusColors: Record<SubTaskStatus, string> = {
+  pending: 'text-devonz-elements-textSecondary',
+  'in-progress': 'text-blue-500',
+  done: 'text-green-500',
+  failed: 'text-red-500',
+};
 
 /**
  * Status icon component for task status
@@ -36,14 +58,165 @@ const StatusIcon = memo(({ status }: { status: PlanTask['status'] }) => {
 StatusIcon.displayName = 'StatusIcon';
 
 /**
- * Individual task item component
+ * Status icon for sub-task statuses (maps SubTaskStatus → visual)
  */
-const TaskItem = memo(({ task, index }: { task: PlanTask; index: number }) => {
-  const statusColors = {
-    'not-started': 'text-devonz-elements-textSecondary',
-    'in-progress': 'text-blue-500',
-    completed: 'text-green-500',
+const SubTaskStatusIcon = memo(({ status }: { status: SubTaskStatus }) => {
+  switch (status) {
+    case 'done':
+      return (
+        <div className="w-4 h-4 rounded-full bg-green-500/20 flex items-center justify-center">
+          <div className="i-ph:check-bold text-green-500 text-xs" />
+        </div>
+      );
+    case 'in-progress':
+      return (
+        <div className="w-4 h-4 rounded-full bg-blue-500/20 flex items-center justify-center">
+          <div className="i-svg-spinners:90-ring-with-bg text-blue-500 text-xs" />
+        </div>
+      );
+    case 'failed':
+      return (
+        <div className="w-4 h-4 rounded-full bg-red-500/20 flex items-center justify-center">
+          <div className="i-ph:x-bold text-red-500 text-xs" />
+        </div>
+      );
+    default:
+      return <div className="w-4 h-4 rounded-full border border-devonz-elements-borderColor bg-transparent" />;
+  }
+});
+
+SubTaskStatusIcon.displayName = 'SubTaskStatusIcon';
+
+/**
+ * Review status badge — shows pending/passed/failed on tasks with reviewStatus
+ */
+const ReviewBadge = memo(({ reviewStatus }: { reviewStatus: NonNullable<PlanTask['reviewStatus']> }) => {
+  const config: Record<string, { icon: string; label: string; colors: string }> = {
+    pending: {
+      icon: 'i-ph:hourglass-medium text-xs',
+      label: 'Review Pending',
+      colors: 'bg-yellow-500/15 text-yellow-500 border-yellow-500/30',
+    },
+    passed: {
+      icon: 'i-ph:seal-check-fill text-xs',
+      label: 'Review Passed',
+      colors: 'bg-green-500/15 text-green-500 border-green-500/30',
+    },
+    failed: {
+      icon: 'i-ph:seal-warning-fill text-xs',
+      label: 'Review Failed',
+      colors: 'bg-red-500/15 text-red-500 border-red-500/30',
+    },
   };
+
+  const { icon, label, colors } = config[reviewStatus] ?? config.pending;
+
+  return (
+    <span
+      className={classNames('inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full border', colors)}
+      title={label}
+    >
+      <div className={icon} />
+      <span className="sr-only">{label}</span>
+    </span>
+  );
+});
+
+ReviewBadge.displayName = 'ReviewBadge';
+
+/**
+ * Dependency indicator chips — shows prerequisite task IDs as small badges
+ */
+const DependencyChips = memo(({ dependsOn, allTasks }: { dependsOn: string[]; allTasks: PlanTask[] }) => {
+  if (dependsOn.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-1 mt-1">
+      <div className="i-ph:arrow-bend-down-right text-xs text-devonz-elements-textSecondary" />
+      {dependsOn.map((depId) => {
+        const depTask = allTasks.find((t) => t.id === depId);
+        const isDone = depTask?.status === 'completed';
+
+        return (
+          <span
+            key={depId}
+            title={depTask ? `Depends on: ${depTask.title}` : `Depends on: ${depId}`}
+            className={classNames(
+              'text-xs px-1.5 py-0.5 rounded-full border font-mono',
+              isDone
+                ? 'bg-green-500/10 text-green-500/80 border-green-500/20 line-through'
+                : 'bg-devonz-elements-background-depth-3 text-devonz-elements-textSecondary border-devonz-elements-borderColor',
+            )}
+          >
+            {depId}
+          </span>
+        );
+      })}
+    </div>
+  );
+});
+
+DependencyChips.displayName = 'DependencyChips';
+
+/**
+ * Sub-task item — renders a single sub-task row with indentation based on depth (max 2 levels)
+ */
+const SubTaskItem = memo(({ subTask }: { subTask: SubTask }) => {
+  const depthPadding = subTask.depth === 0 ? 'pl-6' : subTask.depth === 1 ? 'pl-10' : 'pl-14';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -4 }}
+      className={classNames('flex items-center gap-2 py-1.5 px-2 rounded transition-colors', depthPadding)}
+    >
+      <SubTaskStatusIcon status={subTask.status} />
+      <span
+        className={classNames(
+          'text-xs',
+          subTask.status === 'done' ? 'line-through opacity-60' : '',
+          subTaskStatusColors[subTask.status],
+        )}
+      >
+        {subTask.title}
+      </span>
+    </motion.div>
+  );
+});
+
+SubTaskItem.displayName = 'SubTaskItem';
+
+/**
+ * Individual task item component — renders task row with sub-tasks, dependency chips,
+ * review badges, and sub-task completion percentage.
+ */
+interface TaskItemProps {
+  task: PlanTask;
+  index: number;
+  allTasks: PlanTask[];
+}
+
+const TaskItem = memo(({ task, index, allTasks }: TaskItemProps) => {
+  const stProgress = useStore(subTaskProgress);
+  const hasSubTasks = task.subTasks != null && task.subTasks.length > 0;
+  const hasDeps = task.dependsOn != null && task.dependsOn.length > 0;
+
+  // Default expanded for in-progress, collapsed for completed
+  const [subTasksOpen, setSubTasksOpen] = useState(task.status === 'in-progress' || task.status === 'not-started');
+
+  // Track status changes to auto-expand/collapse
+  useEffect(() => {
+    if (task.status === 'in-progress') {
+      setSubTasksOpen(true);
+    } else if (task.status === 'completed') {
+      setSubTasksOpen(false);
+    }
+  }, [task.status]);
+
+  const completionPct = hasSubTasks ? (stProgress.get(task.id) ?? 0) : null;
 
   return (
     <motion.div
@@ -51,42 +224,101 @@ const TaskItem = memo(({ task, index }: { task: PlanTask; index: number }) => {
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.05 }}
       className={classNames(
-        'flex items-start gap-3 p-3 rounded-lg transition-colors',
+        'rounded-lg transition-colors',
         task.status === 'in-progress'
           ? 'bg-blue-500/10 border border-blue-500/30'
           : 'bg-devonz-elements-background-depth-2 border border-transparent',
       )}
     >
-      <StatusIcon status={task.status} />
-
-      <div className="flex-1 min-w-0">
-        <div
-          className={classNames(
-            'font-medium text-sm',
-            task.status === 'completed' ? 'line-through opacity-60' : '',
-            statusColors[task.status],
-          )}
-        >
-          {task.title}
-        </div>
-
-        {task.description && (
-          <div className="text-xs text-devonz-elements-textSecondary mt-1 line-clamp-2">{task.description}</div>
+      {/* Main task row */}
+      <div className="flex items-start gap-3 p-3">
+        {/* Collapse toggle for tasks with sub-tasks */}
+        {hasSubTasks ? (
+          <button
+            onClick={() => setSubTasksOpen((prev) => !prev)}
+            className="mt-0.5 flex-shrink-0 p-0 bg-transparent border-none cursor-pointer"
+            aria-label={subTasksOpen ? 'Collapse sub-tasks' : 'Expand sub-tasks'}
+          >
+            <div
+              className={classNames(
+                'i-ph:caret-right text-sm text-devonz-elements-textSecondary transition-transform',
+                subTasksOpen ? 'rotate-90' : '',
+              )}
+            />
+          </button>
+        ) : (
+          <div className="w-4 flex-shrink-0" />
         )}
 
-        {task.fileActions && task.fileActions.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {task.fileActions.map((file) => (
-              <span
-                key={file}
-                className="text-xs px-1.5 py-0.5 rounded bg-devonz-elements-background-depth-3 text-devonz-elements-textSecondary font-mono"
-              >
-                {file}
-              </span>
-            ))}
+        <StatusIcon status={task.status} />
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span
+              className={classNames(
+                'font-medium text-sm',
+                task.status === 'completed' ? 'line-through opacity-60' : '',
+                taskStatusColors[task.status],
+              )}
+            >
+              {task.title}
+            </span>
+
+            {/* Review badge */}
+            {task.reviewStatus != null && <ReviewBadge reviewStatus={task.reviewStatus} />}
+
+            {/* Sub-task completion percentage */}
+            {completionPct !== null && (
+              <span className="text-xs text-devonz-elements-textSecondary ml-auto flex-shrink-0">{completionPct}%</span>
+            )}
           </div>
-        )}
+
+          {task.description && (
+            <div className="text-xs text-devonz-elements-textSecondary mt-1 line-clamp-2">{task.description}</div>
+          )}
+
+          {/* Dependency chips */}
+          {hasDeps && <DependencyChips dependsOn={task.dependsOn!} allTasks={allTasks} />}
+
+          {task.fileActions && task.fileActions.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {task.fileActions.map((file) => (
+                <span
+                  key={file}
+                  className="text-xs px-1.5 py-0.5 rounded bg-devonz-elements-background-depth-3 text-devonz-elements-textSecondary font-mono"
+                >
+                  {file}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Sub-task completion bar (only when sub-tasks exist and not 0 or 100) */}
+          {completionPct !== null && completionPct > 0 && completionPct < 100 && (
+            <div className="mt-2 w-full">
+              <Progress value={completionPct} />
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Collapsible sub-task tree */}
+      {hasSubTasks && (
+        <AnimatePresence>
+          {subTasksOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="border-t border-devonz-elements-borderColor/50 pb-2"
+            >
+              {task.subTasks!.map((sub) => (
+                <SubTaskItem key={sub.id} subTask={sub} />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
     </motion.div>
   );
 });
@@ -237,7 +469,7 @@ export const Plan = memo(({ className }: PlanProps) => {
               {/* Task list */}
               <div className="space-y-2">
                 {state.tasks.map((task, index) => (
-                  <TaskItem key={task.id} task={task} index={index} />
+                  <TaskItem key={task.id} task={task} index={index} allTasks={state.tasks} />
                 ))}
               </div>
 

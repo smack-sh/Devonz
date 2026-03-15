@@ -1,4 +1,4 @@
-import type { ActionFunctionArgs } from '@remix-run/node';
+import type { ActionFunctionArgs } from 'react-router';
 import { streamText, type Messages } from '~/lib/.server/llm/stream-text';
 import { withSecurity } from '~/lib/security';
 import { requireApiAuth } from '~/lib/.server/api/auth';

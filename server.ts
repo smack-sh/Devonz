@@ -1,8 +1,8 @@
 /**
  * @module server
- * Custom Remix production server with WebSocket support.
+ * Custom React Router v7 production server with WebSocket support.
  *
- * Replaces the default `remix-serve` entry to attach a WebSocket upgrade
+ * Replaces the default `@react-router/serve` entry to attach a WebSocket upgrade
  * handler on the `/ws` path — same HTTP port, no extra process.
  *
  * Usage (production):
@@ -12,7 +12,8 @@
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { createReadableStreamFromReadable, createRequestHandler } from '@remix-run/node';
+import { createReadableStreamFromReadable } from '@react-router/node';
+import { createRequestHandler } from 'react-router';
 import { handleUpgrade } from './app/lib/.server/ws/ws-server';
 
 const PORT = Number(process.env.PORT) || 5173;
@@ -24,14 +25,14 @@ function log(level: string, ...args: unknown[]) {
 }
 
 // ---------------------------------------------------------------------------
-// Remix request handler
+// React Router request handler
 // ---------------------------------------------------------------------------
 
 // @ts-ignore — build output is JavaScript, no type declarations
 const build = await import('./build/server/index.js');
 
 // @ts-expect-error — build is untyped (JS output), but satisfies ServerBuild at runtime
-const remixHandler = createRequestHandler({ build, mode: process.env.NODE_ENV });
+const requestHandler = createRequestHandler({ build, mode: process.env.NODE_ENV });
 
 // ---------------------------------------------------------------------------
 // Node → Web Request adapter
@@ -124,7 +125,7 @@ async function sendWebResponse(res: ServerResponse, webResponse: Response): Prom
 const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
   try {
     const webRequest = createWebRequest(req);
-    const webResponse = await remixHandler(webRequest);
+    const webResponse = await requestHandler(webRequest);
     await sendWebResponse(res, webResponse);
   } catch (err) {
     log('error', 'Unhandled request error:', err);
@@ -133,7 +134,7 @@ const server = createServer(async (req: IncomingMessage, res: ServerResponse) =>
   }
 });
 
-// Attach WebSocket upgrade handler — only intercepts /ws, ignores /__remix_hmr
+// Attach WebSocket upgrade handler — only intercepts /ws
 server.on('upgrade', (req, socket, head) => {
   const url = new URL(req.url ?? '/', `http://${req.headers.host || 'localhost'}`);
 

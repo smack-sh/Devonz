@@ -1,11 +1,11 @@
-import { json, type ActionFunctionArgs } from '@remix-run/node';
+import { type ActionFunctionArgs } from 'react-router';
 import type { SupabaseProject } from '~/types/supabase';
 import { handleApiError, externalFetch, ApiError } from '~/lib/api/apiUtils';
 import { withSecurity } from '~/lib/security';
 
 async function supabaseAction({ request }: ActionFunctionArgs) {
   if (request.method !== 'POST') {
-    return json({ error: 'Method not allowed' }, { status: 405 });
+    return Response.json({ error: 'Method not allowed' }, { status: 405 });
   }
 
   return handleApiError(
@@ -38,7 +38,7 @@ async function supabaseAction({ request }: ActionFunctionArgs) {
 
       uniqueProjects.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-      return json({
+      return Response.json({
         user: { email: 'Connected', role: 'Admin' },
         stats: {
           projects: uniqueProjects,

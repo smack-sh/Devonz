@@ -1,5 +1,4 @@
-import { json } from '@remix-run/node';
-import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 import { createScopedLogger } from '~/utils/logger';
 import { withSecurity } from '~/lib/security';
 
@@ -66,7 +65,7 @@ export const loader = withSecurity(
 async function handleProxyRequest(request: Request, path: string | undefined) {
   try {
     if (!path) {
-      return json({ error: 'Invalid proxy URL format' }, { status: 400 });
+      return Response.json({ error: 'Invalid proxy URL format' }, { status: 400 });
     }
 
     // Handle CORS preflight request
@@ -87,7 +86,7 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
     const parts = path.match(/([^\/]+)\/?(.*)/);
 
     if (!parts) {
-      return json({ error: 'Invalid path format' }, { status: 400 });
+      return Response.json({ error: 'Invalid path format' }, { status: 400 });
     }
 
     const domain = parts[1];
@@ -96,7 +95,7 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
     // Validate domain against allowlist to prevent SSRF
     if (!ALLOWED_DOMAINS.has(domain.toLowerCase())) {
       logger.warn(`Blocked proxy request to disallowed domain: ${domain}`);
-      return json({ error: 'Domain not allowed' }, { status: 403 });
+      return Response.json({ error: 'Domain not allowed' }, { status: 403 });
     }
 
     // Reconstruct the target URL with query parameters
@@ -177,7 +176,7 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
     });
   } catch (error) {
     logger.error('Proxy error:', error);
-    return json(
+    return Response.json(
       {
         error: 'Proxy error',
         message: error instanceof Error ? error.message : 'Unknown error',

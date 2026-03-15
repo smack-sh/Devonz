@@ -7,7 +7,7 @@
  * - Remove domain
  */
 
-import { json, type ActionFunctionArgs, type LoaderFunctionArgs } from '@remix-run/node';
+import { type ActionFunctionArgs, type LoaderFunctionArgs } from 'react-router';
 import { externalFetch, handleApiError, resolveToken, unauthorizedResponse } from '~/lib/api/apiUtils';
 import { withSecurity } from '~/lib/security';
 
@@ -38,7 +38,7 @@ async function vercelDomainsLoader({ request, context }: LoaderFunctionArgs) {
   const projectId = url.searchParams.get('projectId');
 
   if (!projectId) {
-    return json({ error: 'Project ID is required' }, { status: 400 });
+    return Response.json({ error: 'Project ID is required' }, { status: 400 });
   }
 
   return handleApiError('VercelDomains.loader', async () => {
@@ -50,7 +50,7 @@ async function vercelDomainsLoader({ request, context }: LoaderFunctionArgs) {
     if (!response.ok) {
       const errorData = await response.json();
 
-      return json(
+      return Response.json(
         {
           error: `Failed to fetch domains: ${response.status}`,
           details: errorData,
@@ -61,7 +61,7 @@ async function vercelDomainsLoader({ request, context }: LoaderFunctionArgs) {
 
     const data = await response.json();
 
-    return json(data);
+    return Response.json(data);
   });
 }
 
@@ -80,12 +80,12 @@ async function vercelDomainsAction({ request, context }: ActionFunctionArgs) {
     const { projectId, action, domain } = body;
 
     if (!projectId) {
-      return json({ error: 'Project ID is required' }, { status: 400 });
+      return Response.json({ error: 'Project ID is required' }, { status: 400 });
     }
 
     if (action === 'add') {
       if (!domain) {
-        return json({ error: 'Domain name is required for add action' }, { status: 400 });
+        return Response.json({ error: 'Domain name is required for add action' }, { status: 400 });
       }
 
       const response = await externalFetch({
@@ -99,7 +99,7 @@ async function vercelDomainsAction({ request, context }: ActionFunctionArgs) {
 
       if (!response.ok) {
         if (response.status === 409) {
-          return json(
+          return Response.json(
             {
               error: 'Domain already exists',
               details: data,
@@ -112,7 +112,7 @@ async function vercelDomainsAction({ request, context }: ActionFunctionArgs) {
           const errorMessage =
             data?.error?.message || data?.message || 'Invalid domain name or domain already registered on another team';
 
-          return json(
+          return Response.json(
             {
               error: errorMessage,
               details: data,
@@ -121,7 +121,7 @@ async function vercelDomainsAction({ request, context }: ActionFunctionArgs) {
           );
         }
 
-        return json(
+        return Response.json(
           {
             error: `Failed to add domain: ${response.status}`,
             details: data,
@@ -130,12 +130,12 @@ async function vercelDomainsAction({ request, context }: ActionFunctionArgs) {
         );
       }
 
-      return json({ success: true, domain: data });
+      return Response.json({ success: true, domain: data });
     }
 
     if (action === 'remove') {
       if (!domain) {
-        return json({ error: 'Domain name is required for remove action' }, { status: 400 });
+        return Response.json({ error: 'Domain name is required for remove action' }, { status: 400 });
       }
 
       const response = await externalFetch({
@@ -147,7 +147,7 @@ async function vercelDomainsAction({ request, context }: ActionFunctionArgs) {
       if (!response.ok) {
         const data = await response.json();
 
-        return json(
+        return Response.json(
           {
             error: `Failed to remove domain: ${response.status}`,
             details: data,
@@ -156,7 +156,7 @@ async function vercelDomainsAction({ request, context }: ActionFunctionArgs) {
         );
       }
 
-      return json({ success: true, removed: domain });
+      return Response.json({ success: true, removed: domain });
     }
 
     if (action === 'list') {
@@ -168,7 +168,7 @@ async function vercelDomainsAction({ request, context }: ActionFunctionArgs) {
       if (!response.ok) {
         const errorData = await response.json();
 
-        return json(
+        return Response.json(
           {
             error: `Failed to fetch domains: ${response.status}`,
             details: errorData,
@@ -179,10 +179,10 @@ async function vercelDomainsAction({ request, context }: ActionFunctionArgs) {
 
       const data = await response.json();
 
-      return json(data);
+      return Response.json(data);
     }
 
-    return json({ error: 'Invalid action. Use: list, add, or remove' }, { status: 400 });
+    return Response.json({ error: 'Invalid action. Use: list, add, or remove' }, { status: 400 });
   });
 }
 

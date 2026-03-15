@@ -681,7 +681,9 @@ export const CombinedModelSelector = ({
               <>
                 {filteredProviders.map((p, index) => (
                   <div
-                    ref={(el) => (optionsRef.current[index] = el)}
+                    ref={(el) => {
+                      optionsRef.current[index] = el;
+                    }}
                     key={p.name}
                     role="option"
                     aria-selected={provider?.name === p.name}
@@ -751,7 +753,9 @@ export const CombinedModelSelector = ({
             ) : (
               filteredModels.map((m, index) => (
                 <div
-                  ref={(el) => (optionsRef.current[index] = el)}
+                  ref={(el) => {
+                    optionsRef.current[index] = el;
+                  }}
                   key={m.name}
                   role="option"
                   aria-selected={model === m.name}

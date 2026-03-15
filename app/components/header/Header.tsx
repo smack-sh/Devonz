@@ -1,12 +1,18 @@
+import { Suspense } from 'react';
 import { useStore } from '@nanostores/react';
-import { ClientOnly } from 'remix-utils/client-only';
 import { chatStore } from '~/lib/stores/chat';
 import { sidebarStore } from '~/lib/stores/sidebar';
 import { planStore } from '~/lib/stores/plan';
 import { classNames } from '~/utils/classNames';
-import { HeaderActionButtons } from './HeaderActionButtons.client';
-import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
 import { PanelErrorBoundary } from '~/components/ui/PanelErrorBoundary';
+import { clientLazy } from '~/utils/react';
+
+const ChatDescription = clientLazy(() =>
+  import('~/lib/persistence/ChatDescription.client').then((m) => ({ default: m.ChatDescription })),
+);
+const HeaderActionButtons = clientLazy(() =>
+  import('./HeaderActionButtons.client').then((m) => ({ default: m.HeaderActionButtons })),
+);
 
 export function Header() {
   const chat = useStore(chatStore);
@@ -36,7 +42,9 @@ export function Header() {
         {chat.started && (
           <>
             <span className="flex-1 px-4 truncate text-center text-devonz-elements-textSecondary text-sm flex items-center justify-center gap-2">
-              <ClientOnly>{() => <ChatDescription />}</ClientOnly>
+              <Suspense fallback={null}>
+                <ChatDescription />
+              </Suspense>
               {plan.isActive && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 text-xs font-medium whitespace-nowrap">
                   <span className="i-ph:list-checks-fill text-xs" />
@@ -44,13 +52,11 @@ export function Header() {
                 </span>
               )}
             </span>
-            <ClientOnly>
-              {() => (
-                <div className="">
-                  <HeaderActionButtons chatStarted={chat.started} />
-                </div>
-              )}
-            </ClientOnly>
+            <Suspense fallback={null}>
+              <div className="">
+                <HeaderActionButtons chatStarted={chat.started} />
+              </div>
+            </Suspense>
           </>
         )}
       </PanelErrorBoundary>

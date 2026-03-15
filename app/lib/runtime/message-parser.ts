@@ -2,6 +2,7 @@ import type {
   ActionType,
   DevonzAction,
   DevonzActionData,
+  DiffAction,
   FileAction,
   ShellAction,
   SupabaseAction,
@@ -9,6 +10,9 @@ import type {
   TaskUpdateAction,
 } from '~/types/actions';
 import type { DevonzArtifactData } from '~/types/artifact';
+import type { StreamingEvent } from '~/types/streaming-events';
+import { getBufferedContent, clearBufferedContent } from '~/lib/stores/stream-event-router';
+import { parseSearchReplaceDiff } from '~/lib/runtime/diff/search-replace';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 
@@ -84,9 +88,24 @@ export class StreamingMessageParser {
   #messages = new Map<string, MessageState>();
   #artifactCounter = 0;
 
+  /** 'legacy' = parse XML tags as today; 'structured' = skip XML, use events for actions. */
+  #mode: 'legacy' | 'structured' = 'legacy';
+
+  /** The message ID from the most recent parse() call — used by processStructuredEvent. */
+  #currentMessageId: string | null = null;
+
+  /** Artifact ID created for the structured-mode session (one per stream). */
+  #structuredArtifactId: string | null = null;
+
+  /** Monotonically-increasing action counter for structured-mode actions. */
+  #structuredActionCounter = 0;
+
   constructor(private _options: StreamingMessageParserOptions = {}) {}
 
   parse(messageId: string, input: string) {
+    // Track current message ID for structured mode action creation
+    this.#currentMessageId = messageId;
+
     let state = this.#messages.get(messageId);
 
     if (!state) {
@@ -100,6 +119,17 @@ export class StreamingMessageParser {
       };
 
       this.#messages.set(messageId, state);
+    }
+
+    /*
+     * Structured mode: the server already parsed XML — just pass text through
+     * as markdown. No XML tag detection is performed.
+     */
+    if (this.#mode === 'structured') {
+      const newContent = input.slice(state.position);
+      state.position = input.length;
+
+      return newContent;
     }
 
     let output = '';
@@ -394,8 +424,100 @@ export class StreamingMessageParser {
     return output;
   }
 
+  /**
+   * Process a validated streaming event in dual-mode operation.
+   *
+   * - `stream_start` with protocol `structured-v1` switches the parser to
+   *   structured mode, creating a virtual artifact context for subsequent
+   *   action dispatches.
+   * - `file_close` retrieves buffered content from StreamEventRouter, builds
+   *   a FileAction or DiffAction, and dispatches via the existing
+   *   onActionOpen / onActionClose callbacks (same path as legacy XML mode).
+   * - All other events are no-ops here — they are already handled by the
+   *   StreamEventRouter for store updates.
+   */
+  processStructuredEvent(event: StreamingEvent): void {
+    if (event.type === 'stream_start' && event.protocol === 'structured-v1') {
+      this.#mode = 'structured';
+
+      /*
+       * Create a virtual artifact so downstream callbacks (addAction, runAction)
+       * have an artifact context, just like legacy XML mode.
+       * If currentMessageId isn't set yet (event arrived before parse()), use
+       * the artifactId from the event or generate a fallback.
+       */
+      const messageId = this.#currentMessageId ?? event.artifactId ?? `structured-${Date.now()}`;
+      this.#structuredArtifactId = `${messageId}-structured-${this.#artifactCounter++}`;
+      this.#structuredActionCounter = 0;
+
+      this._options.callbacks?.onArtifactOpen?.({
+        messageId,
+        artifactId: this.#structuredArtifactId,
+        id: this.#structuredArtifactId,
+        title: 'Code Changes',
+        type: 'bundled',
+      });
+
+      logger.debug('Switched to structured mode, artifact:', this.#structuredArtifactId);
+
+      return;
+    }
+
+    // Only handle file_close events in structured mode for action creation
+    if (this.#mode !== 'structured') {
+      return;
+    }
+
+    if (event.type === 'file_close') {
+      const buffered = getBufferedContent(event.filePath);
+      clearBufferedContent(event.filePath);
+
+      if (!buffered) {
+        logger.warn(`No buffered content for ${event.filePath} on file_close — skipping action creation`);
+        return;
+      }
+
+      const messageId = this.#currentMessageId ?? 'unknown';
+      const artifactId = this.#structuredArtifactId ?? 'unknown';
+      const actionId = String(this.#structuredActionCounter++);
+
+      if (buffered.format === 'full_content') {
+        const action: FileAction = {
+          type: 'file',
+          filePath: event.filePath,
+          content: buffered.content,
+        };
+
+        this._options.callbacks?.onActionOpen?.({ artifactId, messageId, actionId, action });
+        this._options.callbacks?.onActionClose?.({ artifactId, messageId, actionId, action });
+      } else if (buffered.format === 'search_replace') {
+        const { blocks } = parseSearchReplaceDiff(buffered.content);
+        const action: DiffAction = {
+          type: 'diff',
+          filePath: event.filePath,
+          content: buffered.content,
+          diffBlocks: blocks,
+        };
+
+        this._options.callbacks?.onActionOpen?.({ artifactId, messageId, actionId, action });
+        this._options.callbacks?.onActionClose?.({ artifactId, messageId, actionId, action });
+      } else {
+        logger.warn(`Unknown buffer format for ${event.filePath}: ${(buffered as { format: string }).format}`);
+      }
+    }
+  }
+
+  /** Returns the current parser mode. */
+  get mode(): 'legacy' | 'structured' {
+    return this.#mode;
+  }
+
   reset() {
     this.#messages.clear();
+    this.#mode = 'legacy';
+    this.#currentMessageId = null;
+    this.#structuredArtifactId = null;
+    this.#structuredActionCounter = 0;
   }
 
   #parseActionTag(input: string, actionOpenIndex: number, actionEndIndex: number) {

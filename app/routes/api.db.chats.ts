@@ -1,4 +1,4 @@
-import { json, type ActionFunctionArgs, type LoaderFunctionArgs } from '@remix-run/node';
+import { type ActionFunctionArgs, type LoaderFunctionArgs } from 'react-router';
 import { eq, desc, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '~/lib/.server/db';
@@ -46,7 +46,7 @@ async function chatsLoader({ request }: LoaderFunctionArgs) {
   });
 
   if (!parsed.success) {
-    return json({ error: 'Invalid pagination parameters', details: parsed.error.issues }, { status: 400 });
+    return Response.json({ error: 'Invalid pagination parameters', details: parsed.error.issues }, { status: 400 });
   }
 
   const { page, limit } = parsed.data;
@@ -61,7 +61,7 @@ async function chatsLoader({ request }: LoaderFunctionArgs) {
 
   logger.debug(`Returning ${rows.length} chats (page ${page}, total ${total})`);
 
-  return json({
+  return Response.json({
     chats: rows,
     pagination: {
       page,
@@ -84,7 +84,7 @@ async function chatsAction({ request }: ActionFunctionArgs) {
   try {
     rawBody = await request.json();
   } catch {
-    return json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    return Response.json({ error: 'Invalid JSON in request body' }, { status: 400 });
   }
 
   const parsed = createChatSchema.safeParse(rawBody);
@@ -92,7 +92,7 @@ async function chatsAction({ request }: ActionFunctionArgs) {
   if (!parsed.success) {
     logger.warn('Chat creation validation failed:', parsed.error.issues);
 
-    return json(
+    return Response.json(
       {
         error: 'Invalid request',
         details: parsed.error.issues.map((issue) => ({
@@ -122,7 +122,7 @@ async function chatsAction({ request }: ActionFunctionArgs) {
 
   const created = await db.select().from(schema.chats).where(eq(schema.chats.id, id)).limit(1);
 
-  return json({ chat: created[0] }, { status: 201 });
+  return Response.json({ chat: created[0] }, { status: 201 });
 }
 
 /*
@@ -148,7 +148,7 @@ async function bulkDeleteChats() {
 
   logger.info('Deleted all chats (bulk delete)');
 
-  return json({ deleted: true });
+  return Response.json({ deleted: true });
 }
 
 /*

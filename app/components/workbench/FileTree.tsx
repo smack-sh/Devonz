@@ -1,5 +1,7 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useStore } from '@nanostores/react';
 import type { FileMap } from '~/lib/stores/files';
+import { fileGenerationStatus, type FileGenerationState } from '~/lib/stores/files';
 import { classNames } from '~/utils/classNames';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
 import * as ContextMenu from '@radix-ui/react-context-menu';
@@ -138,6 +140,9 @@ export const FileTree = memo(
       });
     };
 
+    const rawGenStatus = useStore(fileGenerationStatus);
+    const genStatus = useDeferredValue(rawGenStatus);
+
     return (
       <div className={classNames('text-sm', className, 'overflow-y-auto modern-scrollbar')}>
         {filteredFileList.map((fileOrFolder) => {
@@ -150,6 +155,7 @@ export const FileTree = memo(
                   file={fileOrFolder}
                   unsavedChanges={unsavedFiles instanceof Set && unsavedFiles.has(fileOrFolder.fullPath)}
                   fileHistory={fileHistory}
+                  generationState={genStatus[fileOrFolder.fullPath]}
                   onCopyPath={() => {
                     onCopyPath(fileOrFolder);
                   }}
@@ -630,6 +636,7 @@ interface FileProps {
   selected: boolean;
   unsavedChanges?: boolean;
   fileHistory?: Record<string, FileHistory>;
+  generationState?: FileGenerationState;
   onCopyPath: () => void;
   onCopyRelativePath: () => void;
   onClick: () => void;
@@ -643,6 +650,7 @@ function File({
   selected,
   unsavedChanges = false,
   fileHistory = {},
+  generationState,
 }: FileProps) {
   const { depth, name, fullPath } = file;
 
@@ -709,6 +717,9 @@ function File({
         >
           <div className="flex-1 truncate pr-2">{name}</div>
           <div className="flex items-center gap-1">
+            {generationState === 'generating' && (
+              <span className="i-svg-spinners:90-ring-with-bg shrink-0 text-accent-500 scale-80" title="Generating…" />
+            )}
             {showStats && (
               <div className="flex items-center gap-1 text-xs">
                 {additions > 0 && <span className="text-emerald-500">+{additions}</span>}

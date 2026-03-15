@@ -11,8 +11,7 @@
  *   - commit-files: Get files changed in a commit
  */
 
-import type { ActionFunctionArgs } from '@remix-run/node';
-import { json } from '@remix-run/node';
+import type { ActionFunctionArgs } from 'react-router';
 import { RuntimeManager } from '~/lib/runtime/local-runtime';
 import {
   autoCommit,
@@ -36,7 +35,7 @@ async function gitAction({ request }: ActionFunctionArgs) {
   try {
     rawBody = await request.json();
   } catch {
-    return json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    return Response.json({ error: 'Invalid JSON in request body' }, { status: 400 });
   }
 
   const parsed = parseOrError(gitRequestSchema, rawBody, 'RuntimeGit');
@@ -55,7 +54,7 @@ async function gitAction({ request }: ActionFunctionArgs) {
   try {
     runtime = await manager.getRuntime(projectId);
   } catch {
-    return json({ error: 'Runtime not found for project' }, { status: 404 });
+    return Response.json({ error: 'Runtime not found for project' }, { status: 404 });
   }
 
   const workdir = runtime.workdir;
@@ -65,61 +64,61 @@ async function gitAction({ request }: ActionFunctionArgs) {
       const { message } = body;
       const sha = autoCommit(workdir, message);
 
-      return json({ sha, committed: !!sha });
+      return Response.json({ sha, committed: !!sha });
     }
 
     case 'log': {
       const maxCount = body.maxCount ?? 50;
       const commits = getGitLog(workdir, maxCount);
 
-      return json({ commits });
+      return Response.json({ commits });
     }
 
     case 'checkout': {
       const { sha } = body;
       const success = checkoutCommit(workdir, sha);
 
-      return json({ success });
+      return Response.json({ success });
     }
 
     case 'checkout-main': {
       const success = checkoutMain(workdir);
-      return json({ success });
+      return Response.json({ success });
     }
 
     case 'diff': {
       const { sha } = body;
       const diff = getDiff(workdir, sha);
 
-      return json({ diff });
+      return Response.json({ diff });
     }
 
     case 'commit-files': {
       const { sha } = body;
       const files = getCommitFiles(workdir, sha);
 
-      return json({ files });
+      return Response.json({ files });
     }
 
     case 'commit-files-status': {
       const { sha } = body;
       const files = getCommitFilesWithStatus(workdir, sha);
 
-      return json({ files });
+      return Response.json({ files });
     }
 
     case 'file-diff': {
       const { sha, file } = body;
       const diff = getFileDiff(workdir, sha, file);
 
-      return json({ diff });
+      return Response.json({ diff });
     }
 
     case 'commit-diff': {
       const { sha } = body;
       const diff = getCommitDiff(workdir, sha);
 
-      return json({ diff });
+      return Response.json({ diff });
     }
 
     case 'archive': {
@@ -138,12 +137,12 @@ async function gitAction({ request }: ActionFunctionArgs) {
         });
       } catch (error) {
         const msg = error instanceof Error ? error.message : 'Archive failed';
-        return json({ error: msg }, { status: 500 });
+        return Response.json({ error: msg }, { status: 500 });
       }
     }
 
     default: {
-      return json({ error: `Unknown git operation: ${op}` }, { status: 400 });
+      return Response.json({ error: `Unknown git operation: ${op}` }, { status: 400 });
     }
   }
 }

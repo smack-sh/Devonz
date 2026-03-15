@@ -13,8 +13,7 @@
  *   - stream: SSE stream of terminal output for a session
  */
 
-import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
-import { json } from '@remix-run/node';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 import { existsSync } from 'node:fs';
 import { RuntimeManager } from '~/lib/runtime/local-runtime';
 import { validateCommand, auditCommand } from '~/lib/runtime/command-safety';
@@ -65,7 +64,7 @@ async function terminalLoader({ request }: LoaderFunctionArgs) {
       const sessionId = url.searchParams.get('sessionId');
 
       if (!sessionId) {
-        return json({ error: 'Missing sessionId' }, { status: 400 });
+        return Response.json({ error: 'Missing sessionId' }, { status: 400 });
       }
 
       // Find the session across all runtimes
@@ -155,7 +154,7 @@ async function terminalLoader({ request }: LoaderFunctionArgs) {
     }
 
     default: {
-      return json({ error: `Unknown GET operation: ${op}` }, { status: 400 });
+      return Response.json({ error: `Unknown GET operation: ${op}` }, { status: 400 });
     }
   }
 }
@@ -172,7 +171,7 @@ async function terminalAction({ request }: ActionFunctionArgs) {
   try {
     rawBody = await request.json();
   } catch {
-    return json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    return Response.json({ error: 'Invalid JSON in request body' }, { status: 400 });
   }
 
   const parsed = parseOrError(terminalRequestSchema, rawBody, 'RuntimeTerminal');
@@ -225,7 +224,7 @@ async function terminalAction({ request }: ActionFunctionArgs) {
 
         if (!validation.allowed) {
           logger.warn(`Blocked terminal command for project "${projectId}": ${command}`);
-          return json({ error: `Command blocked: ${validation.reason}` }, { status: 403 });
+          return Response.json({ error: `Command blocked: ${validation.reason}` }, { status: 403 });
         }
       }
 
@@ -241,7 +240,7 @@ async function terminalAction({ request }: ActionFunctionArgs) {
           cwd,
         });
 
-        return json({
+        return Response.json({
           sessionId: spawnedProcess.id,
           pid: spawnedProcess.pid,
         });
@@ -249,7 +248,7 @@ async function terminalAction({ request }: ActionFunctionArgs) {
         const message = error instanceof Error ? error.message : 'Spawn failed';
         logger.error('Terminal spawn failed:', error);
 
-        return json({ error: message }, { status: 500 });
+        return Response.json({ error: message }, { status: 500 });
       }
     }
 
@@ -265,18 +264,18 @@ async function terminalAction({ request }: ActionFunctionArgs) {
 
           try {
             runtime.writeToSession(sessionId, data);
-            return json({ success: true });
+            return Response.json({ success: true });
           } catch {
             // Session not in this runtime, try next
           }
         }
 
-        return json({ error: 'Session not found' }, { status: 404 });
+        return Response.json({ error: 'Session not found' }, { status: 404 });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Write failed';
         logger.error('Terminal write failed:', error);
 
-        return json({ error: message }, { status: 500 });
+        return Response.json({ error: message }, { status: 500 });
       }
     }
 
@@ -286,7 +285,7 @@ async function terminalAction({ request }: ActionFunctionArgs) {
       // Resize is a no-op for basic child_process (Phase 2: node-pty)
       logger.debug(`Resize request for ${sessionId}: ${cols}x${rows} (no-op in Phase 1)`);
 
-      return json({ success: true });
+      return Response.json({ success: true });
     }
 
     case 'kill': {
@@ -300,18 +299,18 @@ async function terminalAction({ request }: ActionFunctionArgs) {
 
           try {
             runtime.killSession(sessionId, signal ?? 'SIGTERM');
-            return json({ success: true });
+            return Response.json({ success: true });
           } catch {
             // Session not in this runtime, try next
           }
         }
 
-        return json({ error: 'Session not found' }, { status: 404 });
+        return Response.json({ error: 'Session not found' }, { status: 404 });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Kill failed';
         logger.error('Terminal kill failed:', error);
 
-        return json({ error: message }, { status: 500 });
+        return Response.json({ error: message }, { status: 500 });
       }
     }
 
@@ -323,17 +322,17 @@ async function terminalAction({ request }: ActionFunctionArgs) {
         const runtime = await manager.getRuntime(projectId);
         const sessions = runtime.listSessions();
 
-        return json({ sessions });
+        return Response.json({ sessions });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'List failed';
         logger.error('Terminal list failed:', error);
 
-        return json({ error: message }, { status: 500 });
+        return Response.json({ error: message }, { status: 500 });
       }
     }
 
     default: {
-      return json({ error: `Unknown operation: ${op}` }, { status: 400 });
+      return Response.json({ error: `Unknown operation: ${op}` }, { status: 400 });
     }
   }
 }

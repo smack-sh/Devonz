@@ -16,8 +16,11 @@ interface ResolveModelOptions {
  * Resolves a model by name from a provider's static or dynamic model lists.
  * Falls back to the first available model if the requested model is not found.
  *
- * This is shared across create-summary, select-context, and stream-text
- * to eliminate duplicated resolution boilerplate.
+ * This is shared across create-summary, select-context, stream-text, and
+ * the model fallback chain to eliminate duplicated resolution boilerplate.
+ * When a fallback model is configured (e.g. "anthropic/claude-3-haiku-20240307"),
+ * stream-text.ts parses the provider/model string and calls this function
+ * to resolve the fallback model through the same path as the primary.
  */
 export async function resolveModel(options: ResolveModelOptions): Promise<ModelInfo> {
   const { provider, currentModel, apiKeys, providerSettings, serverEnv, logger } = options;

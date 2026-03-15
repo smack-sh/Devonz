@@ -280,6 +280,100 @@ export const DEFAULT_AGENT_SETTINGS: AgentModeSettings = {
 };
 
 /**
+ * Plan phase for multi-step planning workflow
+ */
+export type PlanPhase = 'idle' | 'planning' | 'executing' | 'reviewing';
+
+/**
+ * Sub-task status for decomposed work items
+ */
+export type SubTaskStatus = 'pending' | 'in-progress' | 'done' | 'failed';
+
+/**
+ * Sub-task for decomposed complex requests.
+ * Depth is capped at 2 (0 = root, 1 = child, 2 = grandchild).
+ */
+export interface SubTask {
+  /** Unique identifier for this sub-task */
+  readonly id: string;
+
+  /** Short title describing the sub-task */
+  readonly title: string;
+
+  /** Current status of the sub-task */
+  readonly status: SubTaskStatus;
+
+  /** ID of the parent task that spawned this sub-task */
+  readonly parentTaskId: string;
+
+  /**
+   * Nesting depth — 0 = root-level, 1 = child, 2 = grandchild.
+   * Maximum depth is 2; deeper decomposition is not permitted.
+   */
+  readonly depth: 0 | 1 | 2;
+}
+
+/**
+ * Self-review cycle record for run→detect→fix loops
+ */
+export interface ReviewCycle {
+  /** Sequential cycle number within the current session (1-based) */
+  readonly cycleNumber: number;
+
+  /** What triggered this review cycle */
+  readonly triggeredBy: 'auto' | 'user' | 'error-detection';
+
+  /** Errors discovered during this review cycle */
+  readonly errorsFound: readonly string[];
+
+  /** Whether a fix was attempted in response to the errors */
+  readonly fixAttempted: boolean;
+
+  /** Stable fingerprint for deduplication across cycles */
+  readonly fingerprint: string;
+}
+
+/**
+ * Cross-session memory reference for persistent context
+ */
+export interface MemoryRef {
+  /** Unique key identifying this memory entry */
+  readonly key: string;
+
+  /** Category grouping for the memory (e.g., 'preference', 'pattern', 'decision') */
+  readonly category: string;
+
+  /** Human-readable summary of the stored memory */
+  readonly summary: string;
+
+  /** ISO 8601 timestamp when the memory was first created */
+  readonly createdAt: string;
+
+  /** ISO 8601 timestamp when the memory was last updated */
+  readonly updatedAt: string;
+}
+
+/**
+ * Metadata for a conversation branch point
+ */
+export interface BranchMetadata {
+  /** Unique identifier for this branch */
+  readonly branchId: string;
+
+  /** Chat ID of the parent conversation */
+  readonly parentChatId: string;
+
+  /** Message ID where the branch diverges from the parent */
+  readonly branchPointMessageId: string;
+
+  /** User-facing label for this branch */
+  readonly label: string;
+
+  /** ISO 8601 timestamp when the branch was created */
+  readonly createdAt: string;
+}
+
+/**
  * Agent execution status
  */
 export type AgentStatus =
@@ -362,6 +456,18 @@ export interface AgentExecutionState {
 
   /** Pending approval request */
   pendingApproval?: ApprovalRequest;
+
+  /** Current plan phase for multi-step planning workflow */
+  planPhase: PlanPhase;
+
+  /** Decomposed sub-tasks for the current execution */
+  subTasks: readonly SubTask[];
+
+  /** Current self-review cycle state (undefined when no review is active) */
+  reviewCycle?: ReviewCycle;
+
+  /** Cross-session memory references loaded for this execution */
+  memoryRefs: readonly MemoryRef[];
 }
 
 /**
@@ -378,6 +484,9 @@ export const INITIAL_AGENT_STATE: AgentExecutionState = {
   filesCreated: [],
   filesModified: [],
   commandsExecuted: [],
+  planPhase: 'idle',
+  subTasks: [],
+  memoryRefs: [],
 };
 
 /**
@@ -461,4 +570,128 @@ export interface AgentOrchestratorOptions {
 
   /** Whether to auto-approve all actions (for testing) */
   autoApproveAll?: boolean;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Agent Mode v3 — Multi-Turn Intelligence Types
+ * ---------------------------------------------------------------------------
+ */
+
+/**
+ * Tracks cumulative and per-step token usage across a conversation.
+ * Used by the context window manager to decide when to summarize or prune.
+ */
+export interface TokenBudgetState {
+  /** Cumulative prompt (input) tokens consumed so far */
+  readonly promptTokens: number;
+
+  /** Cumulative completion (output) tokens consumed so far */
+  readonly completionTokens: number;
+
+  /** Total tokens consumed (promptTokens + completionTokens) */
+  readonly totalTokens: number;
+
+  /** Maximum context window size for the active model */
+  readonly maxContextTokens: number;
+
+  /** Current usage as a percentage of maxContextTokens (0–100) */
+  readonly usagePercentage: number;
+
+  /** Estimated remaining full-sized LLM steps before the window is exhausted */
+  readonly stepsRemaining: number;
+}
+
+/**
+ * Configuration for context window management thresholds.
+ * Determines when the agent should trigger mid-conversation summarization.
+ */
+export interface ContextWindowConfig {
+  /**
+   * Percentage of maxContextTokens at which summarization is triggered.
+   * @default 75
+   */
+  readonly thresholdPercentage: number;
+
+  /**
+   * Safety margin percentage reserved below maxContextTokens to prevent
+   * hard truncation by the provider.
+   * @default 10
+   */
+  readonly safetyMarginPercentage: number;
+
+  /** Maximum context window size (model-specific) */
+  readonly maxContextTokens: number;
+}
+
+/**
+ * Phase-boundary snapshot for conversation recovery.
+ * Stored in IndexedDB so a crashed or compacted conversation can resume.
+ */
+export interface AgentCheckpoint {
+  /** Unique checkpoint identifier */
+  readonly id: string;
+
+  /** Chat ID the checkpoint belongs to */
+  readonly chatId: string;
+
+  /** Plan phase at the time the checkpoint was created */
+  readonly phase: PlanPhase;
+
+  /** ISO 8601 timestamp of checkpoint creation */
+  readonly timestamp: string;
+
+  /** Serialised conversation messages (JSON string) */
+  readonly messages: string;
+
+  /** Serialised agent execution state (JSON string) */
+  readonly agentState: string;
+
+  /** Token budget snapshot at checkpoint time */
+  readonly tokenBudget: TokenBudgetState;
+}
+
+/**
+ * Status of a parallel tool batch execution
+ */
+export type ParallelToolBatchStatus = 'pending' | 'executing' | 'complete' | 'failed';
+
+/**
+ * Single tool invocation within a parallel batch
+ */
+export interface ParallelToolCall {
+  /** Tool name (devonz_* namespace) */
+  readonly name: string;
+
+  /** Tool parameters */
+  readonly params: Record<string, unknown>;
+}
+
+/**
+ * Result of a single tool invocation within a parallel batch
+ */
+export interface ParallelToolResult {
+  /** Tool name that produced this result */
+  readonly name: string;
+
+  /** Execution result */
+  readonly result: ToolExecutionResult;
+}
+
+/**
+ * A batch of independent read-only tool calls that can execute in parallel.
+ * Used to speed up information-gathering steps by running multiple reads concurrently.
+ */
+export interface ParallelToolBatch {
+  /** Unique batch identifier */
+  readonly batchId: string;
+
+  /** Grouped tool invocations to execute in parallel */
+  readonly tools: readonly ParallelToolCall[];
+
+  /** Current batch execution status */
+  readonly status: ParallelToolBatchStatus;
+
+  /** Results collected after execution (one per tool, same order as tools) */
+  readonly results: readonly ParallelToolResult[];
 }

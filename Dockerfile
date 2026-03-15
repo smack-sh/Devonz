@@ -1,6 +1,6 @@
 # ─────────────────────────────────────────────────────────────
 # Devonz (devonz.diy) — Multi-stage Docker build
-# Optimised for pnpm + Remix on Node 20 LTS
+# Optimised for pnpm + React Router v7 on Node 20 LTS
 # ─────────────────────────────────────────────────────────────
 
 # ── Stage 1: base ─────────────────────────────────────────────
@@ -19,7 +19,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile
 
 # ── Stage 3: build ────────────────────────────────────────────
-# Build the Remix application
+# Build the React Router application
 FROM deps AS build
 COPY . .
 
@@ -28,7 +28,7 @@ RUN node pre-start.cjs
 RUN pnpm build
 
 # ── Stage 4: prod-deps ───────────────────────────────────────
-# Prune to production deps only (remix-serve is now a prod dep)
+# Prune to production deps only (@react-router/serve is now a prod dep)
 FROM build AS prod-deps
 RUN pnpm prune --prod --ignore-scripts
 
@@ -44,13 +44,13 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends git curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy node_modules (includes remix-serve needed for runtime)
+# Copy node_modules (includes @react-router/serve needed for runtime)
 COPY --from=prod-deps /app/node_modules ./node_modules
 
 # Copy build output
 COPY --from=build /app/build ./build
 
-# Copy package.json (needed by remix-serve)
+# Copy package.json (needed by @react-router/serve)
 COPY --from=build /app/package.json ./
 
 # Non-root user for security
@@ -60,4 +60,4 @@ RUN groupadd --system --gid 1001 appgroup && \
 USER appuser
 
 EXPOSE 5173
-CMD ["node", "node_modules/@remix-run/serve/dist/cli.js", "./build/server/index.js"]
+CMD ["node", "node_modules/@react-router/serve/dist/cli.js", "./build/server/index.js"]

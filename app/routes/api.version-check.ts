@@ -1,22 +1,6 @@
-import { json, type LoaderFunctionArgs } from '@remix-run/node';
+import { type LoaderFunctionArgs } from 'react-router';
 import { withSecurity } from '~/lib/security';
-
-interface ChangelogEntry {
-  hash: string;
-  message: string;
-  date: string;
-}
-
-interface VersionCheckResponse {
-  local: { hash: string; fullHash: string };
-  remote: { hash: string; fullHash: string; date: string; message: string };
-  updateAvailable: boolean;
-  commitsBehind: number;
-  changelog: ChangelogEntry[];
-  compareUrl: string;
-  isDocker: boolean;
-  error: string | null;
-}
+import type { ChangelogEntry, VersionCheckResponse } from '~/types/api-types';
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -43,7 +27,7 @@ const GITHUB_HEADERS = {
 async function versionCheckLoader(_args: LoaderFunctionArgs) {
   // Return cached response if still fresh
   if (cache && Date.now() - cache.timestamp < CACHE_TTL_MS) {
-    return json(cache.data);
+    return Response.json(cache.data);
   }
 
   const owner = 'zebbern';
@@ -148,7 +132,7 @@ async function versionCheckLoader(_args: LoaderFunctionArgs) {
   // Cache the response
   cache = { data: response, timestamp: Date.now() };
 
-  return json(response);
+  return Response.json(response);
 }
 
 export const loader = withSecurity(versionCheckLoader, {

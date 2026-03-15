@@ -199,10 +199,11 @@ describe('phase-pipeline', () => {
 
   // ── Test 6: Opt-in flag gating (unit test of getPhaseNames/buildPhaseEvent) ──
 
-  it('buildPhaseEvent produces correct SSE tokens and getPhaseNames returns all 4 phases', () => {
+  it('buildPhaseEvent produces correct SSE tokens and getPhaseNames returns all 5 phases', () => {
     const names = getPhaseNames();
-    expect(names).toEqual(['plan', 'scaffold', 'implement', 'review']);
+    expect(names).toEqual(['blueprint', 'plan', 'scaffold', 'implement', 'review']);
 
+    expect(buildPhaseEvent('blueprint')).toBe('__phase:blueprint');
     expect(buildPhaseEvent('plan')).toBe('__phase:plan');
     expect(buildPhaseEvent('scaffold')).toBe('__phase:scaffold');
     expect(buildPhaseEvent('implement')).toBe('__phase:implement');
@@ -235,7 +236,7 @@ describe('phase-pipeline', () => {
     expect(getModelInstance).toHaveBeenCalledTimes(4);
 
     // All calls use the default provider/model since routing config is undefined
-    for (const call of getModelInstance.mock.calls) {
+    for (const call of getModelInstance.mock.calls as unknown[][]) {
       expect(call[0]).toBe('Anthropic');
       expect(call[1]).toBe('claude-sonnet-4-20250514');
     }

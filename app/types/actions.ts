@@ -1,6 +1,6 @@
 import type { Change } from 'diff';
 
-export type ActionType = 'file' | 'shell' | 'supabase' | 'plan' | 'task-update';
+export type ActionType = 'file' | 'diff' | 'shell' | 'supabase' | 'plan' | 'task-update';
 
 export interface BaseAction {
   content: string;
@@ -9,6 +9,27 @@ export interface BaseAction {
 export interface FileAction extends BaseAction {
   type: 'file';
   filePath: string;
+}
+
+/**
+ * A single search-replace block used by the diff-based editing mode.
+ * The parser locates `search` within the target file and replaces it
+ * with `replace`. Used by both the dual-mode message parser and the
+ * action runner.
+ */
+export interface SearchReplaceBlock {
+  search: string;
+  replace: string;
+}
+
+/**
+ * Diff action — applies one or more search-replace blocks to a file
+ * instead of replacing its entire content.
+ */
+export interface DiffAction extends BaseAction {
+  type: 'diff';
+  filePath: string;
+  diffBlocks: SearchReplaceBlock[];
 }
 
 export interface ShellAction extends BaseAction {
@@ -61,6 +82,7 @@ export interface TaskUpdateAction extends BaseAction {
 
 export type DevonzAction =
   | FileAction
+  | DiffAction
   | ShellAction
   | StartAction
   | BuildAction

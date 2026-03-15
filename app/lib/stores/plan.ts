@@ -1,4 +1,5 @@
 import { map, computed, atom } from 'nanostores';
+import type { SubTask } from '~/lib/agent/types';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('PlanStore');
@@ -36,6 +37,18 @@ export interface PlanTask {
 
   /** Files this task will create or modify */
   fileActions?: string[];
+
+  /** IDs of tasks this task depends on (must complete before this task starts) */
+  dependsOn?: string[];
+
+  /** Decomposed sub-tasks for granular progress tracking */
+  subTasks?: SubTask[];
+
+  /** Estimated effort for this task */
+  estimatedEffort?: 'small' | 'medium' | 'large' | null;
+
+  /** Self-review status after task execution */
+  reviewStatus?: 'pending' | 'passed' | 'failed' | null;
 }
 
 /**
@@ -75,16 +88,29 @@ const initialState: PlanState = {
 export const planStore = map<PlanState>(initialState);
 
 /**
- * Computed store for progress percentage
+ * Computed store for progress percentage.
+ * Sub-task-aware: tasks with sub-tasks contribute fractional progress
+ * based on how many sub-tasks are done, rather than all-or-nothing.
  */
 export const planProgress = computed(planStore, (state) => {
   if (state.tasks.length === 0) {
     return 0;
   }
 
-  const completedTasks = state.tasks.filter((task) => task.status === 'completed').length;
+  let totalWeight = 0;
 
-  return Math.round((completedTasks / state.tasks.length) * 100);
+  for (const task of state.tasks) {
+    const subs = task.subTasks;
+
+    if (subs && subs.length > 0) {
+      const doneCount = subs.filter((s) => s.status === 'done').length;
+      totalWeight += doneCount / subs.length;
+    } else {
+      totalWeight += task.status === 'completed' ? 1 : 0;
+    }
+  }
+
+  return Math.round((totalWeight / state.tasks.length) * 100);
 });
 
 /**
@@ -114,6 +140,167 @@ export const allTasksCompleted = computed(planStore, (state) => {
  */
 export const pendingTasksCount = computed(planStore, (state) => {
   return state.tasks.filter((task) => task.status !== 'completed').length;
+});
+
+/**
+ * Computed store for per-task sub-task completion percentage.
+ * Returns a Map where each key is a task ID and each value is
+ * the completion percentage (0–100) of that task's sub-tasks.
+ * Tasks with no sub-tasks derive progress from their own status.
+ */
+export const subTaskProgress = computed(planStore, (state): Map<string, number> => {
+  const progress = new Map<string, number>();
+
+  for (const task of state.tasks) {
+    const subs = task.subTasks;
+
+    if (subs && subs.length > 0) {
+      const doneCount = subs.filter((s) => s.status === 'done').length;
+      progress.set(task.id, Math.round((doneCount / subs.length) * 100));
+    } else {
+      progress.set(task.id, task.status === 'completed' ? 100 : 0);
+    }
+  }
+
+  return progress;
+});
+
+/**
+ * Computed store for topologically sorted task IDs respecting dependsOn.
+ * Uses Kahn's algorithm with cycle detection. If a dependency cycle is
+ * detected, cyclic tasks are appended in their original order and a
+ * warning is logged.
+ */
+export const taskExecutionOrder = computed(planStore, (state): string[] => {
+  const tasks = state.tasks;
+
+  if (tasks.length === 0) {
+    return [];
+  }
+
+  const taskIds = new Set(tasks.map((t) => t.id));
+  const inDegree = new Map<string, number>();
+  const dependents = new Map<string, string[]>();
+
+  for (const task of tasks) {
+    inDegree.set(task.id, 0);
+    dependents.set(task.id, []);
+  }
+
+  for (const task of tasks) {
+    const deps = task.dependsOn ?? [];
+
+    for (const dep of deps) {
+      if (taskIds.has(dep)) {
+        inDegree.set(task.id, (inDegree.get(task.id) ?? 0) + 1);
+        dependents.get(dep)!.push(task.id);
+      }
+    }
+  }
+
+  // Kahn's algorithm: process nodes with zero in-degree
+  const queue: string[] = [];
+
+  for (const [id, degree] of inDegree) {
+    if (degree === 0) {
+      queue.push(id);
+    }
+  }
+
+  const sorted: string[] = [];
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    sorted.push(current);
+
+    for (const dependent of dependents.get(current) ?? []) {
+      const newDegree = (inDegree.get(dependent) ?? 1) - 1;
+      inDegree.set(dependent, newDegree);
+
+      if (newDegree === 0) {
+        queue.push(dependent);
+      }
+    }
+  }
+
+  // Cycle detection: if not all tasks were sorted, a cycle exists
+  if (sorted.length < tasks.length) {
+    logger.warn('Cycle detected in task dependencies — appending cyclic tasks in original order');
+
+    const sortedSet = new Set(sorted);
+
+    for (const task of tasks) {
+      if (!sortedSet.has(task.id)) {
+        sorted.push(task.id);
+      }
+    }
+  }
+
+  return sorted;
+});
+
+/**
+ * Computed store for the next executable task — the first pending (not-started)
+ * task whose dependsOn tasks are all 'completed', ordered by topological sort.
+ */
+export const nextExecutableTask = computed(
+  [planStore, taskExecutionOrder],
+  (state, executionOrder): PlanTask | null => {
+    if (state.tasks.length === 0) {
+      return null;
+    }
+
+    const taskMap = new Map<string, PlanTask>();
+
+    for (const task of state.tasks) {
+      taskMap.set(task.id, task);
+    }
+
+    for (const taskId of executionOrder) {
+      const task = taskMap.get(taskId);
+
+      if (!task || task.status !== 'not-started') {
+        continue;
+      }
+
+      const deps = task.dependsOn ?? [];
+      const allDepsCompleted = deps.every((depId) => {
+        const depTask = taskMap.get(depId);
+        return depTask?.status === 'completed';
+      });
+
+      if (allDepsCompleted) {
+        return task;
+      }
+    }
+
+    return null;
+  },
+);
+
+/**
+ * Computed store for plan effort summary — counts tasks by estimatedEffort.
+ */
+export const planEffortSummary = computed(planStore, (state): { small: number; medium: number; large: number } => {
+  let small = 0;
+  let medium = 0;
+  let large = 0;
+
+  for (const task of state.tasks) {
+    switch (task.estimatedEffort) {
+      case 'small':
+        small++;
+        break;
+      case 'medium':
+        medium++;
+        break;
+      case 'large':
+        large++;
+        break;
+    }
+  }
+
+  return { small, medium, large };
 });
 
 /**

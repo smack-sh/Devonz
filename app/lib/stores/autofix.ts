@@ -8,6 +8,7 @@
  * Session-level safeguards prevent infinite loops:
  * - Total attempt limit across all error types within a rolling window
  * - Cooldown period after a session ends before a new one can start
+ * - Error fingerprint tracking: detects recurring errors across fix attempts
  */
 
 import { atom, map } from 'nanostores';
@@ -24,6 +25,9 @@ const logger = createScopedLogger('AutoFixStore');
 const MAX_TOTAL_SESSION_ATTEMPTS = 10;
 const SESSION_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 const SESSION_COOLDOWN_MS = 30_000; // 30 seconds after session ends
+
+/** Threshold: if the same error fingerprint occurs this many times, declare a fix loop. */
+const FIX_LOOP_THRESHOLD = 3;
 
 /**
  * Rolling session tracker (module-level, not in store to avoid serialization)
@@ -102,6 +106,15 @@ export interface AutoFixState {
 
   /** Timestamp when current fix session started */
   sessionStartTime: number | null;
+
+  /** Fingerprint occurrence counts — tracks how many times each error fingerprint has been seen */
+  fingerprintCounts: Record<string, number>;
+
+  /** Whether auto-fix is paused due to a detected fix loop */
+  pausedByLoop: boolean;
+
+  /** The fingerprint that caused the loop pause (for UI display) */
+  loopFingerprint: string | null;
 }
 
 // Default settings
@@ -156,6 +169,9 @@ const initialState: AutoFixState = {
   currentError: null,
   fixHistory: [],
   sessionStartTime: null,
+  fingerprintCounts: {},
+  pausedByLoop: false,
+  loopFingerprint: null,
 };
 
 /**
@@ -169,12 +185,14 @@ export const autoFixStore = map<AutoFixState>(initialState);
 export const isAutoFixEnabled = atom(initialState.settings.isEnabled);
 export const isAutoFixing = atom(false);
 export const autoFixRetryCount = atom(0);
+export const isAutoFixPausedByLoop = atom(false);
 
 // Sync derived atoms with main store
 autoFixStore.subscribe((state) => {
   isAutoFixEnabled.set(state.settings.isEnabled);
   isAutoFixing.set(state.isFixing);
   autoFixRetryCount.set(state.currentRetries);
+  isAutoFixPausedByLoop.set(state.pausedByLoop);
 });
 
 /**
@@ -213,6 +231,13 @@ export function startAutoFix(error: { source: ErrorSource; type: string; message
   // Check if auto-fix is enabled
   if (!currentState.settings.isEnabled) {
     logger.debug('Auto-fix is disabled, skipping');
+
+    return false;
+  }
+
+  // Check if paused by fix loop detection
+  if (currentState.pausedByLoop) {
+    logger.debug('Auto-fix is paused due to fix loop detection');
 
     return false;
   }
@@ -338,6 +363,9 @@ export function resetAutoFix(): void {
     currentError: null,
     fixHistory: [],
     sessionStartTime: null,
+    fingerprintCounts: {},
+    pausedByLoop: false,
+    loopFingerprint: null,
   });
 
   // Set cooldown to prevent immediate re-triggering if the fix created a new error
@@ -353,7 +381,12 @@ export function resetAutoFix(): void {
 export function shouldContinueFix(): boolean {
   const state = autoFixStore.get();
 
-  if (!state.settings.isEnabled || state.isFixing || state.currentRetries >= state.settings.maxRetries) {
+  if (
+    !state.settings.isEnabled ||
+    state.isFixing ||
+    state.pausedByLoop ||
+    state.currentRetries >= state.settings.maxRetries
+  ) {
     return false;
   }
 
@@ -440,4 +473,86 @@ export function resetSessionState(): void {
   resetAutoFix();
   sessionAttemptTimestamps = [];
   lastSessionEndTime = 0;
+}
+
+// ─── Error Fingerprinting & Fix Loop Detection ─────────────────────────────
+
+/**
+ * FNV-1a 32-bit hash.
+ * Produces a stable hex string fingerprint for an error.
+ */
+function fnv1aHash(input: string): string {
+  let hash = 0x811c9dc5; // FNV offset basis
+
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193); // FNV prime
+  }
+
+  // Convert to unsigned 32-bit then to hex
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+/**
+ * Compute a stable fingerprint for an error.
+ * Uses FNV-1a hash of the error type + a normalised message (first 200 chars, trimmed).
+ */
+export function computeErrorFingerprint(errorType: string, errorMessage: string): string {
+  const normalised = `${errorType}::${errorMessage.trim().slice(0, 200)}`;
+
+  return fnv1aHash(normalised);
+}
+
+/**
+ * Record a fingerprint occurrence and return the updated count.
+ * If the count reaches FIX_LOOP_THRESHOLD, the store is automatically
+ * paused and the caller is informed via the return value.
+ */
+export function recordFingerprint(fingerprint: string): { count: number; loopDetected: boolean } {
+  const currentState = autoFixStore.get();
+  const prevCount = currentState.fingerprintCounts[fingerprint] ?? 0;
+  const newCount = prevCount + 1;
+
+  const loopDetected = newCount >= FIX_LOOP_THRESHOLD;
+
+  const updates: Partial<AutoFixState> = {
+    fingerprintCounts: { ...currentState.fingerprintCounts, [fingerprint]: newCount },
+  };
+
+  if (loopDetected && !currentState.pausedByLoop) {
+    updates.pausedByLoop = true;
+    updates.loopFingerprint = fingerprint;
+    updates.isFixing = false;
+    logger.warn(`Fix loop detected for fingerprint ${fingerprint} (seen ${newCount} times). Pausing auto-fix.`);
+  }
+
+  autoFixStore.set({ ...currentState, ...updates });
+
+  return { count: newCount, loopDetected };
+}
+
+/**
+ * Check whether a given fingerprint has triggered a fix loop.
+ */
+export function isFixLoop(fingerprint: string): boolean {
+  const state = autoFixStore.get();
+
+  return (state.fingerprintCounts[fingerprint] ?? 0) >= FIX_LOOP_THRESHOLD;
+}
+
+/**
+ * Resume auto-fix after a loop pause (user-initiated).
+ * Clears the loop state and resets fingerprint counts so the user can retry.
+ */
+export function resumeFromLoop(): void {
+  const currentState = autoFixStore.get();
+
+  autoFixStore.set({
+    ...currentState,
+    pausedByLoop: false,
+    loopFingerprint: null,
+    fingerprintCounts: {},
+  });
+
+  logger.info('Auto-fix resumed after loop pause — fingerprint counts cleared');
 }

@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/react';
-import { memo, useMemo } from 'react';
+import { memo, useDeferredValue, useMemo } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import * as Tabs from '@radix-ui/react-tabs';
 import {
@@ -21,6 +21,7 @@ import { FileBreadcrumb } from './FileBreadcrumb';
 import { FileTree } from './FileTree';
 import { DEFAULT_TERMINAL_SIZE, TerminalTabs } from './terminal/TerminalTabs';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { fileGenerationStatus } from '~/lib/stores/files';
 import { Search } from './Search'; // <-- Ensure Search is imported
 import { classNames } from '~/utils/classNames'; // <-- Import classNames if not already present
 import { LockManager } from './LockManager'; // <-- Import LockManager
@@ -60,6 +61,10 @@ export const EditorPanel = memo(
 
     const theme = useStore(themeStore);
     const showTerminal = useStore(workbenchStore.showTerminal);
+
+    const rawGenStatus = useStore(fileGenerationStatus);
+    const genStatus = useDeferredValue(rawGenStatus);
+    const isFileGenerating = editorDocument ? genStatus[editorDocument.filePath] === 'generating' : false;
 
     const activeFileSegments = useMemo(() => {
       if (!editorDocument) {
@@ -187,7 +192,13 @@ export const EditorPanel = memo(
                   </div>
                 )}
               </PanelHeader>
-              <div className="h-full flex-1 overflow-hidden modern-scrollbar">
+              <div className="h-full flex-1 overflow-hidden modern-scrollbar relative">
+                {isFileGenerating && (
+                  <div className="absolute inset-x-0 top-0 z-10 flex items-center gap-2 px-3 py-1.5 bg-accent-500/15 text-accent-500 text-xs font-medium border-b border-accent-500/25">
+                    <span className="i-svg-spinners:90-ring-with-bg shrink-0" />
+                    Generating…
+                  </div>
+                )}
                 <CodeMirrorEditor
                   theme={theme}
                   editable={!isStreaming && editorDocument !== undefined}

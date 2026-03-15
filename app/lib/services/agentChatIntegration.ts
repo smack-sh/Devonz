@@ -5,15 +5,25 @@
  * Exposes agent tools in MCP-compatible format for the LLM to use.
  */
 
-import type { ToolSet, Message, DataStreamWriter } from 'ai';
+import type { ToolSet, Message, DataStreamWriter, JSONValue } from 'ai';
 import { formatDataStreamPart, convertToCoreMessages } from 'ai';
 import { z } from 'zod';
 import { createScopedLogger } from '~/utils/logger';
-import { agentToolDefinitions, executeAgentTool, isAgentTool, getAgentToolNames } from './agentToolsService';
+import {
+  agentToolDefinitions,
+  executeAgentTool,
+  isAgentTool,
+  getAgentToolNames,
+  isReadOnlyTool,
+  executeToolBatch,
+} from './agentToolsService';
+import type { BatchToolResult } from './agentToolsService';
 import { getAgentOrchestrator } from './agentOrchestratorService';
+import type { SelfReviewResult } from './agentOrchestratorService';
 import { isAgentModeEnabled, getAgentModeSettings } from '~/lib/stores/agentMode';
 import { TOOL_EXECUTION_APPROVAL, TOOL_EXECUTION_DENIED, TOOL_EXECUTION_ERROR } from '~/utils/constants';
 import type { ToolCallAnnotation } from '~/types/context';
+import type { PlanPhase, TokenBudgetState } from '~/lib/agent/types';
 
 const logger = createScopedLogger('AgentChatIntegration');
 
@@ -350,4 +360,226 @@ export function incrementAgentIteration(): boolean {
 export function clearAgentToolCaches(): void {
   agentToolSetCache = null;
   agentToolSetWithoutExecuteCache = null;
+}
+
+// ─── Planning-First Flow & Self-Review Bridge ─────────────────────────
+
+/** Mirror of the non-exported constant in agentOrchestratorService.ts */
+const MAX_REVIEW_CYCLES = 3;
+
+/** Extra maxSteps budget per review cycle (tool call + error check + fix attempts) */
+const STEPS_PER_REVIEW_CYCLE = 5;
+
+/**
+ * Emit a plan_phase_changed structured streaming event.
+ * Called whenever the agent transitions between planning workflow phases.
+ */
+export function emitPlanPhaseEvent(
+  dataStream: DataStreamWriter,
+  fromPhase: PlanPhase,
+  toPhase: PlanPhase,
+  taskId?: string,
+): void {
+  dataStream.writeData({
+    devonz_event: {
+      type: 'plan_phase_changed' as const,
+      timestamp: new Date().toISOString(),
+      fromPhase,
+      toPhase,
+      ...(taskId ? { taskId } : {}),
+    },
+  });
+  logger.debug('Plan phase changed', { fromPhase, toPhase, taskId });
+}
+
+/**
+ * Emit a review_cycle structured streaming event from a SelfReviewResult.
+ * Only emits if the result contains review cycle data.
+ */
+export function emitReviewCycleEvent(dataStream: DataStreamWriter, reviewResult: SelfReviewResult): void {
+  if (!reviewResult.reviewCycle) {
+    return;
+  }
+
+  const cycle = reviewResult.reviewCycle;
+
+  dataStream.writeData({
+    devonz_event: {
+      type: 'review_cycle' as const,
+      timestamp: new Date().toISOString(),
+      cycleNumber: cycle.cycleNumber,
+      triggeredBy: cycle.triggeredBy,
+      errorsFound: [...cycle.errorsFound],
+      fixAttempted: cycle.fixAttempted,
+      fingerprint: cycle.fingerprint,
+    },
+  });
+  logger.debug('Review cycle event emitted', { cycleNumber: cycle.cycleNumber, fingerprint: cycle.fingerprint });
+}
+
+/**
+ * Calculate adjusted maxSteps that accounts for self-review overhead
+ * and token budget pressure.
+ *
+ * Base budget = requestedSteps + review overhead.
+ * When the context window is heavily used the base is reduced to
+ * conserve tokens.  A recent context summary grants a small bonus.
+ *
+ * @param requestedSteps       — raw step limit from the user/config
+ * @param tokenBudget          — current token usage state (optional)
+ * @param recentContextSummary — true when a context summary occurred
+ *        in the last 2 steps (caller decides via cooldown check)
+ */
+export function getAdjustedMaxSteps(
+  requestedSteps: number,
+  tokenBudget?: TokenBudgetState,
+  recentContextSummary?: boolean,
+): number {
+  const base = requestedSteps + MAX_REVIEW_CYCLES * STEPS_PER_REVIEW_CYCLE;
+
+  // No budget data or unknown usage → no reduction
+  if (!tokenBudget || tokenBudget.usagePercentage < 0) {
+    return base;
+  }
+
+  let adjusted: number;
+
+  if (tokenBudget.usagePercentage > 90) {
+    // Critical pressure — reduce by 60%, minimum 2
+    adjusted = Math.max(2, Math.floor(base * 0.4));
+  } else if (tokenBudget.usagePercentage > 80) {
+    // High pressure — reduce by 30%, minimum 3
+    adjusted = Math.max(3, Math.floor(base * 0.7));
+  } else {
+    adjusted = base;
+  }
+
+  // Bonus for recent context summary (capped at original base)
+  if (recentContextSummary) {
+    adjusted = Math.min(base, adjusted + 2);
+  }
+
+  return adjusted;
+}
+
+/**
+ * Run the orchestrator's self-review loop for the given step's tool calls,
+ * emit the appropriate streaming event, and return the result.
+ *
+ * @param dataStream — active data stream for event emission
+ * @param toolCalls — tool calls from the completed step
+ * @returns The self-review result from the orchestrator
+ */
+export async function handleAgentStepReview(
+  dataStream: DataStreamWriter,
+  toolCalls: ReadonlyArray<{ toolName: string }>,
+): Promise<SelfReviewResult> {
+  const orchestrator = getAgentOrchestrator();
+  const result = await orchestrator.handleStepFinishReview(toolCalls);
+
+  // Emit the review cycle event if review data is available
+  if (result.reviewCycle) {
+    emitReviewCycleEvent(dataStream, result);
+  }
+
+  if (result.loopTerminated) {
+    logger.warn('Self-review loop terminated', { reason: result.terminationReason });
+  }
+
+  return result;
+}
+
+/**
+ * Emit a warning streaming event when the step budget drops critically low
+ * during an active review cycle. The caller should terminate the review loop
+ * after emitting this warning.
+ */
+export function emitStepBudgetWarning(dataStream: DataStreamWriter, remainingSteps: number): void {
+  dataStream.writeData({
+    devonz_event: {
+      type: 'error' as const,
+      timestamp: new Date().toISOString(),
+      code: 'STEP_BUDGET_LOW',
+      message: `Step budget critically low (${remainingSteps} remaining). Terminating review loop early to preserve remaining steps for completion.`,
+      recoverable: true,
+    },
+  });
+  logger.warn('Step budget warning emitted', { remainingSteps });
+}
+
+/**
+ * Check whether the orchestrator's self-review loop is currently active.
+ * Used by the step budget check to determine if early termination is needed.
+ */
+export function isAgentReviewLoopActive(): boolean {
+  const orchestrator = getAgentOrchestrator();
+  return orchestrator.isReviewLoopActive();
+}
+
+// ─── Parallel Tool Batch Execution ────────────────────────────────────
+
+/**
+ * Execute a batch of tool calls with parallel support for read-only tools.
+ *
+ * When **all** tool calls in the batch are read-only (`devonz_read_file`,
+ * `devonz_list_directory`, `devonz_search_code`, `devonz_get_errors`), they
+ * are executed concurrently via `Promise.allSettled`. Otherwise, the batch
+ * falls back to sequential execution.
+ *
+ * Emits `parallel_tool_batch` streaming events before and after execution
+ * so the client can display batch progress. Individual results are returned
+ * for the caller to record in the orchestrator's `toolCalls` array.
+ *
+ * @param toolCalls  — tool name + params pairs to execute
+ * @param dataStream — active data stream for event emission
+ * @returns per-tool results and whether the batch ran in parallel
+ */
+export async function executeParallelToolBatch(
+  toolCalls: ReadonlyArray<{ name: string; params: Record<string, unknown> }>,
+  dataStream: DataStreamWriter,
+): Promise<{ parallel: boolean; results: BatchToolResult[] }> {
+  const batchId = crypto.randomUUID();
+  const allReadOnly = toolCalls.length > 1 && toolCalls.every((tc) => isReadOnlyTool(tc.name));
+
+  if (!allReadOnly) {
+    // Not eligible for parallel execution — fall back to sequential
+    return executeToolBatch(toolCalls);
+  }
+
+  // ── Emit "executing" event ────────────────────────────────────────────
+  dataStream.writeData({
+    devonz_event: {
+      type: 'parallel_tool_batch' as const,
+      timestamp: new Date().toISOString(),
+      batchId,
+      tools: toolCalls.map((tc) => ({ name: tc.name, params: tc.params as Record<string, JSONValue> })),
+      status: 'running' as const,
+    },
+  });
+  logger.info(`Parallel tool batch ${batchId}: executing ${toolCalls.length} read-only tools`);
+
+  // ── Execute in parallel ──────────────────────────────────────────────
+  const { results } = await executeToolBatch(toolCalls);
+
+  // Determine overall batch status: 'failed' if ANY tool failed, else 'completed'
+  const hasFailed = results.some((r) => !r.result.success);
+  const batchStatus = hasFailed ? 'failed' : 'completed';
+
+  // ── Emit "complete" / "failed" event ──────────────────────────────────
+  dataStream.writeData({
+    devonz_event: {
+      type: 'parallel_tool_batch' as const,
+      timestamp: new Date().toISOString(),
+      batchId,
+      tools: toolCalls.map((tc) => ({ name: tc.name, params: tc.params as Record<string, JSONValue> })),
+      status: batchStatus as 'completed' | 'failed',
+      results: results.map((r) => ({
+        name: r.name,
+        output: (r.result.success ? r.result.data : { error: r.result.error }) as JSONValue,
+      })) as JSONValue[],
+    },
+  });
+  logger.info(`Parallel tool batch ${batchId}: ${batchStatus} (${results.length} results)`);
+
+  return { parallel: true, results };
 }

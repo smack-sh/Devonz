@@ -8,9 +8,13 @@
  * Tools follow the Vercel AI SDK format for seamless integration with the chat system.
  */
 
+import { z } from 'zod';
 import { runtime } from '~/lib/runtime';
 import { createScopedLogger } from '~/utils/logger';
 import { autoFixStore } from '~/lib/stores/autofix';
+import { parsePlanMd, serializePlanMd } from '~/lib/hooks/usePlanSync';
+import { addMemoryEntry, removeMemoryEntry, memoryStore } from '~/lib/stores/agentMemory';
+import { serializeMemoryMd } from '~/lib/hooks/useMemorySync';
 import type {
   ToolExecutionResult,
   ReadFileParams,
@@ -29,6 +33,7 @@ import type {
   SearchCodeResult,
   SearchMatch,
   AgentToolDefinition,
+  SubTaskStatus,
 } from '~/lib/agent/types';
 
 const logger = createScopedLogger('AgentTools');
@@ -781,6 +786,224 @@ async function patchFile(params: {
 
 /*
  * ============================================================================
+ * Zod Validation Schemas
+ * ============================================================================
+ */
+
+/** Zod schema for devonz_update_plan parameters (discriminated union on action) */
+const updatePlanSchema = z.discriminatedUnion('action', [
+  z.object({
+    taskId: z.string(),
+    action: z.literal('add-subtask'),
+    subTasks: z.array(
+      z.object({
+        title: z.string(),
+        status: z.string().optional(),
+      }),
+    ),
+  }),
+  z.object({
+    taskId: z.string(),
+    action: z.literal('update-status'),
+    status: z.enum(['not-started', 'in-progress', 'completed']),
+  }),
+  z.object({
+    taskId: z.string(),
+    action: z.literal('set-dependencies'),
+    dependsOn: z.array(z.string()),
+  }),
+]);
+
+/** Zod schema for devonz_save_memory parameters (discriminated union on action) */
+const saveMemorySchema = z.discriminatedUnion('action', [
+  z.object({
+    category: z.string(),
+    key: z.string(),
+    value: z.string(),
+    action: z.literal('save'),
+  }),
+  z.object({
+    category: z.string(),
+    key: z.string(),
+    action: z.literal('delete'),
+  }),
+]);
+
+/*
+ * ============================================================================
+ * Update Plan & Save Memory Implementations
+ * ============================================================================
+ */
+
+/** Relative path for PLAN.md inside the WebContainer project root */
+const PLAN_MD_RELATIVE = 'PLAN.md';
+
+/** Relative path for MEMORY.md inside the WebContainer project root */
+const MEMORY_MD_RELATIVE = 'MEMORY.md';
+
+/**
+ * Update Plan Tool
+ * Reads PLAN.md, applies a structured update to a specific task, and writes it back.
+ * Uses serializePlanMd for safe round-trip serialization — never builds markdown manually.
+ */
+async function updatePlan(
+  params: Record<string, unknown>,
+): Promise<ToolExecutionResult<{ taskId: string; action: string; detail: string }>> {
+  const parsed = updatePlanSchema.safeParse(params);
+
+  if (!parsed.success) {
+    return { success: false, error: `Invalid parameters: ${parsed.error.message}` };
+  }
+
+  const { taskId, action } = parsed.data;
+
+  try {
+    const container = await runtime;
+
+    // Read current PLAN.md
+    let planContent: string;
+
+    try {
+      planContent = await container.fs.readFile(PLAN_MD_RELATIVE, 'utf-8');
+    } catch {
+      return { success: false, error: 'PLAN.md not found. Create a plan first.' };
+    }
+
+    // Parse into structured data
+    const { title, tasks } = parsePlanMd(planContent);
+
+    // Find the target task
+    const taskIndex = tasks.findIndex((t) => t.id === taskId);
+
+    if (taskIndex === -1) {
+      const validIds = tasks.map((t) => t.id).join(', ');
+      return { success: false, error: `Task "${taskId}" not found in PLAN.md. Valid IDs: ${validIds}` };
+    }
+
+    // Clone the task for mutation
+    const task = { ...tasks[taskIndex] };
+    let detail: string;
+
+    switch (action) {
+      case 'add-subtask': {
+        const { subTasks: newSubTasks } = parsed.data;
+        const existing = task.subTasks ? [...task.subTasks] : [];
+        const additions = newSubTasks.map((st, i) => ({
+          id: `${taskId}-sub-${existing.length + i}`,
+          title: st.title,
+          status: (st.status as SubTaskStatus) || ('pending' as const),
+          parentTaskId: taskId,
+          depth: 1 as const,
+        }));
+        task.subTasks = [...existing, ...additions];
+        detail = `Added ${additions.length} sub-task(s) to "${task.title}"`;
+        break;
+      }
+
+      case 'update-status': {
+        const { status } = parsed.data;
+        const previousStatus = task.status;
+        task.status = status;
+        detail = `Updated "${task.title}" status: ${previousStatus} → ${status}`;
+        break;
+      }
+
+      case 'set-dependencies': {
+        const { dependsOn } = parsed.data;
+
+        // Validate that referenced task IDs exist
+        const validIds = new Set(tasks.map((t) => t.id));
+        const invalidIds = dependsOn.filter((id) => !validIds.has(id));
+
+        if (invalidIds.length > 0) {
+          return {
+            success: false,
+            error: `Invalid dependency IDs: ${invalidIds.join(', ')}. Valid IDs: ${[...validIds].join(', ')}`,
+          };
+        }
+
+        // Prevent self-dependency
+        if (dependsOn.includes(taskId)) {
+          return { success: false, error: `Task "${taskId}" cannot depend on itself.` };
+        }
+
+        task.dependsOn = dependsOn;
+        detail = `Set dependencies for "${task.title}": [${dependsOn.join(', ')}]`;
+        break;
+      }
+    }
+
+    // Replace task in array and serialize
+    const updatedTasks = [...tasks];
+    updatedTasks[taskIndex] = task;
+
+    const newContent = serializePlanMd(title, updatedTasks);
+    await container.fs.writeFile(PLAN_MD_RELATIVE, newContent);
+
+    logger.info(`Updated plan task ${taskId}: ${action}`, { detail });
+
+    return {
+      success: true,
+      data: { taskId, action, detail },
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(`Failed to update plan task "${taskId}"`, error);
+
+    return { success: false, error: `Failed to update plan: ${errorMessage}` };
+  }
+}
+
+/**
+ * Save Memory Tool
+ * Saves or deletes a memory entry and persists the change to MEMORY.md.
+ * Uses the agentMemory store for in-memory state and serializeMemoryMd for file output.
+ */
+async function saveMemory(
+  params: Record<string, unknown>,
+): Promise<ToolExecutionResult<{ category: string; key: string; action: string }>> {
+  const parsed = saveMemorySchema.safeParse(params);
+
+  if (!parsed.success) {
+    return { success: false, error: `Invalid parameters: ${parsed.error.message}` };
+  }
+
+  const { category, key, action } = parsed.data;
+
+  try {
+    if (action === 'save') {
+      const { value } = parsed.data;
+      addMemoryEntry(category, key, value);
+      logger.info(`Memory saved: ${category}/${key}`);
+    } else {
+      const removed = removeMemoryEntry(category, key);
+
+      if (!removed) {
+        return { success: false, error: `Memory entry "${category}/${key}" not found.` };
+      }
+
+      logger.info(`Memory deleted: ${category}/${key}`);
+    }
+
+    // Persist to MEMORY.md
+    const container = await runtime;
+    const content = serializeMemoryMd(memoryStore.get());
+    await container.fs.writeFile(MEMORY_MD_RELATIVE, content);
+
+    return {
+      success: true,
+      data: { category, key, action },
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(`Failed to ${action} memory entry "${category}/${key}"`, error);
+
+    return { success: false, error: `Failed to ${action} memory: ${errorMessage}` };
+  }
+}
+
+/*
+ * ============================================================================
  * Tool Definitions
  * ============================================================================
  */
@@ -1022,6 +1245,90 @@ export const agentToolDefinitions: Record<string, AgentToolDefinition> = {
     },
     execute: patchFile as unknown as (args: Record<string, unknown>) => Promise<ToolExecutionResult<unknown>>,
   },
+
+  devonz_update_plan: {
+    name: 'devonz_update_plan',
+    description:
+      "Update the project plan (PLAN.md). Supports adding sub-tasks to a task, updating a task's status, or setting task dependencies. Always reads the current plan, applies the change, and writes it back atomically.",
+    parameters: {
+      type: 'object',
+      properties: {
+        taskId: {
+          type: 'string',
+          description: 'The ID of the plan task to update (e.g., "plan-task-0")',
+        },
+        action: {
+          type: 'string',
+          enum: ['add-subtask', 'update-status', 'set-dependencies'],
+          description:
+            'The type of update to perform. "add-subtask" adds sub-tasks, "update-status" changes task status, "set-dependencies" sets dependency IDs.',
+        },
+        subTasks: {
+          type: 'array',
+          description:
+            'Sub-tasks to add (required when action is "add-subtask"). Each entry needs a title and optional status.',
+          items: {
+            type: 'object',
+            properties: {
+              title: {
+                type: 'string',
+                description: 'Title of the sub-task',
+              },
+              status: {
+                type: 'string',
+                description: 'Initial status of the sub-task (default: "pending")',
+              },
+            },
+            required: ['title'],
+          },
+        },
+        status: {
+          type: 'string',
+          enum: ['not-started', 'in-progress', 'completed'],
+          description: 'New status for the task (required when action is "update-status")',
+        },
+        dependsOn: {
+          type: 'array',
+          description: 'Array of task IDs this task depends on (required when action is "set-dependencies")',
+          items: {
+            type: 'string',
+          },
+        },
+      },
+      required: ['taskId', 'action'],
+    },
+    execute: updatePlan as unknown as (args: Record<string, unknown>) => Promise<ToolExecutionResult<unknown>>,
+  },
+
+  devonz_save_memory: {
+    name: 'devonz_save_memory',
+    description:
+      'Save or delete a memory entry in MEMORY.md. Use "save" to store a key-value pair under a category, or "delete" to remove an entry. Memory persists across conversations for long-term context.',
+    parameters: {
+      type: 'object',
+      properties: {
+        category: {
+          type: 'string',
+          description: 'Category grouping for the memory entry (e.g., "preference", "pattern", "decision")',
+        },
+        key: {
+          type: 'string',
+          description: 'Unique key identifying this memory entry within its category',
+        },
+        value: {
+          type: 'string',
+          description: 'The value/summary to store (required when action is "save", omit for "delete")',
+        },
+        action: {
+          type: 'string',
+          enum: ['save', 'delete'],
+          description: 'Whether to save (create/update) or delete the memory entry',
+        },
+      },
+      required: ['category', 'key', 'action'],
+    },
+    execute: saveMemory as unknown as (args: Record<string, unknown>) => Promise<ToolExecutionResult<unknown>>,
+  },
 };
 
 /*
@@ -1140,4 +1447,89 @@ export function getAgentToolNames(): string[] {
  */
 export function isAgentTool(toolName: string): boolean {
   return toolName in agentToolDefinitions;
+}
+
+/*
+ * ============================================================================
+ * Parallel Batch Execution
+ * ============================================================================
+ */
+
+/**
+ * Tools that are safe to execute concurrently (read-only, no side effects).
+ */
+export const READ_ONLY_TOOLS: ReadonlySet<string> = new Set([
+  'devonz_read_file',
+  'devonz_list_directory',
+  'devonz_search_code',
+  'devonz_get_errors',
+]);
+
+/**
+ * Check whether a tool name is read-only (safe for parallel execution).
+ */
+export function isReadOnlyTool(toolName: string): boolean {
+  return READ_ONLY_TOOLS.has(toolName);
+}
+
+/**
+ * Result of a single tool within a parallel batch.
+ */
+export interface BatchToolResult {
+  name: string;
+  result: ToolExecutionResult<unknown>;
+}
+
+/**
+ * Execute a batch of tool calls.
+ *
+ * When **all** tools in the batch belong to {@link READ_ONLY_TOOLS} they run
+ * concurrently via `Promise.allSettled`. If any tool is NOT read-only the
+ * entire batch runs sequentially to preserve ordering guarantees.
+ *
+ * An error in one parallel tool does NOT abort the remaining tools — each
+ * settled-promise is inspected independently.
+ */
+export async function executeToolBatch(
+  toolCalls: ReadonlyArray<{ name: string; params: Record<string, unknown> }>,
+): Promise<{ parallel: boolean; results: BatchToolResult[] }> {
+  if (toolCalls.length === 0) {
+    return { parallel: false, results: [] };
+  }
+
+  const allReadOnly = toolCalls.every((tc) => READ_ONLY_TOOLS.has(tc.name));
+
+  if (allReadOnly && toolCalls.length > 1) {
+    logger.info(`Executing ${toolCalls.length} read-only tools in parallel`);
+
+    const settled = await Promise.allSettled(toolCalls.map((tc) => executeAgentTool(tc.name, tc.params)));
+
+    const results: BatchToolResult[] = settled.map((outcome, idx) => {
+      if (outcome.status === 'fulfilled') {
+        return { name: toolCalls[idx].name, result: outcome.value };
+      }
+
+      const errorMessage = outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason);
+      logger.error(`Parallel tool ${toolCalls[idx].name} rejected`, outcome.reason);
+
+      return {
+        name: toolCalls[idx].name,
+        result: { success: false, error: `Tool execution rejected: ${errorMessage}` },
+      };
+    });
+
+    return { parallel: true, results };
+  }
+
+  // Sequential execution (mixed batch or single tool)
+  logger.info(`Executing ${toolCalls.length} tool(s) sequentially`);
+
+  const results: BatchToolResult[] = [];
+
+  for (const tc of toolCalls) {
+    const result = await executeAgentTool(tc.name, tc.params);
+    results.push({ name: tc.name, result });
+  }
+
+  return { parallel: false, results };
 }

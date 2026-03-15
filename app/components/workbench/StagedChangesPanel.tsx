@@ -2,7 +2,7 @@ import { memo, useCallback, useState } from 'react';
 import { useStore } from '@nanostores/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import * as Collapsible from '@radix-ui/react-collapsible';
-import { useLocation } from '@remix-run/react';
+import { useLocation } from 'react-router';
 import { classNames } from '~/utils/classNames';
 import { Button } from '~/components/ui/Button';
 import { IconButton } from '~/components/ui/IconButton';

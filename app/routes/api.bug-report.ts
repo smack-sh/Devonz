@@ -1,4 +1,4 @@
-import { json, type ActionFunctionArgs } from '@remix-run/node';
+import { type ActionFunctionArgs } from 'react-router';
 import { Octokit } from '@octokit/rest';
 import { z } from 'zod';
 import { createScopedLogger } from '~/utils/logger';
@@ -159,7 +159,7 @@ function formatIssueBody(data: z.infer<typeof bugReportSchema>): string {
 async function bugReportAction({ request, context }: ActionFunctionArgs) {
   // Only allow POST requests
   if (request.method !== 'POST') {
-    return json({ error: 'Method not allowed' }, { status: 405 });
+    return Response.json({ error: 'Method not allowed' }, { status: 405 });
   }
 
   try {
@@ -167,7 +167,10 @@ async function bugReportAction({ request, context }: ActionFunctionArgs) {
     const clientIP = getClientIP(request);
 
     if (!checkRateLimit(clientIP)) {
-      return json({ error: 'Rate limit exceeded. Please wait before submitting another report.' }, { status: 429 });
+      return Response.json(
+        { error: 'Rate limit exceeded. Please wait before submitting another report.' },
+        { status: 429 },
+      );
     }
 
     // Parse and validate request body
@@ -199,7 +202,7 @@ async function bugReportAction({ request, context }: ActionFunctionArgs) {
 
     // Spam detection
     if (isSpam(sanitizedData.title, sanitizedData.description)) {
-      return json(
+      return Response.json(
         { error: 'Your report was flagged as potential spam. Please contact support if this is an error.' },
         { status: 400 },
       );
@@ -211,7 +214,7 @@ async function bugReportAction({ request, context }: ActionFunctionArgs) {
 
     if (!githubToken) {
       logger.error('GitHub bug report token not configured');
-      return json(
+      return Response.json(
         { error: 'Bug reporting is not properly configured. Please contact the administrators.' },
         { status: 500 },
       );
@@ -233,7 +236,7 @@ async function bugReportAction({ request, context }: ActionFunctionArgs) {
       labels: ['bug', 'user-reported'],
     });
 
-    return json({
+    return Response.json({
       success: true,
       issueNumber: issue.data.number,
       issueUrl: issue.data.html_url,
@@ -244,25 +247,28 @@ async function bugReportAction({ request, context }: ActionFunctionArgs) {
 
     // Handle validation errors
     if (error instanceof z.ZodError) {
-      return json({ error: 'Invalid input data', details: error.errors }, { status: 400 });
+      return Response.json({ error: 'Invalid input data', details: error.errors }, { status: 400 });
     }
 
     // Handle GitHub API errors
     if (error && typeof error === 'object' && 'status' in error) {
       if (error.status === 401) {
-        return json({ error: 'GitHub authentication failed. Please contact administrators.' }, { status: 500 });
+        return Response.json(
+          { error: 'GitHub authentication failed. Please contact administrators.' },
+          { status: 500 },
+        );
       }
 
       if (error.status === 403) {
-        return json({ error: 'GitHub rate limit reached. Please try again later.' }, { status: 503 });
+        return Response.json({ error: 'GitHub rate limit reached. Please try again later.' }, { status: 503 });
       }
 
       if (error.status === 404) {
-        return json({ error: 'Target repository not found. Please contact administrators.' }, { status: 500 });
+        return Response.json({ error: 'Target repository not found. Please contact administrators.' }, { status: 500 });
       }
     }
 
-    return json({ error: 'Failed to submit bug report. Please try again later.' }, { status: 500 });
+    return Response.json({ error: 'Failed to submit bug report. Please try again later.' }, { status: 500 });
   }
 }
 

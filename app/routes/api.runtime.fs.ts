@@ -9,8 +9,7 @@
  * validated on both client and server sides.
  */
 
-import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
-import { json } from '@remix-run/node';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 import { Buffer } from 'node:buffer';
 import { RuntimeManager } from '~/lib/runtime/local-runtime';
 import type { RuntimeFileSystem, WatchEvent } from '~/lib/runtime/runtime-provider';
@@ -34,11 +33,11 @@ async function fsLoader({ request }: LoaderFunctionArgs) {
   const filePath = url.searchParams.get('path') ?? '.';
 
   if (!projectId || !isValidProjectId(projectId)) {
-    return json({ error: 'Invalid or missing projectId' }, { status: 400 });
+    return Response.json({ error: 'Invalid or missing projectId' }, { status: 400 });
   }
 
   if (!isSafePath(filePath)) {
-    return json({ error: 'Invalid path: traversal detected' }, { status: 400 });
+    return Response.json({ error: 'Invalid path: traversal detected' }, { status: 400 });
   }
 
   const manager = RuntimeManager.getInstance();
@@ -80,7 +79,7 @@ async function fsLoader({ request }: LoaderFunctionArgs) {
     case 'readdir': {
       try {
         const entries = await runtime.fs.readdir(filePath);
-        return json(entries);
+        return Response.json(entries);
       } catch (error) {
         /*
          * Return an empty array (200) instead of 404 for non-existent
@@ -93,20 +92,20 @@ async function fsLoader({ request }: LoaderFunctionArgs) {
         const code = (error as NodeJS.ErrnoException)?.code;
 
         if (code === 'ENOENT' || code === 'ENOTDIR') {
-          return json([]);
+          return Response.json([]);
         }
 
         const message = error instanceof Error ? error.message : 'Readdir failed';
         logger.warn(`readdir failed: ${filePath}`, error);
 
-        return json({ error: message }, { status: 500 });
+        return Response.json({ error: message }, { status: 500 });
       }
     }
 
     case 'stat': {
       try {
         const stat = await runtime.fs.stat(filePath);
-        return json(stat);
+        return Response.json(stat);
       } catch {
         // Return 204 instead of 404 to avoid browser console noise
         return new Response(null, { status: 204 });
@@ -115,7 +114,7 @@ async function fsLoader({ request }: LoaderFunctionArgs) {
 
     case 'exists': {
       const exists = await runtime.fs.exists(filePath);
-      return json({ exists });
+      return Response.json({ exists });
     }
 
     case 'watch': {
@@ -177,7 +176,7 @@ async function fsLoader({ request }: LoaderFunctionArgs) {
     }
 
     default: {
-      return json({ error: `Unknown operation: ${op}` }, { status: 400 });
+      return Response.json({ error: `Unknown operation: ${op}` }, { status: 400 });
     }
   }
 }
@@ -194,7 +193,7 @@ async function fsAction({ request }: ActionFunctionArgs) {
   try {
     rawBody = await request.json();
   } catch {
-    return json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    return Response.json({ error: 'Invalid JSON in request body' }, { status: 400 });
   }
 
   /*
@@ -237,12 +236,12 @@ async function fsAction({ request }: ActionFunctionArgs) {
           await runtime.fs.writeFile(filePath, content);
         }
 
-        return json({ success: true });
+        return Response.json({ success: true });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Write failed';
         logger.error(`writeFile failed: ${filePath}`, error);
 
-        return json({ error: message }, { status: 500 });
+        return Response.json({ error: message }, { status: 500 });
       }
     }
 
@@ -251,12 +250,12 @@ async function fsAction({ request }: ActionFunctionArgs) {
 
       try {
         await runtime.fs.mkdir(dirPath, { recursive: recursive ?? false });
-        return json({ success: true });
+        return Response.json({ success: true });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Mkdir failed';
         logger.error(`mkdir failed: ${dirPath}`, error);
 
-        return json({ error: message }, { status: 500 });
+        return Response.json({ error: message }, { status: 500 });
       }
     }
 
@@ -268,12 +267,12 @@ async function fsAction({ request }: ActionFunctionArgs) {
           recursive: recursive ?? false,
           force: force ?? false,
         });
-        return json({ success: true });
+        return Response.json({ success: true });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Remove failed';
         logger.error(`rm failed: ${rmPath}`, error);
 
-        return json({ error: message }, { status: 500 });
+        return Response.json({ error: message }, { status: 500 });
       }
     }
 
@@ -282,17 +281,17 @@ async function fsAction({ request }: ActionFunctionArgs) {
 
       try {
         await runtime.fs.rename(oldPath, newPath);
-        return json({ success: true });
+        return Response.json({ success: true });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Rename failed';
         logger.error(`rename failed: ${oldPath} → ${newPath}`, error);
 
-        return json({ error: message }, { status: 500 });
+        return Response.json({ error: message }, { status: 500 });
       }
     }
 
     default: {
-      return json({ error: `Unknown operation: ${op}` }, { status: 400 });
+      return Response.json({ error: `Unknown operation: ${op}` }, { status: 400 });
     }
   }
 }

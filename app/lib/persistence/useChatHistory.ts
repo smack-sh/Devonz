@@ -1,4 +1,4 @@
-import { useLoaderData, useNavigate, useSearchParams } from '@remix-run/react';
+import { useLoaderData, useNavigate, useSearchParams } from 'react-router';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { atom } from 'nanostores';
 import { type JSONValue, type Message } from 'ai';

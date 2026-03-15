@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { setPlan, resetPlan, planStore, type PlanTask } from '~/lib/stores/plan';
 import { useFileContent } from '~/lib/hooks/useFileContent';
 import { createScopedLogger } from '~/utils/logger';
+import type { SubTaskStatus } from '~/lib/agent/types';
 
 const logger = createScopedLogger('PlanSync');
 
@@ -12,9 +13,11 @@ const PLAN_MD_PATH = '/home/project/PLAN.md';
  * Parse markdown checkbox content into PlanTask objects.
  *
  * Handles:
- *   - `- [ ] Some task` → not-started
- *   - `- [x] Some task` → completed
- *   - `- [X] Some task` → completed
+ *   - `- [ ] Some task` → not-started (top-level task)
+ *   - `- [x] Some task` → completed (top-level task)
+ *   - `- [X] Some task` → completed (top-level task)
+ *   - Indented checkboxes under a parent → sub-tasks with depth 1 or 2
+ *   - Fourth-level or deeper indentation is flattened to depth 2 with a warning
  *   - Lines that don't match the checkbox pattern are ignored.
  *   - An optional `# Title` heading at the top becomes the plan title.
  */
@@ -22,6 +25,8 @@ export function parsePlanMd(content: string): { title: string | undefined; tasks
   const lines = content.split('\n');
   let title: string | undefined;
   const tasks: PlanTask[] = [];
+  let indentUnit = 0;
+  let currentParentTask: PlanTask | null = null;
 
   for (const line of lines) {
     // Detect heading as plan title (first heading wins)
@@ -34,22 +39,107 @@ export function parsePlanMd(content: string): { title: string | undefined; tasks
       }
     }
 
-    // Parse checkbox items
-    const checkboxMatch = line.match(/^[\s]*[-*]\s+\[([ xX])\]\s+(.+)/);
+    // Parse checkbox items — capture leading spaces separately
+    const checkboxMatch = line.match(/^( *)([-*])\s+\[([ xX])\]\s+(.+)/);
 
     if (checkboxMatch) {
-      const checked = checkboxMatch[1].toLowerCase() === 'x';
-      const taskTitle = checkboxMatch[2].trim();
+      const leadingSpaces = checkboxMatch[1].length;
+      const checked = checkboxMatch[3].toLowerCase() === 'x';
+      const taskTitle = checkboxMatch[4].trim();
 
-      tasks.push({
-        id: `plan-task-${tasks.length}`,
-        title: taskTitle,
-        status: checked ? 'completed' : 'not-started',
-      });
+      if (leadingSpaces === 0) {
+        // Top-level task (no indentation)
+        const task: PlanTask = {
+          id: `plan-task-${tasks.length}`,
+          title: taskTitle,
+          status: checked ? 'completed' : 'not-started',
+        };
+        tasks.push(task);
+        currentParentTask = task;
+      } else if (currentParentTask) {
+        // Indented checkbox under an existing parent → sub-task
+        if (indentUnit === 0) {
+          indentUnit = leadingSpaces;
+        }
+
+        const nestingLevel = Math.round(leadingSpaces / indentUnit);
+        let depth: 1 | 2;
+
+        if (nestingLevel <= 1) {
+          depth = 1;
+        } else if (nestingLevel === 2) {
+          depth = 2;
+        } else {
+          console.warn(
+            `Sub-task "${taskTitle}" has indent level ${nestingLevel} (${leadingSpaces} spaces) — flattening to depth 2`,
+          );
+          depth = 2;
+        }
+
+        if (!currentParentTask.subTasks) {
+          currentParentTask.subTasks = [];
+        }
+
+        const subTaskIndex = currentParentTask.subTasks.length;
+        const subTaskStatus: SubTaskStatus = checked ? 'done' : 'pending';
+
+        currentParentTask.subTasks.push({
+          id: `${currentParentTask.id}-sub-${subTaskIndex}`,
+          title: taskTitle,
+          status: subTaskStatus,
+          parentTaskId: currentParentTask.id,
+          depth,
+        });
+      } else {
+        // Indented but no preceding parent — treat as top-level task
+        const task: PlanTask = {
+          id: `plan-task-${tasks.length}`,
+          title: taskTitle,
+          status: checked ? 'completed' : 'not-started',
+        };
+        tasks.push(task);
+        currentParentTask = task;
+      }
     }
   }
 
   return { title, tasks };
+}
+
+/**
+ * Serialize PlanTask objects back into PLAN.md markdown.
+ *
+ * Produces:
+ *   - `# Title` heading (if title is provided)
+ *   - `- [ ] Task` or `- [x] Task` for each top-level task
+ *   - Indented `- [ ] Sub-task` or `- [x] Sub-task` for sub-tasks
+ *     (2-space indent per depth level)
+ *
+ * Round-trip: parsePlanMd(serializePlanMd(title, tasks)) produces identical data.
+ */
+export function serializePlanMd(title: string | undefined, tasks: PlanTask[]): string {
+  const lines: string[] = [];
+
+  if (title) {
+    lines.push(`# ${title}`);
+    lines.push('');
+  }
+
+  for (const task of tasks) {
+    const checkbox = task.status === 'completed' ? '[x]' : '[ ]';
+    lines.push(`- ${checkbox} ${task.title}`);
+
+    if (task.subTasks) {
+      for (const subTask of task.subTasks) {
+        const subCheckbox = subTask.status === 'done' ? '[x]' : '[ ]';
+        const indentDepth = Math.max(subTask.depth, 1);
+        const indent = '  '.repeat(indentDepth);
+        lines.push(`${indent}- ${subCheckbox} ${subTask.title}`);
+      }
+    }
+  }
+
+  return lines.join('\n');
 }
 
 /**

@@ -1,4 +1,3 @@
-import { json } from '@remix-run/node';
 import { MCPService } from '~/lib/services/mcpService';
 import { handleApiError } from '~/lib/api/apiUtils';
 import { withSecurity } from '~/lib/security';
@@ -10,7 +9,7 @@ async function mcpCheckLoader() {
       const mcpService = MCPService.getInstance();
       const serverTools = await mcpService.checkServersAvailabilities();
 
-      return json(serverTools);
+      return Response.json(serverTools);
     },
     'Failed to check MCP servers',
   );

@@ -1,5 +1,5 @@
 /// <reference types="vitest/globals" />
-import type { AppLoadContext, LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
+import type { AppLoadContext, LoaderFunctionArgs, ActionFunctionArgs } from 'react-router';
 
 /**
  * Options for creating a mock Request object.
@@ -134,5 +134,6 @@ export function createMockContext(options: MockContextOptions = {}): LoaderFunct
     request,
     params,
     context,
-  };
+    unstable_pattern: '',
+  } as LoaderFunctionArgs & ActionFunctionArgs;
 }

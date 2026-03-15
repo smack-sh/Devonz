@@ -1,5 +1,4 @@
-import type { ActionFunctionArgs } from '@remix-run/node';
-import { json } from '@remix-run/node';
+import type { ActionFunctionArgs } from 'react-router';
 import { z } from 'zod';
 import { encrypt } from '~/lib/.server/encryption';
 import { withSecurity } from '~/lib/security';
@@ -17,7 +16,7 @@ async function encryptAction({ request }: ActionFunctionArgs) {
   try {
     rawBody = await request.json();
   } catch {
-    return json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    return Response.json({ error: 'Invalid JSON in request body' }, { status: 400 });
   }
 
   const parsed = encryptRequestSchema.safeParse(rawBody);
@@ -25,15 +24,15 @@ async function encryptAction({ request }: ActionFunctionArgs) {
   if (!parsed.success) {
     logger.warn('Encrypt request validation failed:', parsed.error.issues);
 
-    return json({ error: 'Validation failed', details: parsed.error.issues }, { status: 400 });
+    return Response.json({ error: 'Validation failed', details: parsed.error.issues }, { status: 400 });
   }
 
   try {
     const encrypted = `enc:${encrypt(parsed.data.value)}`;
-    return json({ encrypted });
+    return Response.json({ encrypted });
   } catch (error) {
     logger.error('Encryption failed:', error);
-    return json({ error: 'Encryption failed' }, { status: 500 });
+    return Response.json({ error: 'Encryption failed' }, { status: 500 });
   }
 }
 

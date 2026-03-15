@@ -1,5 +1,4 @@
-import { json } from '@remix-run/node';
-import type { AppLoadContext } from '@remix-run/node';
+import type { AppLoadContext } from 'react-router';
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
 import { createScopedLogger } from '~/utils/logger';
 
@@ -69,7 +68,7 @@ export function resolveToken(
  * Return a 401 JSON response when a service token is missing.
  */
 export function unauthorizedResponse(serviceName: string) {
-  return json({ error: `${serviceName} token not found` }, { status: 401 });
+  return Response.json({ error: `${serviceName} token not found` }, { status: 401 });
 }
 
 export interface ExternalFetchOptions {
@@ -126,17 +125,17 @@ export async function handleApiError(
     logger.error(`[${scope}]`, error);
 
     if (error instanceof ApiError) {
-      return json({ error: error.message }, { status: error.status });
+      return Response.json({ error: error.message }, { status: error.status });
     }
 
     if (error instanceof Error) {
       if (error.message.includes('fetch')) {
-        return json({ error: 'Network error. Please check your connection.' }, { status: 503 });
+        return Response.json({ error: 'Network error. Please check your connection.' }, { status: 503 });
       }
 
-      return json({ error: error.message }, { status: 500 });
+      return Response.json({ error: error.message }, { status: 500 });
     }
 
-    return json({ error: fallbackMessage }, { status: 500 });
+    return Response.json({ error: fallbackMessage }, { status: 500 });
   }
 }

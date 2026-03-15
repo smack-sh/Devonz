@@ -1,4 +1,4 @@
-import { type LoaderFunctionArgs, json } from '@remix-run/node';
+import { type LoaderFunctionArgs } from 'react-router';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
 import { withSecurity } from '~/lib/security';
@@ -36,7 +36,7 @@ async function checkEnvKeysLoader({ context, request }: LoaderFunctionArgs) {
     result[providerName] = { hasEnvKey, hasCookieKey };
   }
 
-  return json(result);
+  return Response.json(result);
 }
 
 export const loader = withSecurity(checkEnvKeysLoader, {

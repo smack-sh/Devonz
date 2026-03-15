@@ -15,6 +15,8 @@ import {
   markFixComplete,
   markFixFailed,
   resetAutoFix,
+  recordFingerprint,
+  isFixLoop,
   type ErrorSource,
 } from '~/lib/stores/autofix';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -761,4 +763,73 @@ export function createAutoFixHandler(sendMessage: (message: string) => void): (e
     // Send the fix request via chat
     sendMessage(formattedMessage.text);
   };
+}
+
+// ─── Server-side validation bridge ──────────────────────────────────────────
+
+/**
+ * Server-side error validation report, received via SSE error_validation events.
+ */
+export interface ServerValidationReport {
+  category: 'import-resolution' | 'syntax' | 'type' | 'runtime' | 'build' | 'unknown';
+  fingerprint: string;
+  suggestion: string;
+  loopDetected: boolean;
+}
+
+/**
+ * Receive a server-side error validation report and feed it into the client
+ * auto-fix flow. The report is processed through the fingerprint tracker to
+ * detect fix loops; if a loop is detected client-side the auto-fix is paused.
+ *
+ * This function is the server→client bridge: called by the SSE event handler
+ * when an `error_validation` event arrives. It does NOT directly mutate the
+ * nanostore from server code — it is designed to be called on the client.
+ *
+ * @returns An object indicating whether the error was accepted for fixing and
+ *          whether a fix loop has been detected.
+ */
+export function receiveServerValidation(report: ServerValidationReport): { accepted: boolean; loopDetected: boolean } {
+  logger.info('Received server-side validation', {
+    category: report.category,
+    fingerprint: report.fingerprint,
+    loopDetected: report.loopDetected,
+  });
+
+  // Record the fingerprint on the client side regardless of server loop flag
+  const { loopDetected: clientLoopDetected } = recordFingerprint(report.fingerprint);
+
+  /*
+   * If the server already flagged a loop, or our client-side tracking detects one,
+   * the auto-fix should be paused (recordFingerprint handles the pause automatically).
+   */
+  const effectiveLoop = report.loopDetected || clientLoopDetected;
+
+  if (effectiveLoop) {
+    logger.warn(
+      `Fix loop detected for fingerprint ${report.fingerprint} (server=${report.loopDetected}, client=${clientLoopDetected})`,
+    );
+
+    return { accepted: false, loopDetected: true };
+  }
+
+  // Check if a fix loop was already detected for this fingerprint
+  if (isFixLoop(report.fingerprint)) {
+    logger.debug(`Fingerprint ${report.fingerprint} already in fix loop, rejecting`);
+
+    return { accepted: false, loopDetected: true };
+  }
+
+  // No loop — classify locally using the server's suggestion as extra context
+  const state = autoFixStore.get();
+
+  if (!state.settings.isEnabled || state.pausedByLoop) {
+    logger.debug('Auto-fix disabled or paused, not processing server validation');
+
+    return { accepted: false, loopDetected: false };
+  }
+
+  logger.info(`Server validation accepted: ${report.category} — ${report.suggestion.slice(0, 100)}`);
+
+  return { accepted: true, loopDetected: false };
 }

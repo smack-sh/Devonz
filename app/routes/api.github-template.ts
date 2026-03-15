@@ -1,4 +1,4 @@
-import { json, type AppLoadContext, type LoaderFunctionArgs } from '@remix-run/node';
+import { type AppLoadContext, type LoaderFunctionArgs } from 'react-router';
 import JSZip from 'jszip';
 import { handleApiError } from '~/lib/api/apiUtils';
 import { withSecurity } from '~/lib/security';
@@ -197,7 +197,7 @@ async function githubTemplateLoader({ request, context }: LoaderFunctionArgs) {
   const repo = url.searchParams.get('repo');
 
   if (!repo) {
-    return json({ error: 'Repository name is required' }, { status: 400 });
+    return Response.json({ error: 'Repository name is required' }, { status: 400 });
   }
 
   return handleApiError('GitHubTemplate', async () => {
@@ -216,7 +216,7 @@ async function githubTemplateLoader({ request, context }: LoaderFunctionArgs) {
       (file): file is { name: string; path: string; content: string } => file != null && !file.path.startsWith('.git'),
     );
 
-    return json(filteredFiles);
+    return Response.json(filteredFiles);
   });
 }
 

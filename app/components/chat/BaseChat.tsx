@@ -1,7 +1,17 @@
 import type { JSONValue, Message } from 'ai';
-import React, { type RefCallback, lazy, memo, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import { ClientOnly } from 'remix-utils/client-only';
-import { Menu } from '~/components/sidebar/Menu.client';
+import React, {
+  type RefCallback,
+  lazy,
+  memo,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { clientLazy } from '~/utils/react';
+
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST } from '~/utils/constants';
 import { getApiKeysFromCookies } from './APIKeyManager';
@@ -29,22 +39,27 @@ import type { ElementInfo } from '~/components/workbench/inspector-types';
 import { ResizeHandle } from '~/components/ui/ResizeHandle';
 import { PanelErrorBoundary } from '~/components/ui/PanelErrorBoundary';
 import { createScopedLogger } from '~/utils/logger';
+import { toast } from 'react-toastify';
+import { receiveServerValidation } from '~/lib/services/autoFixService';
 
-const Workbench = lazy(() => import('~/components/workbench/Workbench.client').then((m) => ({ default: m.Workbench })));
-const Messages = lazy(() => import('./Messages.client').then((m) => ({ default: m.Messages })));
+const Workbench = clientLazy(() =>
+  import('~/components/workbench/Workbench.client').then((m) => ({ default: m.Workbench })),
+);
+const Messages = clientLazy(() => import('./Messages.client').then((m) => ({ default: m.Messages })));
 const DeployChatAlert = lazy(() => import('~/components/deploy/DeployAlert'));
 const ChatAlert = lazy(() => import('./ChatAlert'));
 const SupabaseChatAlert = lazy(() =>
   import('~/components/chat/SupabaseAlert').then((m) => ({ default: m.SupabaseChatAlert })),
 );
 const LlmErrorAlert = lazy(() => import('./LLMApiAlert'));
+const Menu = clientLazy(() => import('~/components/sidebar/Menu.client').then((m) => ({ default: m.Menu })));
 
 const logger = createScopedLogger('BaseChat');
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
 interface BaseChatProps {
-  textareaRef?: React.RefObject<HTMLTextAreaElement> | undefined;
+  textareaRef?: React.RefObject<HTMLTextAreaElement | null> | undefined;
   messageRef?: RefCallback<HTMLDivElement> | undefined;
   scrollRef?: RefCallback<HTMLDivElement> | undefined;
   showChat?: boolean;
@@ -176,12 +191,14 @@ export const BaseChat = React.memo(
       const [transcript, setTranscript] = useState('');
       const [isModelLoading, setIsModelLoading] = useState<string | undefined>('all');
       const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
+      const processedEventIdsRef = useRef(new Set<string>());
       const expoUrl = useStore(expoUrlAtom);
       const showWorkbench = useStore(workbenchStore.showWorkbench);
       const workbenchWidth = useStore(workbenchStore.workbenchWidth);
       const inspectorActive = useStore(inspectorModeAtom) !== 'off';
       const [qrModalOpen, setQrModalOpen] = useState(false);
       const [isResizing, setIsResizing] = useState(false);
+      const [isHydrated, setIsHydrated] = useState(false);
 
       const handleResize = useCallback(
         (deltaX: number) => {
@@ -191,6 +208,10 @@ export const BaseChat = React.memo(
         },
         [workbenchWidth],
       );
+
+      useEffect(() => {
+        setIsHydrated(true);
+      }, []);
 
       useEffect(() => {
         if (expoUrl) {
@@ -205,8 +226,57 @@ export const BaseChat = React.memo(
               typeof x === 'object' && x !== null && 'type' in x && (x as Record<string, unknown>).type === 'progress',
           ) as ProgressAnnotation[];
           setProgressAnnotations(progressList);
+
+          // Process devonz_event entries (blueprint errors + error_validation)
+          for (const item of data) {
+            if (typeof item !== 'object' || item === null || !('devonz_event' in item)) {
+              continue;
+            }
+
+            const evt = (item as Record<string, unknown>).devonz_event;
+
+            if (typeof evt !== 'object' || evt === null || !('type' in evt)) {
+              continue;
+            }
+
+            const event = evt as Record<string, unknown>;
+            const eventKey = `${event.type}-${event.timestamp ?? ''}-${event.code ?? ''}-${event.fingerprint ?? ''}`;
+
+            if (processedEventIdsRef.current.has(eventKey)) {
+              continue;
+            }
+
+            processedEventIdsRef.current.add(eventKey);
+
+            if (event.type === 'error' && typeof event.message === 'string') {
+              const recoverable = event.recoverable === true;
+              toast.warning(event.message, {
+                autoClose: recoverable ? 5000 : false,
+              });
+              logger.warn('Blueprint error event:', event.message);
+            }
+
+            if (
+              event.type === 'error_validation' &&
+              typeof event.category === 'string' &&
+              typeof event.fingerprint === 'string' &&
+              typeof event.suggestion === 'string' &&
+              typeof event.loopDetected === 'boolean'
+            ) {
+              receiveServerValidation({
+                category: event.category as 'import-resolution' | 'syntax' | 'type' | 'runtime' | 'build' | 'unknown',
+                fingerprint: event.fingerprint,
+                suggestion: event.suggestion,
+                loopDetected: event.loopDetected,
+              });
+              logger.debug('Processed error_validation event:', event.fingerprint);
+            }
+          }
+
+          workbenchStore.processDataStreamItems(data);
         } else {
           setProgressAnnotations([]);
+          processedEventIdsRef.current.clear();
         }
       }, [data]);
       useEffect(() => {
@@ -438,9 +508,12 @@ export const BaseChat = React.memo(
         <div
           ref={ref}
           className={classNames(styles.BaseChat, 'relative flex flex-1 min-h-0 w-full overflow-hidden')}
-          data-chat-visible={showChat}
+          data-chat-visible={isHydrated ? String(showChat) : undefined}
+          suppressHydrationWarning
         >
-          <ClientOnly>{() => <Menu />}</ClientOnly>
+          <Suspense fallback={null}>
+            <Menu />
+          </Suspense>
           <div className="flex flex-row w-full h-full min-w-0 overflow-hidden">
             {/* Chat Panel - hidden when showChat is false and workbench is visible */}
             {showChat && (
@@ -479,26 +552,22 @@ export const BaseChat = React.memo(
                       initial="smooth"
                     >
                       <StickToBottom.Content className="flex flex-col gap-4 relative ">
-                        <ClientOnly>
-                          {() => {
-                            return chatStarted ? (
-                              <Suspense>
-                                <Messages
-                                  key="messages-component"
-                                  className="flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1"
-                                  messages={messages}
-                                  isStreaming={isStreaming}
-                                  append={append}
-                                  chatMode={chatMode}
-                                  setChatMode={setChatMode}
-                                  provider={provider}
-                                  model={model}
-                                  addToolResult={addToolResult}
-                                />
-                              </Suspense>
-                            ) : null;
-                          }}
-                        </ClientOnly>
+                        {chatStarted ? (
+                          <Suspense>
+                            <Messages
+                              key="messages-component"
+                              className="flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1"
+                              messages={messages}
+                              isStreaming={isStreaming}
+                              append={append}
+                              chatMode={chatMode}
+                              setChatMode={setChatMode}
+                              provider={provider}
+                              model={model}
+                              addToolResult={addToolResult}
+                            />
+                          </Suspense>
+                        ) : null}
                         <ScrollToBottom />
                       </StickToBottom.Content>
                       <div
@@ -622,21 +691,17 @@ export const BaseChat = React.memo(
             )}
 
             {/* Workbench Panel */}
-            <ClientOnly>
-              {() => (
-                <PanelErrorBoundary panelName="Workbench">
-                  <Suspense>
-                    <Workbench
-                      chatStarted={chatStarted}
-                      isStreaming={isStreaming}
-                      setSelectedElement={setSelectedElement}
-                      width={showChat ? workbenchWidth : undefined}
-                      fullWidth={!showChat}
-                    />
-                  </Suspense>
-                </PanelErrorBoundary>
-              )}
-            </ClientOnly>
+            <PanelErrorBoundary panelName="Workbench">
+              <Suspense>
+                <Workbench
+                  chatStarted={chatStarted}
+                  isStreaming={isStreaming}
+                  setSelectedElement={setSelectedElement}
+                  width={showChat ? workbenchWidth : undefined}
+                  fullWidth={!showChat}
+                />
+              </Suspense>
+            </PanelErrorBoundary>
           </div>
         </div>
       );

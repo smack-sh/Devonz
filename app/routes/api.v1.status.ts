@@ -1,4 +1,4 @@
-import type { LoaderFunctionArgs } from '@remix-run/node';
+import type { LoaderFunctionArgs } from 'react-router';
 import { withSecurity } from '~/lib/security';
 import { requireApiAuth } from '~/lib/.server/api/auth';
 import type { V1StatusResponse } from '~/lib/.server/api/types';

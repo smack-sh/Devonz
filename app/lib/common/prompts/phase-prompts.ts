@@ -1,14 +1,15 @@
 /**
- * Phase-specific prompt templates for the 4-phase code generation pipeline.
+ * Phase-specific prompt templates for the 5-phase code generation pipeline.
  *
  * Each phase has a focused prompt that guides the LLM's behavior:
+ *   blueprint → produce a structured project architecture (generateText + Zod)
  *   plan      → decompose the task into steps
  *   scaffold  → generate file/folder structure and interfaces
  *   implement → produce full implementation code
  *   review    → detect errors and suggest fixes
  */
 
-export const PHASE_NAMES = ['plan', 'scaffold', 'implement', 'review'] as const;
+export const PHASE_NAMES = ['blueprint', 'plan', 'scaffold', 'implement', 'review'] as const;
 export type PhaseName = (typeof PHASE_NAMES)[number];
 
 export interface PhasePrompt {
@@ -28,6 +29,50 @@ export interface PhasePrompt {
  */
 export function getPhasePrompt(phase: PhaseName, previousOutput: string, errorContext?: string): PhasePrompt {
   switch (phase) {
+    case 'blueprint':
+      return {
+        phase: 'blueprint',
+        systemSuffix: [
+          '<phase_instruction phase="blueprint">',
+          'You are in the BLUEPRINT phase. Your ONLY job is to produce a structured project architecture document.',
+          'Your output will be parsed into a typed schema — follow the field descriptions exactly.',
+          '',
+          "Analyze the user's request and produce:",
+          '',
+          '1. **projectName** — A concise, descriptive name for the project.',
+          '',
+          '2. **structure** — A complete list of every file in the project.',
+          '   For each file provide its relative path from the project root and a brief description of its purpose.',
+          '   Include configuration files (tsconfig, vite config, package.json), source files, test files,',
+          '   type definitions, and any assets. Organize files logically by feature or layer.',
+          '',
+          '3. **dependencies** — All npm packages the project requires.',
+          '   For each dependency provide the package name, an optional semver version constraint,',
+          '   a reason explaining why it is needed, and whether it is a devDependency.',
+          '   Include both production and development dependencies.',
+          '',
+          '4. **phases** — An ordered list of implementation phases.',
+          '   Each phase has a sequential order number (starting at 1), a short title,',
+          '   a detailed description of what the phase accomplishes, and the list of file paths',
+          '   created or modified during that phase. Phases must build on each other —',
+          '   foundational setup first, then core logic, then features, then polish.',
+          '',
+          '5. **technicalDecisions** — Key architectural and technology choices.',
+          '   For each decision provide the domain area (e.g., "State Management", "Routing"),',
+          '   the decision made, and the rationale explaining why this choice was made over alternatives.',
+          '',
+          'Guidelines:',
+          '- Be thorough: every file the project needs must appear in the structure.',
+          '- Be specific: vague descriptions like "utility file" are not acceptable.',
+          '- Phases should be granular enough that each phase is independently verifiable.',
+          '- Technical decisions should cover at least: framework choice, state management,',
+          '  styling approach, and data flow.',
+          '- Do NOT include example JSON or code snippets — the output schema enforces the format.',
+          '</phase_instruction>',
+        ].join('\n'),
+        userPrefix: '[BLUEPRINT PHASE] Produce a complete project architecture blueprint for the following request:\n',
+      };
+
     case 'plan':
       return {
         phase: 'plan',

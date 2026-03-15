@@ -1,4 +1,3 @@
-import { json } from '@remix-run/node';
 import { ApiError, externalFetch, handleApiError } from '~/lib/api/apiUtils';
 import { withSecurity } from '~/lib/security';
 import type { GitLabProjectInfo } from '~/types/GitLab';
@@ -23,7 +22,7 @@ async function gitlabProjectsLoader({ request }: { request: Request }) {
     const { token, gitlabUrl = 'https://gitlab.com' } = body;
 
     if (!token) {
-      return json({ error: 'GitLab token is required' }, { status: 400 });
+      return Response.json({ error: 'GitLab token is required' }, { status: 400 });
     }
 
     const url = `${gitlabUrl}/api/v4/projects?membership=true&per_page=100&order_by=updated_at&sort=desc`;
@@ -36,7 +35,7 @@ async function gitlabProjectsLoader({ request }: { request: Request }) {
 
     if (!response.ok) {
       if (response.status === 401) {
-        return json({ error: 'Invalid GitLab token' }, { status: 401 });
+        return Response.json({ error: 'Invalid GitLab token' }, { status: 401 });
       }
 
       const errorText = await response.text().catch(() => 'Unknown error');
@@ -58,7 +57,7 @@ async function gitlabProjectsLoader({ request }: { request: Request }) {
       visibility: project.visibility,
     }));
 
-    return json({
+    return Response.json({
       projects: transformedProjects,
       total: transformedProjects.length,
     });

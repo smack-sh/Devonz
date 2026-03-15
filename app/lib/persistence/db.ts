@@ -4,6 +4,7 @@ import { createScopedLogger } from '~/utils/logger';
 import type { ChatHistoryItem } from './useChatHistory';
 import type { Snapshot } from './types'; // Import Snapshot type
 import type { ProjectVersion } from '~/lib/stores/versions';
+import type { AgentCheckpoint, BranchMetadata } from '~/lib/agent/types';
 
 export interface IChatMetadata {
   gitUrl: string;
@@ -29,7 +30,7 @@ export async function openDatabase(): Promise<IDBDatabase | undefined> {
   }
 
   return new Promise((resolve) => {
-    const request = indexedDB.open('devonzHistory', 3);
+    const request = indexedDB.open('devonzHistory', 5);
 
     request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
       const db = (event.target as IDBOpenDBRequest).result;
@@ -54,6 +55,26 @@ export async function openDatabase(): Promise<IDBDatabase | undefined> {
           db.createObjectStore('versions', { keyPath: 'chatId' });
         }
       }
+
+      if (oldVersion < 4) {
+        if (!db.objectStoreNames.contains('branches')) {
+          const branchStore = db.createObjectStore('branches', { keyPath: 'branchId' });
+          branchStore.createIndex('parentChatId', 'parentChatId', { unique: false });
+          branchStore.createIndex('branchPointMessageId', 'branchPointMessageId', { unique: false });
+        }
+      }
+
+      if (oldVersion < 5) {
+        if (!db.objectStoreNames.contains('agent_checkpoints')) {
+          const checkpointStore = db.createObjectStore('agent_checkpoints', { keyPath: 'id' });
+          checkpointStore.createIndex('chatId', 'chatId', { unique: false });
+          checkpointStore.createIndex('phase', 'phase', { unique: false });
+        }
+      }
+    };
+
+    request.onblocked = () => {
+      logger.warn('Database upgrade blocked — close other tabs using this app and reload.');
     };
 
     request.onsuccess = (event: Event) => {
@@ -209,7 +230,12 @@ async function getUrlIds(db: IDBDatabase): Promise<string[]> {
   });
 }
 
-export async function forkChat(db: IDBDatabase, chatId: string, messageId: string): Promise<string> {
+export async function forkChat(
+  db: IDBDatabase,
+  chatId: string,
+  messageId: string,
+  options?: { branchPointMessageId?: string },
+): Promise<string> {
   const chat = await getMessages(db, chatId);
 
   if (!chat) {
@@ -226,7 +252,26 @@ export async function forkChat(db: IDBDatabase, chatId: string, messageId: strin
   // Get messages up to and including the selected message
   const messages = chat.messages.slice(0, messageIndex + 1);
 
-  return createChatFromMessages(db, chat.description ? `${chat.description} (fork)` : 'Forked chat', messages);
+  const newUrlId = await createChatFromMessages(
+    db,
+    chat.description ? `${chat.description} (fork)` : 'Forked chat',
+    messages,
+  );
+
+  // Create branch metadata if a branch point was specified
+  if (options?.branchPointMessageId) {
+    const branchMeta: BranchMetadata = {
+      branchId: crypto.randomUUID(),
+      parentChatId: chatId,
+      branchPointMessageId: options.branchPointMessageId,
+      label: chat.description ? `${chat.description} (fork)` : 'Forked chat',
+      createdAt: new Date().toISOString(),
+    };
+
+    await saveBranchMetadata(db, branchMeta);
+  }
+
+  return newUrlId;
 }
 
 export async function duplicateChat(db: IDBDatabase, id: string): Promise<string> {
@@ -347,6 +392,99 @@ export async function getVersionsByChatId(db: IDBDatabase, chatId: string): Prom
     const request = store.get(chatId);
 
     request.onsuccess = () => resolve(request.result?.versions as ProjectVersion[] | undefined);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function saveBranchMetadata(db: IDBDatabase, branch: BranchMetadata): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('branches', 'readwrite');
+    const store = transaction.objectStore('branches');
+    const request = store.put(branch);
+
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function getBranchesByParentChatId(db: IDBDatabase, parentChatId: string): Promise<BranchMetadata[]> {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('branches', 'readonly');
+    const store = transaction.objectStore('branches');
+    const index = store.index('parentChatId');
+    const request = index.getAll(parentChatId);
+
+    request.onsuccess = () => resolve(request.result as BranchMetadata[]);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function saveAgentCheckpoint(db: IDBDatabase, checkpoint: AgentCheckpoint): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('agent_checkpoints', 'readwrite');
+    const store = transaction.objectStore('agent_checkpoints');
+    const request = store.put(checkpoint);
+
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function getLatestCheckpoint(db: IDBDatabase, chatId: string): Promise<AgentCheckpoint | null> {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('agent_checkpoints', 'readonly');
+    const store = transaction.objectStore('agent_checkpoints');
+    const index = store.index('chatId');
+    const request = index.getAll(chatId);
+
+    request.onsuccess = () => {
+      const checkpoints = request.result as AgentCheckpoint[];
+
+      if (checkpoints.length === 0) {
+        resolve(null);
+        return;
+      }
+
+      const latest = checkpoints.reduce((a, b) => (a.timestamp > b.timestamp ? a : b));
+      resolve(latest);
+    };
+
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function deleteCheckpointsForChat(db: IDBDatabase, chatId: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('agent_checkpoints', 'readwrite');
+    const store = transaction.objectStore('agent_checkpoints');
+    const index = store.index('chatId');
+    const request = index.getAllKeys(chatId);
+
+    request.onsuccess = () => {
+      const keys = request.result;
+
+      if (keys.length === 0) {
+        resolve();
+        return;
+      }
+
+      let completed = 0;
+
+      for (const key of keys) {
+        const deleteRequest = store.delete(key);
+
+        deleteRequest.onsuccess = () => {
+          completed++;
+
+          if (completed === keys.length) {
+            resolve();
+          }
+        };
+
+        deleteRequest.onerror = () => reject(deleteRequest.error);
+      }
+    };
+
     request.onerror = () => reject(request.error);
   });
 }

@@ -1,5 +1,6 @@
 import type { JSONValue } from 'ai';
 import { createScopedLogger } from '~/utils/logger';
+import type { OperationType } from './model-router';
 
 const logger = createScopedLogger('LLMConstants');
 
@@ -115,6 +116,20 @@ export function getCompletionTokenLimit(modelDetails: { maxCompletionTokens?: nu
   return Math.min(MAX_TOKENS, 16384);
 }
 
+/**
+ * Per-operation token budgets.
+ * Maps each OperationType to recommended input/output token limits,
+ * guiding how many tokens to allocate for each kind of LLM interaction.
+ */
+export const OPERATION_TOKEN_BUDGETS: Record<OperationType, { inputTokens: number; outputTokens: number }> = {
+  code_generation: { inputTokens: 32000, outputTokens: 64000 },
+  planning: { inputTokens: 16000, outputTokens: 8000 },
+  error_correction: { inputTokens: 32000, outputTokens: 32000 },
+  summarization: { inputTokens: 64000, outputTokens: 4000 },
+  general: { inputTokens: 16000, outputTokens: 8000 },
+  blueprint: { inputTokens: 16000, outputTokens: 16000 },
+};
+
 // limits the number of model responses that can be returned in a single request
 export const MAX_RESPONSE_SEGMENTS = 2;
 
@@ -154,3 +169,58 @@ export const IGNORE_PATTERNS = [
   '**/*lock.json',
   '**/*lock.yml',
 ];
+
+/*
+ * ---------------------------------------------------------------------------
+ * Context Window Management Constants (Agent Mode v3)
+ * ---------------------------------------------------------------------------
+ */
+
+/**
+ * Known context window sizes (in tokens) for popular model families.
+ * Used by the context window manager when the provider does not report limits.
+ */
+export const MODEL_CONTEXT_LIMITS: Record<string, number> = {
+  // Anthropic
+  'claude-4-opus': 200_000,
+  'claude-4-sonnet': 200_000,
+  'claude-3.5-sonnet': 200_000,
+  'claude-3-haiku': 200_000,
+
+  // OpenAI
+  'gpt-4o': 128_000,
+  'gpt-4o-mini': 128_000,
+  'gpt-4-turbo': 128_000,
+  'gpt-4': 8_192,
+  o1: 200_000,
+  'o1-mini': 128_000,
+  o3: 200_000,
+  'o3-mini': 200_000,
+
+  // Google
+  'gemini-2.5-pro': 1_000_000,
+  'gemini-2.5-flash': 1_000_000,
+  'gemini-2.0-flash': 1_000_000,
+  'gemini-1.5-pro': 2_000_000,
+  'gemini-1.5-flash': 1_000_000,
+
+  // DeepSeek
+  'deepseek-v3': 128_000,
+  'deepseek-r1': 128_000,
+
+  // Mistral
+  'mistral-large': 128_000,
+  'mistral-medium': 32_000,
+  'mistral-small': 32_000,
+
+  // xAI
+  'grok-2': 131_072,
+  'grok-3': 131_072,
+};
+
+/**
+ * Default threshold at which the context-window manager triggers summarization.
+ * Expressed as a fraction (0-1) of the model's max context window.
+ * @default 0.75
+ */
+export const CONTEXT_THRESHOLD_PCT = 0.75;

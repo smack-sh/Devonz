@@ -9,8 +9,7 @@
  *   { url, branch? }                  → clone to temp dir, return files
  *   { action: 'finalize', tempId, projectId } → move temp → project dir
  */
-import { json } from '@remix-run/node';
-import type { ActionFunctionArgs } from '@remix-run/node';
+import type { ActionFunctionArgs } from 'react-router';
 import { execFileSync } from 'node:child_process';
 import * as fs from 'node:fs/promises';
 import * as fsSync from 'node:fs';
@@ -176,14 +175,14 @@ async function handleGitClone({ request }: ActionFunctionArgs) {
     const { tempId, projectId } = body;
 
     if (!tempId || !isValidId(tempId) || !projectId || !isValidId(projectId)) {
-      return json({ error: 'Invalid tempId or projectId' }, { status: 400 });
+      return Response.json({ error: 'Invalid tempId or projectId' }, { status: 400 });
     }
 
     const tempDir = nodePath.join(PROJECTS_DIR, `_clone_${tempId}`);
     const projectDir = nodePath.join(PROJECTS_DIR, projectId);
 
     if (!fsSync.existsSync(tempDir)) {
-      return json({ error: 'Temp clone directory not found' }, { status: 404 });
+      return Response.json({ error: 'Temp clone directory not found' }, { status: 404 });
     }
 
     try {
@@ -193,12 +192,12 @@ async function handleGitClone({ request }: ActionFunctionArgs) {
 
       logger.info(`Finalized clone: _clone_${tempId} → ${projectId}`);
 
-      return json({ success: true });
+      return Response.json({ success: true });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Finalize failed';
       logger.error('Finalize error:', error);
 
-      return json({ error: message }, { status: 500 });
+      return Response.json({ error: message }, { status: 500 });
     }
   }
 
@@ -208,7 +207,7 @@ async function handleGitClone({ request }: ActionFunctionArgs) {
   const { url, branch } = body as { url?: string; branch?: string };
 
   if (!url || typeof url !== 'string') {
-    return json({ error: 'Missing or invalid "url"' }, { status: 400 });
+    return Response.json({ error: 'Missing or invalid "url"' }, { status: 400 });
   }
 
   /* Validate URL against allowed domains. */
@@ -217,11 +216,11 @@ async function handleGitClone({ request }: ActionFunctionArgs) {
   try {
     parsed = new URL(url);
   } catch {
-    return json({ error: 'Invalid URL format' }, { status: 400 });
+    return Response.json({ error: 'Invalid URL format' }, { status: 400 });
   }
 
   if (!ALLOWED_DOMAINS.has(parsed.hostname)) {
-    return json(
+    return Response.json(
       { error: `Domain "${parsed.hostname}" is not allowed. Allowed: ${[...ALLOWED_DOMAINS].join(', ')}` },
       { status: 400 },
     );
@@ -255,7 +254,7 @@ async function handleGitClone({ request }: ActionFunctionArgs) {
 
     logger.info(`Clone complete: ${files.length} files read from ${url}`);
 
-    return json({ tempId, files });
+    return Response.json({ tempId, files });
   } catch (error) {
     /* Clean up on failure. */
     await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {
@@ -265,7 +264,7 @@ async function handleGitClone({ request }: ActionFunctionArgs) {
     const message = error instanceof Error ? error.message : 'Clone failed';
     logger.error('Git clone error:', message);
 
-    return json({ error: message }, { status: 500 });
+    return Response.json({ error: message }, { status: 500 });
   }
 }
 

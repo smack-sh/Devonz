@@ -24,6 +24,16 @@ const logger = createScopedLogger('FilesStore');
 
 const utf8TextDecoder = new TextDecoder('utf8', { fatal: true });
 
+/** Per-file generation status during structured streaming. */
+export type FileGenerationState = 'pending' | 'generating' | 'complete' | 'error';
+
+/**
+ * Tracks the generation status of individual files during LLM streaming.
+ * Key: file path, Value: current generation state.
+ * Updated by the StreamEventRouter on file_open, file_close, and error events.
+ */
+export const fileGenerationStatus: MapStore<Record<string, FileGenerationState>> = map({});
+
 export interface File {
   type: 'file';
   content: string;

@@ -5,7 +5,7 @@ import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
 import { IconButton } from './IconButton';
 import { Button } from './Button';
-import { FixedSizeList } from 'react-window';
+import { List as FixedSizeList } from 'react-window';
 import { Checkbox } from './Checkbox';
 import { Label } from './Label';
 
@@ -340,8 +340,9 @@ export function SelectionDialog({
   );
 
   // Render each item in the virtualized list
-  const ItemRenderer = ({ index, style }: { index: number; style: React.CSSProperties }) => {
+  const ItemRenderer = ({ index, style }: { index: number; style: any }) => {
     const item = items[index];
+
     return (
       <div
         key={item.id}
@@ -412,13 +413,13 @@ export function SelectionDialog({
               }}
             >
               {items.length > 0 ? (
-                <FixedSizeList
-                  height={listHeight}
-                  width="100%"
-                  itemCount={items.length}
-                  itemSize={60}
+                <FixedSizeList<object>
+                  rowCount={items.length}
+                  rowHeight={60}
                   className="scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-devonz-elements-bg-depth-3"
                   rowComponent={ItemRenderer}
+                  rowProps={{} as object}
+                  style={{ height: listHeight, width: '100%' }}
                 />
               ) : (
                 <div className="text-center py-4 text-sm text-devonz-elements-textTertiary">No items to display</div>

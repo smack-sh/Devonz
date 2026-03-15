@@ -1,4 +1,3 @@
-import { json } from '@remix-run/node';
 import { ApiError, externalFetch, handleApiError } from '~/lib/api/apiUtils';
 import { withSecurity } from '~/lib/security';
 
@@ -24,11 +23,11 @@ async function gitlabBranchesHandler({ request }: { request: Request }) {
     const { token, gitlabUrl = 'https://gitlab.com', projectId } = body;
 
     if (!token) {
-      return json({ error: 'GitLab token is required' }, { status: 400 });
+      return Response.json({ error: 'GitLab token is required' }, { status: 400 });
     }
 
     if (!projectId) {
-      return json({ error: 'Project ID is required' }, { status: 400 });
+      return Response.json({ error: 'Project ID is required' }, { status: 400 });
     }
 
     const branchesResponse = await externalFetch({
@@ -39,11 +38,11 @@ async function gitlabBranchesHandler({ request }: { request: Request }) {
 
     if (!branchesResponse.ok) {
       if (branchesResponse.status === 401) {
-        return json({ error: 'Invalid GitLab token' }, { status: 401 });
+        return Response.json({ error: 'Invalid GitLab token' }, { status: 401 });
       }
 
       if (branchesResponse.status === 404) {
-        return json({ error: 'Project not found or no access' }, { status: 404 });
+        return Response.json({ error: 'Project not found or no access' }, { status: 404 });
       }
 
       throw new ApiError(`GitLab API error: ${branchesResponse.status}`, branchesResponse.status);
@@ -84,7 +83,7 @@ async function gitlabBranchesHandler({ request }: { request: Request }) {
       return a.name.localeCompare(b.name);
     });
 
-    return json({
+    return Response.json({
       branches: transformedBranches,
       defaultBranch: defaultBranchName,
       total: transformedBranches.length,

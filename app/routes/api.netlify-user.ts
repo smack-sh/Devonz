@@ -1,4 +1,4 @@
-import { json, type LoaderFunctionArgs, type ActionFunctionArgs } from '@remix-run/node';
+import { type LoaderFunctionArgs, type ActionFunctionArgs } from 'react-router';
 import { ApiError, resolveToken, unauthorizedResponse, externalFetch, handleApiError } from '~/lib/api/apiUtils';
 import { withSecurity } from '~/lib/security';
 
@@ -16,7 +16,7 @@ async function netlifyUserLoader({ request, context }: LoaderFunctionArgs) {
 
     if (!response.ok) {
       if (response.status === 401) {
-        return json({ error: 'Invalid Netlify token' }, { status: 401 });
+        return Response.json({ error: 'Invalid Netlify token' }, { status: 401 });
       }
 
       throw new ApiError(`Netlify API error: ${response.status}`, response.status);
@@ -30,7 +30,7 @@ async function netlifyUserLoader({ request, context }: LoaderFunctionArgs) {
       full_name: string | null;
     };
 
-    return json({
+    return Response.json({
       id: userData.id,
       name: userData.name,
       email: userData.email,
@@ -73,7 +73,7 @@ async function netlifyUserAction({ request, context }: ActionFunctionArgs) {
         updated_at: string;
       }>;
 
-      return json({
+      return Response.json({
         sites: sites.map((site) => ({
           id: site.id,
           name: site.name,
@@ -87,7 +87,7 @@ async function netlifyUserAction({ request, context }: ActionFunctionArgs) {
       });
     }
 
-    return json({ error: 'Invalid action' }, { status: 400 });
+    return Response.json({ error: 'Invalid action' }, { status: 400 });
   });
 }
 

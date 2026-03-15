@@ -1,4 +1,4 @@
-import { json, type LoaderFunctionArgs } from '@remix-run/node';
+import { type LoaderFunctionArgs } from 'react-router';
 import { ApiError, externalFetch, handleApiError, resolveToken, unauthorizedResponse } from '~/lib/api/apiUtils';
 import { withSecurity } from '~/lib/security';
 import type { GitHubUserResponse, GitHubStats } from '~/types/GitHub';
@@ -46,7 +46,7 @@ async function githubStatsLoader({ request, context }: LoaderFunctionArgs) {
 
     if (!userResponse.ok) {
       if (userResponse.status === 401) {
-        return json({ error: 'Invalid GitHub token' }, { status: 401 });
+        return Response.json({ error: 'Invalid GitHub token' }, { status: 401 });
       }
 
       throw new ApiError(`GitHub API error: ${userResponse.status}`, userResponse.status);
@@ -177,7 +177,7 @@ async function githubStatsLoader({ request, context }: LoaderFunctionArgs) {
       lastUpdated: now.toISOString(),
     };
 
-    return json(stats);
+    return Response.json(stats);
   });
 }
 

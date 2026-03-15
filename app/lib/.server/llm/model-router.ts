@@ -1,4 +1,5 @@
 import { createScopedLogger } from '~/utils/logger';
+import type { ModelInfo } from '~/lib/modules/llm/types';
 
 const logger = createScopedLogger('ModelRouter');
 
@@ -6,7 +7,14 @@ const logger = createScopedLogger('ModelRouter');
  * Operation types that can be routed to specific provider+model pairs.
  * Each type represents a distinct phase of LLM interaction.
  */
-export const OPERATION_TYPES = ['code_generation', 'planning', 'error_correction', 'summarization', 'general'] as const;
+export const OPERATION_TYPES = [
+  'code_generation',
+  'planning',
+  'error_correction',
+  'summarization',
+  'general',
+  'blueprint',
+] as const;
 
 export type OperationType = (typeof OPERATION_TYPES)[number];
 
@@ -75,4 +83,29 @@ export function resolveModelForOperation(
   logger.info(`Routing "${operationType}" to ${override.provider}/${override.model}`);
 
   return { provider: override.provider, model: override.model };
+}
+
+/**
+ * Parses a fallback model string ("provider/model") into a ModelRouteConfig.
+ * Returns null if the model has no fallback configured or the format is invalid.
+ *
+ * @param modelDetails - The ModelInfo for the primary model (may have fallbackModel set)
+ * @returns Parsed provider + model pair, or null if no fallback is configured
+ */
+export function parseFallbackModel(modelDetails: ModelInfo): ModelRouteConfig | null {
+  if (!modelDetails.fallbackModel) {
+    return null;
+  }
+
+  const slashIndex = modelDetails.fallbackModel.indexOf('/');
+
+  if (slashIndex <= 0 || slashIndex === modelDetails.fallbackModel.length - 1) {
+    logger.warn(`Invalid fallback model format "${modelDetails.fallbackModel}" — expected "provider/model"`);
+    return null;
+  }
+
+  const provider = modelDetails.fallbackModel.slice(0, slashIndex);
+  const model = modelDetails.fallbackModel.slice(slashIndex + 1);
+
+  return { provider, model };
 }

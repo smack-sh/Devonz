@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { EnhancedStreamingMessageParser } from '~/lib/runtime/enhanced-message-parser';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { versionsStore } from '~/lib/stores/versions';
+import { structuredEventProcessor } from '~/lib/stores/streaming';
 import { runtimeContext } from '~/lib/runtime';
 import { createScopedLogger } from '~/utils/logger';
 
@@ -193,6 +194,13 @@ const messageParser = new EnhancedStreamingMessageParser({
     },
   },
 });
+
+/*
+ * Register the parser's structured event handler so WorkbenchStore.processDataStreamItems
+ * can forward validated streaming events without a circular import.
+ */
+structuredEventProcessor.set((event) => messageParser.processStructuredEvent(event));
+
 const extractTextContent = (message: Message) =>
   Array.isArray(message.content)
     ? (message.content.find((item) => item.type === 'text')?.text as string) || ''

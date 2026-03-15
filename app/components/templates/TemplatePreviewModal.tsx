@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from '@remix-run/react';
+import { useNavigate } from 'react-router';
 import type { ShowcaseTemplate } from '~/types/showcase-template';
 import { CATEGORY_LABELS } from '~/types/showcase-template';
 

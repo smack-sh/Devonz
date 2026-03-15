@@ -1,4 +1,4 @@
-import { json, type ActionFunctionArgs, type LoaderFunctionArgs } from '@remix-run/node';
+import { type ActionFunctionArgs, type LoaderFunctionArgs } from 'react-router';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '~/lib/.server/db';
@@ -19,7 +19,7 @@ async function chatByIdLoader({ params }: LoaderFunctionArgs) {
   const parsed = idParamSchema.safeParse(params.id);
 
   if (!parsed.success) {
-    return json({ error: 'Invalid chat ID' }, { status: 400 });
+    return Response.json({ error: 'Invalid chat ID' }, { status: 400 });
   }
 
   const chatId = parsed.data;
@@ -33,12 +33,12 @@ async function chatByIdLoader({ params }: LoaderFunctionArgs) {
   const chat = chatRows[0];
 
   if (!chat) {
-    return json({ error: 'Chat not found' }, { status: 404 });
+    return Response.json({ error: 'Chat not found' }, { status: 404 });
   }
 
   logger.debug(`Returning chat ${chatId} with ${messageRows.length} messages`);
 
-  return json({
+  return Response.json({
     chat: {
       ...chat,
       messages: messageRows.map((m) => ({
@@ -60,13 +60,13 @@ async function chatByIdLoader({ params }: LoaderFunctionArgs) {
 
 async function chatByIdAction({ request, params }: ActionFunctionArgs) {
   if (request.method !== 'DELETE') {
-    return json({ error: 'Method not allowed' }, { status: 405 });
+    return Response.json({ error: 'Method not allowed' }, { status: 405 });
   }
 
   const parsed = idParamSchema.safeParse(params.id);
 
   if (!parsed.success) {
-    return json({ error: 'Invalid chat ID' }, { status: 400 });
+    return Response.json({ error: 'Invalid chat ID' }, { status: 400 });
   }
 
   const chatId = parsed.data;
@@ -79,7 +79,7 @@ async function chatByIdAction({ request, params }: ActionFunctionArgs) {
     .limit(1);
 
   if (existing.length === 0) {
-    return json({ error: 'Chat not found' }, { status: 404 });
+    return Response.json({ error: 'Chat not found' }, { status: 404 });
   }
 
   // Messages and snapshots cascade-delete via FK constraints
@@ -87,7 +87,7 @@ async function chatByIdAction({ request, params }: ActionFunctionArgs) {
 
   logger.info(`Deleted chat ${chatId}`);
 
-  return json({ deleted: true, id: chatId });
+  return Response.json({ deleted: true, id: chatId });
 }
 
 /*

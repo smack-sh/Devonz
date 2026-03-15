@@ -5,6 +5,7 @@ import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constant
 import { extractCurrentContext, extractPropertiesFromMessage, simplifyDevonzActions } from './utils';
 import { createScopedLogger } from '~/utils/logger';
 import { resolveModel } from './resolve-model';
+import type { TokenBudgetState, ContextWindowConfig } from '~/lib/agent/types';
 
 const logger = createScopedLogger('create-summary');
 
@@ -69,8 +70,8 @@ export async function createSummary(props: {
 
   if (summary && summary.type === 'chatSummary') {
     chatId = summary.chatId;
-    summaryText = `Below is the Chat Summary till now, this is chat summary before the conversation provided by the user 
-you should also use this as historical message while providing the response to the user.        
+    summaryText = `Below is the Chat Summary till now, this is chat summary before the conversation provided by the user
+you should also use this as historical message while providing the response to the user.
 ${summary.summary}`;
 
     if (chatId) {
@@ -167,7 +168,7 @@ Note:
 
 
 ---
-        
+
         RULES:
         * Only provide the whole summary of the chat till now.
         * Do not provide any new information.
@@ -178,7 +179,7 @@ Note:
 
 Here is the previous summary of the chat:
 <old_summary>
-${summaryText} 
+${summaryText}
 </old_summary>
 
 Below is the chat after that:
@@ -220,4 +221,270 @@ Please provide a summary of the chat till now including the hitorical summary of
   }
 
   return response;
+}
+
+/*
+ * Mid-conversation summarization (Agent Mode v3)
+ */
+
+const MID_CONV_CACHE_PREFIX = 'mid-conv:';
+const MIN_MESSAGES_FOR_SUMMARY = 6;
+const DEFAULT_PRESERVE_LAST_N = 4;
+
+/**
+ * Determines whether the current context usage warrants mid-conversation
+ * summarization based on the configured threshold.
+ *
+ * Returns `false` when usage is unknown (`usagePercentage === -1`).
+ */
+export function shouldSummarize(tokenBudget: TokenBudgetState, config: ContextWindowConfig): boolean {
+  if (tokenBudget.usagePercentage === -1) {
+    return false;
+  }
+
+  return tokenBudget.usagePercentage >= config.thresholdPercentage;
+}
+
+/** Options accepted by {@link createMidConversationSummary}. */
+export interface MidConversationSummaryOptions {
+  env?: Env;
+  apiKeys?: Record<string, string>;
+  providerSettings?: Record<string, IProviderSetting>;
+
+  /** Number of most-recent messages to preserve (not summarized). @default 4 */
+  preserveLastN?: number;
+}
+
+/** Return value of {@link createMidConversationSummary}. */
+export interface MidConversationSummaryResult {
+  summary: string;
+  messagesRemoved: number;
+  originalTokenCount: number;
+  summarizedTokenCount: number;
+}
+
+/**
+ * Extracts text content from a message regardless of its storage format.
+ * Works for both plain-string and array-of-parts content fields.
+ */
+function extractTextContent(message: Message): string {
+  return Array.isArray(message.content)
+    ? (message.content.find((item) => item.type === 'text')?.text as string) || ''
+    : message.content;
+}
+
+/**
+ * Identifies message indices that belong to the last N agent "steps".
+ * A *step* is an assistant message that contains tool invocations (i.e. the
+ * agent performed tool calls during that turn).  The returned `Set` contains
+ * the indices of those assistant messages so they are never summarised away
+ * — keeping tool call results visible for the model's next turn.
+ */
+function getPinnedToolResultIndices(messages: Message[], stepCount: number): Set<number> {
+  const pinned = new Set<number>();
+  let found = 0;
+
+  for (let i = messages.length - 1; i >= 0 && found < stepCount; i--) {
+    const msg = messages[i];
+
+    if (msg.role === 'assistant' && hasToolInvocations(msg)) {
+      pinned.add(i);
+      found++;
+    }
+  }
+
+  return pinned;
+}
+
+/**
+ * Checks whether a message contains tool invocations, using either the
+ * legacy `toolInvocations` array or the newer `parts` array with
+ * `'tool-invocation'` entries.
+ */
+function hasToolInvocations(msg: Message): boolean {
+  if (msg.toolInvocations && msg.toolInvocations.length > 0) {
+    return true;
+  }
+
+  if (msg.parts) {
+    return msg.parts.some((p) => p.type === 'tool-invocation');
+  }
+
+  return false;
+}
+
+/**
+ * Creates a mid-conversation summary by summarising older messages while
+ * preserving system messages, the most recent N user/assistant messages, and
+ * tool-call results from the last 2 agent steps.
+ *
+ * Returns `null` if there are fewer than {@link MIN_MESSAGES_FOR_SUMMARY}
+ * messages — not enough context to justify summarization overhead.
+ */
+export async function createMidConversationSummary(
+  messages: Message[],
+  options: MidConversationSummaryOptions = {},
+): Promise<MidConversationSummaryResult | null> {
+  const { env: serverEnv, apiKeys, providerSettings, preserveLastN = DEFAULT_PRESERVE_LAST_N } = options;
+
+  // Guard: too few messages to warrant summarization
+  if (messages.length < MIN_MESSAGES_FOR_SUMMARY) {
+    logger.debug(
+      `Skipping mid-conversation summary: only ${messages.length} messages (min ${MIN_MESSAGES_FOR_SUMMARY})`,
+    );
+
+    return null;
+  }
+
+  // ---- Resolve model (mirrors createSummary pattern) ----
+  let currentModel = DEFAULT_MODEL;
+  let currentProvider = DEFAULT_PROVIDER.name;
+
+  for (const msg of messages) {
+    if (msg.role === 'user') {
+      const { model, provider } = extractPropertiesFromMessage(msg);
+      currentModel = model;
+      currentProvider = provider;
+    }
+  }
+
+  const provider = PROVIDER_LIST.find((p) => p.name === currentProvider) || DEFAULT_PROVIDER;
+  const resolvedModel = await resolveModel({
+    provider,
+    currentModel,
+    apiKeys,
+    providerSettings,
+    serverEnv,
+    logger,
+  });
+  currentModel = resolvedModel.name;
+
+  // ---- Classify messages into buckets ----
+  const pinnedStepIndices = getPinnedToolResultIndices(messages, 2);
+
+  // Indices of the last N non-system messages (preserveLastN)
+  const preservedTailIndices = new Set<number>();
+  let preserved = 0;
+
+  for (let idx = messages.length - 1; idx >= 0 && preserved < preserveLastN; idx--) {
+    if (messages[idx].role !== 'system') {
+      preservedTailIndices.add(idx);
+      preserved++;
+    }
+  }
+
+  const systemMessages: Message[] = [];
+  const candidateMessages: Message[] = [];
+  const keptMessages: Message[] = [];
+
+  for (let idx = 0; idx < messages.length; idx++) {
+    const msg = messages[idx];
+
+    if (msg.role === 'system') {
+      systemMessages.push(msg);
+    } else if (preservedTailIndices.has(idx) || pinnedStepIndices.has(idx)) {
+      keptMessages.push(msg);
+    } else {
+      candidateMessages.push(msg);
+    }
+  }
+
+  // Nothing to summarize — all messages are either pinned, preserved, or system
+  if (candidateMessages.length === 0) {
+    logger.debug('No candidate messages to summarize after classification');
+
+    return null;
+  }
+
+  // ---- Cache lookup ----
+  const candidateText = candidateMessages.map((m) => `${m.role}:${extractTextContent(m)}`).join('|');
+  const rawCacheKey = createHash('sha256').update(candidateText).digest('hex');
+  const cacheKey = `${MID_CONV_CACHE_PREFIX}${rawCacheKey}`;
+
+  // Evict stale entries
+  for (const [key, entry] of summaryCache) {
+    if (Date.now() - entry.timestamp > SUMMARY_CACHE_TTL_MS) {
+      summaryCache.delete(key);
+    }
+  }
+
+  const cached = summaryCache.get(cacheKey);
+
+  if (cached) {
+    logger.info(`Mid-conv summary cache HIT (hash: ${rawCacheKey.slice(0, 8)}…)`);
+
+    const originalTokenEstimate = candidateText.length;
+    const summarizedTokenEstimate = cached.summary.length;
+
+    return {
+      summary: cached.summary,
+      messagesRemoved: candidateMessages.length,
+      originalTokenCount: originalTokenEstimate,
+      summarizedTokenCount: summarizedTokenEstimate,
+    };
+  }
+
+  logger.info(
+    `Mid-conv summary cache MISS — summarizing ${candidateMessages.length} messages (hash: ${rawCacheKey.slice(0, 8)}…)`,
+  );
+
+  // ---- Prepare candidate content for summarization ----
+  const processedCandidates = candidateMessages.map((msg) => {
+    if (msg.role === 'assistant') {
+      let content = extractTextContent(msg);
+      content = simplifyDevonzActions(content);
+      content = content.replace(/<div class=\\"__devonzThought__\\">.*?<\/div>/s, '');
+      content = content.replace(/<think>.*?<\/think>/s, '');
+
+      return `[${msg.role}] ${content}`;
+    }
+
+    return `[${msg.role}] ${extractTextContent(msg)}`;
+  });
+
+  // ---- LLM call ----
+  const resp = await generateText({
+    system: `You are a conversation summarizer for a coding assistant. Summarize the following conversation excerpt concisely, preserving:
+- All technical decisions and their rationale
+- File paths, function names, and code patterns discussed
+- Errors encountered and their resolutions
+- User preferences and constraints mentioned
+- Current state of the implementation
+
+Keep the summary dense and factual. Do not add commentary.`,
+    prompt: `Summarize the following conversation messages:\n\n${processedCandidates.join('\n---\n')}`,
+    model: provider.getModelInstance({
+      model: currentModel,
+      serverEnv,
+      apiKeys,
+      providerSettings,
+    }),
+  });
+
+  const summaryText = resp.text;
+
+  // ---- Store in cache ----
+  if (summaryCache.size >= SUMMARY_CACHE_MAX_SIZE) {
+    const oldestKey = summaryCache.keys().next().value;
+
+    if (oldestKey !== undefined) {
+      summaryCache.delete(oldestKey);
+    }
+  }
+
+  summaryCache.set(cacheKey, { summary: summaryText, timestamp: Date.now() });
+
+  const originalTokenEstimate = candidateText.length;
+  const summarizedTokenEstimate = summaryText.length;
+
+  logger.info(
+    `Mid-conv summary complete: ${candidateMessages.length} messages removed, ~${originalTokenEstimate} chars → ~${summarizedTokenEstimate} chars`,
+  );
+
+  return {
+    summary: summaryText,
+    messagesRemoved: candidateMessages.length,
+    originalTokenCount: originalTokenEstimate,
+    summarizedTokenCount: summarizedTokenEstimate,
+  };
 }

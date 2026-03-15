@@ -1,4 +1,4 @@
-import { type ActionFunctionArgs, type LoaderFunctionArgs, json } from '@remix-run/node';
+import { type ActionFunctionArgs, type LoaderFunctionArgs } from 'react-router';
 import type {
   VercelProjectInfo,
   VercelProject,
@@ -24,7 +24,7 @@ const detectFramework = (files: Record<string, string>): string => {
         return 'nextjs';
       }
 
-      if (dependencies.react && dependencies['@remix-run/react']) {
+      if (dependencies.react && dependencies['react-router']) {
         return 'remix';
       }
 
@@ -179,7 +179,7 @@ async function vercelDeployLoader({ request }: LoaderFunctionArgs) {
   const token = url.searchParams.get('token');
 
   if (!projectId || !token) {
-    return json({ error: 'Missing projectId or token' }, { status: 400 });
+    return Response.json({ error: 'Missing projectId or token' }, { status: 400 });
   }
 
   return handleApiError('VercelDeploy.loader', async () => {
@@ -189,7 +189,7 @@ async function vercelDeployLoader({ request }: LoaderFunctionArgs) {
     });
 
     if (!projectResponse.ok) {
-      return json({ error: 'Failed to fetch project' }, { status: 400 });
+      return Response.json({ error: 'Failed to fetch project' }, { status: 400 });
     }
 
     const projectData = (await projectResponse.json()) as VercelProject;
@@ -200,14 +200,14 @@ async function vercelDeployLoader({ request }: LoaderFunctionArgs) {
     });
 
     if (!deploymentsResponse.ok) {
-      return json({ error: 'Failed to fetch deployments' }, { status: 400 });
+      return Response.json({ error: 'Failed to fetch deployments' }, { status: 400 });
     }
 
     const deploymentsData = (await deploymentsResponse.json()) as { deployments?: VercelDeployment[] };
 
     const latestDeployment = deploymentsData.deployments?.[0];
 
-    return json({
+    return Response.json({
       project: {
         id: projectData.id,
         name: projectData.name,
@@ -239,7 +239,7 @@ async function vercelDeployAction({ request }: ActionFunctionArgs) {
     };
 
     if (!token) {
-      return json({ error: 'Not connected to Vercel' }, { status: 401 });
+      return Response.json({ error: 'Not connected to Vercel' }, { status: 401 });
     }
 
     let targetProjectId = projectId;
@@ -266,7 +266,7 @@ async function vercelDeployAction({ request }: ActionFunctionArgs) {
 
       if (!createProjectResponse.ok) {
         const errorData = (await createProjectResponse.json()) as VercelApiError;
-        return json(
+        return Response.json(
           { error: `Failed to create project: ${errorData.error?.message || 'Unknown error'}` },
           { status: 400 },
         );
@@ -308,7 +308,7 @@ async function vercelDeployAction({ request }: ActionFunctionArgs) {
 
         if (!createProjectResponse.ok) {
           const errorData = (await createProjectResponse.json()) as VercelApiError;
-          return json(
+          return Response.json(
             { error: `Failed to create project: ${errorData.error?.message || 'Unknown error'}` },
             { status: 400 },
           );
@@ -393,7 +393,7 @@ async function vercelDeployAction({ request }: ActionFunctionArgs) {
 
     if (!deployResponse.ok) {
       const errorData = (await deployResponse.json()) as VercelApiError;
-      return json(
+      return Response.json(
         { error: `Failed to create deployment: ${errorData.error?.message || 'Unknown error'}` },
         { status: 400 },
       );
@@ -427,14 +427,14 @@ async function vercelDeployAction({ request }: ActionFunctionArgs) {
     }
 
     if (deploymentState === 'ERROR') {
-      return json({ error: 'Deployment failed' }, { status: 500 });
+      return Response.json({ error: 'Deployment failed' }, { status: 500 });
     }
 
     if (retryCount >= maxRetries) {
-      return json({ error: 'Deployment timed out' }, { status: 500 });
+      return Response.json({ error: 'Deployment timed out' }, { status: 500 });
     }
 
-    return json({
+    return Response.json({
       success: true,
       deploy: {
         id: deployData.id,

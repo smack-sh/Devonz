@@ -1,12 +1,31 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import React, { useState } from 'react';
+import { useStore } from '@nanostores/react';
 import type { ProgressAnnotation } from '~/types/context';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
+import { latestPlanPhaseChange, latestReviewCycle } from '~/lib/stores/stream-event-router';
+
+const PHASE_LABELS: Record<string, string> = {
+  idle: 'Idle',
+  planning: 'Planning',
+  executing: 'Executing',
+  reviewing: 'Reviewing',
+};
+
+const PHASE_COLORS: Record<string, string> = {
+  idle: 'bg-devonz-elements-item-backgroundDefault text-devonz-elements-item-contentDefault',
+  planning: 'bg-blue-500/15 text-blue-400',
+  executing: 'bg-green-500/15 text-green-400',
+  reviewing: 'bg-amber-500/15 text-amber-400',
+};
 
 export default function ProgressCompilation({ data }: { data?: ProgressAnnotation[] }) {
   const [progressList, setProgressList] = React.useState<ProgressAnnotation[]>([]);
   const [expanded, setExpanded] = useState(false);
+  const planPhaseChange = useStore(latestPlanPhaseChange);
+  const reviewCycle = useStore(latestReviewCycle);
+
   React.useEffect(() => {
     if (!data || data.length === 0) {
       setProgressList([]);
@@ -29,7 +48,7 @@ export default function ProgressCompilation({ data }: { data?: ProgressAnnotatio
     setProgressList(newData);
   }, [data]);
 
-  if (progressList.length === 0) {
+  if (progressList.length === 0 && !planPhaseChange && !reviewCycle) {
     return <></>;
   }
 
@@ -52,6 +71,10 @@ export default function ProgressCompilation({ data }: { data?: ProgressAnnotatio
         >
           <div className="flex-1">
             <AnimatePresence>
+              {planPhaseChange && (
+                <PlanPhaseBadge fromPhase={planPhaseChange.fromPhase} toPhase={planPhaseChange.toPhase} />
+              )}
+              {reviewCycle && <ReviewCycleIndicator cycle={reviewCycle} />}
               {expanded ? (
                 <motion.div
                   className="actions"
@@ -64,9 +87,9 @@ export default function ProgressCompilation({ data }: { data?: ProgressAnnotatio
                     return <ProgressItem key={i} progress={x} />;
                   })}
                 </motion.div>
-              ) : (
+              ) : progressList.length > 0 ? (
                 <ProgressItem progress={progressList.slice(-1)[0]} />
-              )}
+              ) : null}
             </AnimatePresence>
           </div>
           <motion.button
@@ -105,6 +128,58 @@ const ProgressItem = ({ progress }: { progress: ProgressAnnotation }) => {
         {/* {x.label} */}
       </div>
       {progress.message}
+    </motion.div>
+  );
+};
+
+const PlanPhaseBadge = ({ fromPhase, toPhase }: { fromPhase: string; toPhase: string }) => {
+  const label = PHASE_LABELS[toPhase] ?? toPhase;
+  const colorClass = PHASE_COLORS[toPhase] ?? PHASE_COLORS.idle;
+
+  return (
+    <motion.div
+      className={classNames('flex text-xs items-center gap-1.5 py-0.5')}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15 }}
+    >
+      <div className="i-ph:arrows-clockwise text-devonz-elements-item-contentDefault" />
+      <span className="text-devonz-elements-item-contentDefault">{PHASE_LABELS[fromPhase] ?? fromPhase}</span>
+      <div className="i-ph:arrow-right text-devonz-elements-item-contentDefault" />
+      <span className={classNames('px-1.5 py-0.5 rounded-md text-xs font-medium', colorClass)}>{label}</span>
+    </motion.div>
+  );
+};
+
+const ReviewCycleIndicator = ({
+  cycle,
+}: {
+  cycle: { cycleNumber: number; triggeredBy: string; errorsFound: string[]; fixAttempted: boolean };
+}) => {
+  const errorCount = cycle.errorsFound.length;
+
+  return (
+    <motion.div
+      className={classNames('flex text-xs items-center gap-1.5 py-0.5')}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15 }}
+    >
+      <div className="i-ph:magnifying-glass text-devonz-elements-item-contentDefault" />
+      <span className="text-devonz-elements-item-contentDefault">Review #{cycle.cycleNumber}</span>
+      {errorCount > 0 && (
+        <span className="px-1.5 py-0.5 rounded-md bg-red-500/15 text-red-400 font-medium">
+          {errorCount} {errorCount === 1 ? 'error' : 'errors'}
+        </span>
+      )}
+      {cycle.fixAttempted && (
+        <span className="px-1.5 py-0.5 rounded-md bg-green-500/15 text-green-400 font-medium">fix attempted</span>
+      )}
+      {errorCount === 0 && (
+        <span className="px-1.5 py-0.5 rounded-md bg-green-500/15 text-green-400 font-medium">clean</span>
+      )}
     </motion.div>
   );
 };

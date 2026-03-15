@@ -5,9 +5,15 @@
  * Provides reactive state for agent mode settings and status tracking.
  */
 
-import { map } from 'nanostores';
+import { map, computed } from 'nanostores';
 import { createScopedLogger } from '~/utils/logger';
-import type { AgentModeSettings, AgentStatus, AgentExecutionState } from '~/lib/agent/types';
+import type {
+  AgentModeSettings,
+  AgentStatus,
+  AgentExecutionState,
+  PlanPhase,
+  TokenBudgetState,
+} from '~/lib/agent/types';
 import { DEFAULT_AGENT_SETTINGS } from '~/lib/agent/types';
 
 const logger = createScopedLogger('AgentModeStore');
@@ -48,6 +54,15 @@ export interface AgentModeUIState {
 
   /** Commands executed in current session */
   commandsExecuted: string[];
+
+  /** Current planning phase synchronized from orchestrator */
+  planPhase: PlanPhase;
+
+  /** Current token budget state, null until first token_budget_update event */
+  tokenBudget: TokenBudgetState | null;
+
+  /** Current parallel tool batch state, null when no batch is active */
+  parallelBatch: { batchId: string; toolCount: number; status: string; completedCount: number } | null;
 }
 
 // Load settings from localStorage
@@ -116,12 +131,57 @@ const initialState: AgentModeUIState = {
   filesCreated: [],
   filesModified: [],
   commandsExecuted: [],
+  planPhase: 'idle',
+  tokenBudget: null,
+  parallelBatch: null,
 };
 
 /**
  * Main agent mode store
  */
 export const agentModeStore = map<AgentModeUIState>(initialState);
+
+/**
+ * Derived atom: true when the agent is in a review cycle
+ */
+export const isInReviewCycle = computed(agentModeStore, (state) => state.planPhase === 'reviewing');
+
+/**
+ * Derived atom: true when the agent is in the planning phase
+ */
+export const isPlanning = computed(agentModeStore, (state) => state.planPhase === 'planning');
+
+/**
+ * Budget severity level derived from token usage percentage.
+ * - 'unknown' when usagePercentage is -1 (provider data unavailable)
+ * - 'normal' when usage < 60%
+ * - 'warning' when usage 60-80%
+ * - 'critical' when usage > 80%
+ * - null when no budget data is available yet
+ */
+export type BudgetSeverity = 'normal' | 'warning' | 'critical' | 'unknown';
+
+export const budgetSeverity = computed(agentModeStore, (state): BudgetSeverity | null => {
+  const budget = state.tokenBudget;
+
+  if (!budget) {
+    return null;
+  }
+
+  if (budget.usagePercentage === -1) {
+    return 'unknown';
+  }
+
+  if (budget.usagePercentage > 80) {
+    return 'critical';
+  }
+
+  if (budget.usagePercentage >= 60) {
+    return 'warning';
+  }
+
+  return 'normal';
+});
 
 /**
  * Update agent mode settings
@@ -162,6 +222,7 @@ export function syncFromOrchestratorState(state: AgentExecutionState): void {
     filesCreated: [...state.filesCreated],
     filesModified: [...state.filesModified],
     commandsExecuted: [...state.commandsExecuted],
+    planPhase: state.planPhase,
   });
 }
 
@@ -183,6 +244,9 @@ export function resetAgentModeState(): void {
     filesCreated: [],
     filesModified: [],
     commandsExecuted: [],
+    planPhase: 'idle',
+    tokenBudget: null,
+    parallelBatch: null,
   });
 
   logger.debug('Agent mode state reset');

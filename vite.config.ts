@@ -1,4 +1,4 @@
-import { vitePlugin as remixVitePlugin } from '@remix-run/dev';
+import { reactRouter } from '@react-router/dev/vite';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import { visualizer } from 'rollup-plugin-visualizer';
 import UnoCSS from 'unocss/vite';
@@ -31,6 +31,15 @@ export default defineConfig((config) => {
       },
     },
     resolve: {
+      dedupe: [
+        'react',
+        'react-dom',
+        'react/jsx-runtime',
+        'react/jsx-dev-runtime',
+        'react-dom/client',
+        'react-router',
+        '@nanostores/react',
+      ],
       alias: {
         // Provide empty shim for util/types in client builds
         'util/types': 'rollup-plugin-node-polyfills/polyfills/empty',
@@ -49,6 +58,7 @@ export default defineConfig((config) => {
         'node:util/types',
         'buffer',
         'node:buffer',
+        'react-window',
       ],
     },
     plugins: [
@@ -75,14 +85,7 @@ export default defineConfig((config) => {
           return null;
         },
       },
-      remixVitePlugin({
-        future: {
-          v3_fetcherPersist: true,
-          v3_relativeSplatPath: true,
-          v3_throwAbortReason: true,
-          v3_lazyRouteDiscovery: true,
-        },
-      }),
+      reactRouter(),
       UnoCSS(),
       tsconfigPaths(),
       config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
@@ -127,8 +130,15 @@ export default defineConfig((config) => {
         /*
          * Pre-bundle all known client deps at startup to avoid runtime discovery + page reload.
          * Without this, Vite discovers ~40 deps during first page load, re-bundles, and forces a reload.
+         *
+         * React + React-DOM MUST be listed here so that all other pre-bundled deps share
+         * the same React internals instead of inlining a separate copy.
          */
-        'remix-island',
+        'react',
+        'react-dom',
+        'react/jsx-runtime',
+        'react/jsx-dev-runtime',
+        'react-dom/client',
         'react-dnd',
         'react-dnd-html5-backend',
         '@ai-sdk/react',

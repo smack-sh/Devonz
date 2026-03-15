@@ -17,6 +17,9 @@ import type { ActionAlert, DeployAlert, SupabaseAlert } from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
 import { pushToRepository } from '~/lib/services/repositoryPushService';
 import { downloadFilesAsZip, syncFilesToDirectory } from '~/lib/utils/exportUtils';
+import { streamingEventSchema } from '~/types/streaming-events';
+import { processStreamEvent } from './stream-event-router';
+import { structuredStreamingActive, structuredEventProcessor } from './streaming';
 
 const logger = createScopedLogger('WorkbenchStore');
 
@@ -78,6 +81,12 @@ export class WorkbenchStore {
    */
   #actionLogCounter = 0;
   #actionLogBatchSize = 25;
+
+  /**
+   * Tracks the index of the last data-stream item processed by
+   * processDataStreamItems() so we only handle new items on each call.
+   */
+  #lastProcessedDataIndex = 0;
 
   constructor() {
     if (import.meta.hot) {
@@ -824,6 +833,79 @@ export class WorkbenchStore {
       isPrivate,
       branchName,
     });
+  }
+
+  /**
+   * Process new items from useChat's `data` channel.
+   *
+   * Call this whenever the `data` array from `useChat()` changes. It tracks
+   * the last processed index internally so duplicate processing is avoided.
+   * Each item is checked for a `devonz_event` wrapper key, validated against
+   * the streamingEventSchema Zod union, and dispatched to the
+   * StreamEventRouter on success.
+   *
+   * Invalid or unrecognized items are logged and skipped without breaking
+   * the stream.
+   *
+   * @param data - The full `data` array returned by `useChat()`.
+   */
+  processDataStreamItems(data: unknown[] | undefined): void {
+    if (!data || data.length === 0) {
+      return;
+    }
+
+    // Only process items we haven't seen yet
+    const startIndex = this.#lastProcessedDataIndex;
+
+    if (startIndex >= data.length) {
+      return;
+    }
+
+    for (let i = startIndex; i < data.length; i++) {
+      const item = data[i];
+
+      // Filter for objects containing the devonz_event wrapper key
+      if (typeof item !== 'object' || item === null || !('devonz_event' in item)) {
+        continue;
+      }
+
+      const wrapper = item as Record<string, unknown>;
+      const rawEvent = wrapper.devonz_event;
+
+      // Validate the event payload against the Zod schema
+      const result = streamingEventSchema.safeParse(rawEvent);
+
+      if (!result.success) {
+        logger.warn('Invalid streaming event received, skipping:', result.error.message);
+        continue;
+      }
+
+      processStreamEvent(result.data);
+
+      /*
+       * Forward the validated event to the message parser for Action creation.
+       * The parser's processStructuredEvent handles stream_start (mode switch)
+       * and file_close (Action dispatch via callbacks). The reference is held
+       * in a nanostore atom to avoid a circular import with useMessageParser.
+       */
+      const processor = structuredEventProcessor.get();
+
+      if (processor) {
+        processor(result.data);
+      }
+    }
+
+    this.#lastProcessedDataIndex = data.length;
+  }
+
+  /**
+   * Reset the data stream processing index.
+   * Call this when starting a new chat message / streaming session so that
+   * previously processed items don't carry over.
+   */
+  resetDataStreamProcessing(): void {
+    this.#lastProcessedDataIndex = 0;
+    structuredStreamingActive.set(false);
   }
 }
 

@@ -1,3 +1,4 @@
+import type { ServerOutputParser } from './output-parser';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('SwitchableStream');
@@ -6,6 +7,7 @@ export default class SwitchableStream extends TransformStream {
   private _controller: TransformStreamDefaultController | null = null;
   private _currentReader: ReadableStreamDefaultReader | null = null;
   private _switches = 0;
+  private _parser: ServerOutputParser | null = null;
 
   constructor() {
     let controllerRef: TransformStreamDefaultController | undefined;
@@ -62,6 +64,20 @@ export default class SwitchableStream extends TransformStream {
     }
 
     this._controller?.terminate();
+  }
+
+  /**
+   * Store a ServerOutputParser that persists across stream source switches.
+   * This ensures parser state (partial tags, artifact context) is preserved
+   * when the LLM hits the token limit and a continuation segment begins.
+   */
+  setParser(parser: ServerOutputParser): void {
+    this._parser = parser;
+  }
+
+  /** Get the stored parser (persists across switches). */
+  get parser(): ServerOutputParser | null {
+    return this._parser;
   }
 
   get switches() {

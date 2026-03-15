@@ -1,4 +1,4 @@
-import { json, type LoaderFunctionArgs, type ActionFunctionArgs } from '@remix-run/node';
+import { type LoaderFunctionArgs, type ActionFunctionArgs } from 'react-router';
 import { ApiError, resolveToken, unauthorizedResponse, externalFetch, handleApiError } from '~/lib/api/apiUtils';
 import { withSecurity } from '~/lib/security';
 
@@ -25,7 +25,7 @@ async function supabaseUserLoader({ request, context }: LoaderFunctionArgs) {
 
     if (!response.ok) {
       if (response.status === 401) {
-        return json({ error: 'Invalid Supabase token' }, { status: 401 });
+        return Response.json({ error: 'Invalid Supabase token' }, { status: 401 });
       }
 
       throw new ApiError(`Supabase API error: ${response.status}`, response.status);
@@ -42,7 +42,7 @@ async function supabaseUserLoader({ request, context }: LoaderFunctionArgs) {
           }
         : null;
 
-    return json({
+    return Response.json({
       user,
       projects: projects.map((p) => ({
         id: p.id,
@@ -90,7 +90,7 @@ async function supabaseUserAction({ request, context }: ActionFunctionArgs) {
             }
           : null;
 
-      return json({
+      return Response.json({
         user,
         stats: {
           projects: projects.map((p) => ({
@@ -110,7 +110,7 @@ async function supabaseUserAction({ request, context }: ActionFunctionArgs) {
       const projectId = formData.get('projectId');
 
       if (!projectId) {
-        return json({ error: 'Project ID is required' }, { status: 400 });
+        return Response.json({ error: 'Project ID is required' }, { status: 400 });
       }
 
       const response = await externalFetch({
@@ -124,12 +124,12 @@ async function supabaseUserAction({ request, context }: ActionFunctionArgs) {
 
       const apiKeys = (await response.json()) as Array<{ name: string; api_key: string }>;
 
-      return json({
+      return Response.json({
         apiKeys: apiKeys.map((key) => ({ name: key.name, api_key: key.api_key })),
       });
     }
 
-    return json({ error: 'Invalid action' }, { status: 400 });
+    return Response.json({ error: 'Invalid action' }, { status: 400 });
   });
 }
 

@@ -1,4 +1,4 @@
-import { type ActionFunctionArgs, json } from '@remix-run/node';
+import { type ActionFunctionArgs } from 'react-router';
 import crypto from 'crypto';
 import type { NetlifySiteInfo } from '~/types/netlify';
 import { handleApiError } from '~/lib/api/apiUtils';
@@ -55,7 +55,7 @@ async function netlifyDeployAction({ request }: ActionFunctionArgs) {
       const { siteId, files, token, chatId } = (await request.json()) as DeployRequestBody & { token: string };
 
       if (!token) {
-        return json({ error: 'Not connected to Netlify' }, { status: 401 });
+        return Response.json({ error: 'Not connected to Netlify' }, { status: 401 });
       }
 
       let targetSiteId = siteId;
@@ -79,7 +79,7 @@ async function netlifyDeployAction({ request }: ActionFunctionArgs) {
 
         if (!createSiteResponse.ok) {
           const errorDetail = await readNetlifyError(createSiteResponse);
-          return json(
+          return Response.json(
             { error: `Failed to create site${errorDetail ? `: ${errorDetail}` : ''}` },
             { status: createSiteResponse.status },
           );
@@ -134,7 +134,7 @@ async function netlifyDeployAction({ request }: ActionFunctionArgs) {
 
           if (!createSiteResponse.ok) {
             const errorDetail = await readNetlifyError(createSiteResponse);
-            return json(
+            return Response.json(
               { error: `Failed to create site${errorDetail ? `: ${errorDetail}` : ''}` },
               { status: createSiteResponse.status },
             );
@@ -181,7 +181,7 @@ async function netlifyDeployAction({ request }: ActionFunctionArgs) {
 
       if (!deployResponse.ok) {
         const errorDetail = await readNetlifyError(deployResponse);
-        return json(
+        return Response.json(
           { error: `Failed to create deployment${errorDetail ? `: ${errorDetail}` : ''}` },
           { status: deployResponse.status },
         );
@@ -206,7 +206,7 @@ async function netlifyDeployAction({ request }: ActionFunctionArgs) {
 
         if (!statusResponse.ok) {
           const errorDetail = await readNetlifyError(statusResponse);
-          return json(
+          return Response.json(
             { error: `Failed to check deployment status${errorDetail ? `: ${errorDetail}` : ''}` },
             { status: statusResponse.status },
           );
@@ -256,7 +256,7 @@ async function netlifyDeployAction({ request }: ActionFunctionArgs) {
             }
 
             if (!uploadSuccess) {
-              return json({ error: `Failed to upload file ${filePath}` }, { status: 500 });
+              return Response.json({ error: `Failed to upload file ${filePath}` }, { status: 500 });
             }
           }
 
@@ -265,7 +265,7 @@ async function netlifyDeployAction({ request }: ActionFunctionArgs) {
 
         if (status.state === 'ready') {
           // Only return after files are uploaded
-          return json({
+          return Response.json({
             success: true,
             deploy: {
               id: status.id,
@@ -277,7 +277,7 @@ async function netlifyDeployAction({ request }: ActionFunctionArgs) {
         }
 
         if (status.state === 'error') {
-          return json({ error: status.error_message || 'Deploy preparation failed' }, { status: 500 });
+          return Response.json({ error: status.error_message || 'Deploy preparation failed' }, { status: 500 });
         }
 
         retryCount++;
@@ -285,11 +285,11 @@ async function netlifyDeployAction({ request }: ActionFunctionArgs) {
       }
 
       if (retryCount >= maxRetries) {
-        return json({ error: 'Deploy preparation timed out' }, { status: 500 });
+        return Response.json({ error: 'Deploy preparation timed out' }, { status: 500 });
       }
 
       // Make sure we're returning the deploy ID and site info
-      return json({
+      return Response.json({
         success: true,
         deploy: {
           id: deploy.id,

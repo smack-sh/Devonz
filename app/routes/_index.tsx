@@ -1,10 +1,14 @@
-import { json, type MetaFunction } from '@remix-run/node';
-import { ClientOnly } from 'remix-utils/client-only';
+import { lazy, Suspense } from 'react';
+import { type MetaFunction } from 'react-router';
 import { BaseChat } from '~/components/chat/BaseChat';
-import { Chat } from '~/components/chat/Chat.client';
 import { Header } from '~/components/header/Header';
-import { MigrationBanner } from '~/components/chat/MigrationBanner.client';
-import { UpdateBanner } from '~/components/ui/UpdateBanner';
+import { clientLazy } from '~/utils/react';
+
+const Chat = clientLazy(() => import('~/components/chat/Chat.client').then((m) => ({ default: m.Chat })));
+const MigrationBanner = clientLazy(() =>
+  import('~/components/chat/MigrationBanner.client').then((m) => ({ default: m.MigrationBanner })),
+);
+const UpdateBanner = lazy(() => import('~/components/ui/UpdateBanner').then((m) => ({ default: m.UpdateBanner })));
 
 export const meta: MetaFunction = () => {
   return [
@@ -20,7 +24,7 @@ export const meta: MetaFunction = () => {
   ];
 };
 
-export const loader = () => json({});
+export const loader = () => Response.json({});
 
 /**
  * Landing page component for Devonz
@@ -34,10 +38,16 @@ export default function Index() {
       id="main-content"
       className="flex flex-col h-full w-full overflow-hidden bg-devonz-elements-background-depth-1"
     >
-      <ClientOnly>{() => <MigrationBanner />}</ClientOnly>
-      <ClientOnly>{() => <UpdateBanner />}</ClientOnly>
+      <Suspense fallback={null}>
+        <MigrationBanner />
+      </Suspense>
+      <Suspense fallback={null}>
+        <UpdateBanner />
+      </Suspense>
       <Header />
-      <ClientOnly fallback={<BaseChat />}>{() => <Chat />}</ClientOnly>
+      <Suspense fallback={<BaseChat />}>
+        <Chat />
+      </Suspense>
     </main>
   );
 }

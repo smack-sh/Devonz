@@ -1,4 +1,4 @@
-import { json, type LoaderFunctionArgs, type ActionFunctionArgs } from '@remix-run/node';
+import { type LoaderFunctionArgs, type ActionFunctionArgs } from 'react-router';
 import { ApiError, resolveToken, unauthorizedResponse, externalFetch, handleApiError } from '~/lib/api/apiUtils';
 import { withSecurity } from '~/lib/security';
 
@@ -20,7 +20,7 @@ async function githubUserLoader({ request, context }: LoaderFunctionArgs) {
 
     if (!response.ok) {
       if (response.status === 401) {
-        return json({ error: 'Invalid GitHub token' }, { status: 401 });
+        return Response.json({ error: 'Invalid GitHub token' }, { status: 401 });
       }
 
       throw new ApiError(`GitHub API error: ${response.status}`, response.status);
@@ -34,7 +34,7 @@ async function githubUserLoader({ request, context }: LoaderFunctionArgs) {
       type: string;
     };
 
-    return json({
+    return Response.json({
       login: userData.login,
       name: userData.name,
       avatar_url: userData.avatar_url,
@@ -105,7 +105,7 @@ async function githubUserAction({ request, context }: ActionFunctionArgs) {
         topics: string[];
       }>;
 
-      return json({
+      return Response.json({
         repos: repos.map((repo) => ({
           id: repo.id,
           name: repo.name,
@@ -124,7 +124,7 @@ async function githubUserAction({ request, context }: ActionFunctionArgs) {
 
     if (action === 'get_branches') {
       if (!repoFullName) {
-        return json({ error: 'Repository name is required' }, { status: 400 });
+        return Response.json({ error: 'Repository name is required' }, { status: 400 });
       }
 
       const response = await externalFetch({
@@ -143,7 +143,7 @@ async function githubUserAction({ request, context }: ActionFunctionArgs) {
         protected: boolean;
       }>;
 
-      return json({
+      return Response.json({
         branches: branches.map((branch) => ({
           name: branch.name,
           commit: { sha: branch.commit.sha, url: branch.commit.url },
@@ -153,12 +153,12 @@ async function githubUserAction({ request, context }: ActionFunctionArgs) {
     }
 
     if (action === 'get_token') {
-      return json({ token });
+      return Response.json({ token });
     }
 
     if (action === 'search_repos') {
       if (!searchQuery) {
-        return json({ error: 'Search query is required' }, { status: 400 });
+        return Response.json({ error: 'Search query is required' }, { status: 400 });
       }
 
       const response = await externalFetch({
@@ -190,7 +190,7 @@ async function githubUserAction({ request, context }: ActionFunctionArgs) {
         }>;
       };
 
-      return json({
+      return Response.json({
         repos: searchData.items.map((repo) => ({
           id: repo.id,
           name: repo.name,
@@ -210,7 +210,7 @@ async function githubUserAction({ request, context }: ActionFunctionArgs) {
       });
     }
 
-    return json({ error: 'Invalid action' }, { status: 400 });
+    return Response.json({ error: 'Invalid action' }, { status: 400 });
   });
 }
 

@@ -1,5 +1,5 @@
-import { json, type LoaderFunctionArgs } from '@remix-run/node';
-import { useLoaderData } from '@remix-run/react';
+import { type LoaderFunctionArgs } from 'react-router';
+import { useLoaderData } from 'react-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const PREVIEW_CHANNEL = 'preview-updates';
@@ -11,13 +11,13 @@ export async function loader({ params }: LoaderFunctionArgs) {
     throw new Response('A valid port number is required', { status: 400 });
   }
 
-  return json({ port });
+  return Response.json({ port });
 }
 
 export default function PreviewWindow() {
   const { port } = useLoaderData<typeof loader>();
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const broadcastChannelRef = useRef<BroadcastChannel>();
+  const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
   const [previewUrl, setPreviewUrl] = useState('');
 
   /* Handle preview refresh */
@@ -77,7 +77,7 @@ export default function PreviewWindow() {
         }
       };
     } else {
-      broadcastChannelRef.current = undefined;
+      broadcastChannelRef.current = null;
     }
 
     /* Construct the localhost preview URL from the port */

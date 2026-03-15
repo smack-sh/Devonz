@@ -1,5 +1,4 @@
-import type { ActionFunctionArgs } from '@remix-run/node';
-import { json } from '@remix-run/node';
+import type { ActionFunctionArgs } from 'react-router';
 import { withSecurity } from '~/lib/security';
 import { createScopedLogger } from '~/utils/logger';
 
@@ -270,10 +269,10 @@ const getDiskInfo = (): DiskInfo[] => {
 
 async function diskInfoLoader({ request: _request }: ActionFunctionArgs) {
   try {
-    return json(getDiskInfo());
+    return Response.json(getDiskInfo());
   } catch (error) {
     logger.error('Failed to get disk info:', error);
-    return json(
+    return Response.json(
       [
         {
           filesystem: 'Unknown',
@@ -293,10 +292,10 @@ async function diskInfoLoader({ request: _request }: ActionFunctionArgs) {
 
 async function diskInfoAction({ request: _request }: ActionFunctionArgs) {
   try {
-    return json(getDiskInfo());
+    return Response.json(getDiskInfo());
   } catch (error) {
     logger.error('Failed to get disk info:', error);
-    return json(
+    return Response.json(
       [
         {
           filesystem: 'Unknown',

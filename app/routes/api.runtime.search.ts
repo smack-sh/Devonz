@@ -10,8 +10,7 @@
  * caseSensitive, isRegex, isWordMatch, resultLimit
  */
 
-import type { ActionFunctionArgs } from '@remix-run/node';
-import { json } from '@remix-run/node';
+import type { ActionFunctionArgs } from 'react-router';
 import * as fs from 'node:fs/promises';
 import * as nodePath from 'node:path';
 import fg from 'fast-glob';
@@ -165,7 +164,7 @@ async function searchAction({ request }: ActionFunctionArgs) {
   try {
     rawBody = await request.json();
   } catch {
-    return json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    return Response.json({ error: 'Invalid JSON in request body' }, { status: 400 });
   }
 
   const parsed = parseOrError(searchRequestSchema, rawBody, 'RuntimeSearch');
@@ -194,7 +193,7 @@ async function searchAction({ request }: ActionFunctionArgs) {
     regex = buildSearchPattern(query, caseSensitive, isRegex, isWordMatch);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Invalid regex';
-    return json({ error: `Invalid search pattern: ${message}` }, { status: 400 });
+    return Response.json({ error: `Invalid search pattern: ${message}` }, { status: 400 });
   }
 
   const manager = RuntimeManager.getInstance();
@@ -229,12 +228,12 @@ async function searchAction({ request }: ActionFunctionArgs) {
       allMatches.push(...fileMatches);
     }
 
-    return json({ results: allMatches });
+    return Response.json({ results: allMatches });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Search failed';
     logger.error(`Text search failed for project "${projectId}":`, error);
 
-    return json({ error: message }, { status: 500 });
+    return Response.json({ error: message }, { status: 500 });
   }
 }
 

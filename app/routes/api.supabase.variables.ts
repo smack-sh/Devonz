@@ -1,4 +1,4 @@
-import { json, type ActionFunctionArgs } from '@remix-run/node';
+import { type ActionFunctionArgs } from 'react-router';
 import { handleApiError, externalFetch, ApiError } from '~/lib/api/apiUtils';
 import { withSecurity } from '~/lib/security';
 
@@ -8,7 +8,7 @@ async function supabaseVariablesAction({ request }: ActionFunctionArgs) {
     const { projectId, token } = body;
 
     if (!projectId || !token) {
-      return json({ error: 'Project ID and token are required' }, { status: 400 });
+      return Response.json({ error: 'Project ID and token are required' }, { status: 400 });
     }
 
     const response = await externalFetch({
@@ -23,7 +23,7 @@ async function supabaseVariablesAction({ request }: ActionFunctionArgs) {
 
     const apiKeys = await response.json();
 
-    return json({ apiKeys });
+    return Response.json({ apiKeys });
   });
 }
 

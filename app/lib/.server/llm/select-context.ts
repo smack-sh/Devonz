@@ -2,7 +2,7 @@ import { generateText, type CoreTool, type GenerateTextResult, type Message } fr
 import { createHash } from 'node:crypto';
 import ignore from 'ignore';
 import type { IProviderSetting } from '~/types/model';
-import { IGNORE_PATTERNS, type FileMap } from './constants';
+import { IGNORE_PATTERNS, OPERATION_TOKEN_BUDGETS, type FileMap } from './constants';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
 import {
   createFilesContext,
@@ -12,11 +12,128 @@ import {
 } from './utils';
 import { createScopedLogger } from '~/utils/logger';
 import { resolveModel } from './resolve-model';
+import type { OperationType } from './model-router';
 
 // Common patterns to ignore, similar to .gitignore
 
 const ig = ignore().add(IGNORE_PATTERNS);
 const logger = createScopedLogger('select-context');
+
+/** Approximate token count using character-based estimation (1 token ≈ 4 chars). */
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+/**
+ * Per-file token threshold. Files whose content exceeds this limit are
+ * summarized to their structural skeleton (imports, exports, function signatures).
+ */
+const PER_FILE_TOKEN_THRESHOLD = 2000;
+
+/**
+ * Produces a compact structural summary of a source file, retaining only
+ * import/export statements and function/class/interface/type signatures.
+ */
+export function summarizeFileContent(content: string): string {
+  const lines = content.split('\n');
+  const kept: string[] = [];
+  let insideBlockComment = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // Track block comments so we don't accidentally keep them as "signatures"
+    if (insideBlockComment) {
+      if (trimmed.includes('*/')) {
+        insideBlockComment = false;
+      }
+
+      continue;
+    }
+
+    if (trimmed.startsWith('/*')) {
+      if (!trimmed.includes('*/')) {
+        insideBlockComment = true;
+      }
+
+      continue;
+    }
+
+    // Skip single-line comments and blank lines
+    if (trimmed.startsWith('//') || trimmed === '') {
+      continue;
+    }
+
+    // Keep import and export statements
+    if (/^(import\s|export\s)/.test(trimmed)) {
+      kept.push(line);
+      continue;
+    }
+
+    // Keep function / class / interface / type / const+arrow signatures
+    if (
+      /^(export\s+)?(async\s+)?function\s/.test(trimmed) ||
+      /^(export\s+)?(abstract\s+)?class\s/.test(trimmed) ||
+      /^(export\s+)?(interface|type)\s/.test(trimmed) ||
+      /^(export\s+)?const\s+\w+\s*[:=]/.test(trimmed)
+    ) {
+      // Include just the signature line (not the body)
+      kept.push(line);
+      continue;
+    }
+  }
+
+  return kept.length > 0 ? kept.join('\n') : '// (no extractable signatures)';
+}
+
+/**
+ * Applies per-operation token budgets to the merged file map.
+ * Files that push the total past the budget are summarized or dropped.
+ * Returns the budget-constrained file map and counts for logging.
+ */
+function applyTokenBudget(
+  mergedFiles: FileMap,
+  inputTokenBudget: number,
+): { constrainedFiles: FileMap; includedCount: number; summarizedCount: number } {
+  let usedTokens = 0;
+  let includedCount = 0;
+  let summarizedCount = 0;
+  const constrainedFiles: FileMap = {};
+
+  for (const [path, dirent] of Object.entries(mergedFiles)) {
+    if (!dirent || dirent.type !== 'file') {
+      constrainedFiles[path] = dirent;
+      continue;
+    }
+
+    const contentTokens = estimateTokens(dirent.content);
+
+    // If this single file exceeds the per-file threshold, summarize it
+    if (contentTokens > PER_FILE_TOKEN_THRESHOLD) {
+      const summary = summarizeFileContent(dirent.content);
+      const summaryTokens = estimateTokens(summary);
+
+      if (usedTokens + summaryTokens <= inputTokenBudget) {
+        constrainedFiles[path] = { ...dirent, content: summary };
+        usedTokens += summaryTokens;
+        includedCount++;
+        summarizedCount++;
+      }
+
+      // If even the summary exceeds remaining budget, skip the file
+      continue;
+    }
+
+    // File fits under per-file threshold — include if within budget
+    if (usedTokens + contentTokens <= inputTokenBudget) {
+      constrainedFiles[path] = dirent;
+      usedTokens += contentTokens;
+      includedCount++;
+    }
+  }
+
+  return { constrainedFiles, includedCount, summarizedCount };
+}
 
 /**
  * In-memory cache for context selection keyed by a hash of the user's
@@ -36,9 +153,10 @@ export async function selectContext(props: {
   promptId?: string;
   contextOptimization?: boolean;
   summary: string;
+  operationType?: OperationType;
   onFinish?: (resp: GenerateTextResult<Record<string, CoreTool<any, any>>, never>) => void;
 }) {
-  const { messages, env: serverEnv, apiKeys, files, providerSettings, summary, onFinish } = props;
+  const { messages, env: serverEnv, apiKeys, files, providerSettings, summary, operationType, onFinish } = props;
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
   const processedMessages = messages.map((message) => {
@@ -240,14 +358,35 @@ export async function selectContext(props: {
   }
 
   // Merge surviving context files with newly included files
-  const mergedFiles: FileMap = { ...contextFiles, ...filteredFiles };
-  const totalFiles = Object.keys(mergedFiles).length;
-  logger.info(
-    `Total files: ${totalFiles} (${Object.keys(contextFiles).length} existing, ${Object.keys(filteredFiles).length} new)`,
-  );
+  let mergedFiles: FileMap = { ...contextFiles, ...filteredFiles };
+  let totalFiles = Object.keys(mergedFiles).length;
+  let summarizedCount = 0;
+
+  // Apply per-operation token budget when operationType is provided
+  if (operationType && OPERATION_TOKEN_BUDGETS[operationType]) {
+    const budget = OPERATION_TOKEN_BUDGETS[operationType];
+    const result = applyTokenBudget(mergedFiles, budget.inputTokens);
+    mergedFiles = result.constrainedFiles;
+    totalFiles = result.includedCount;
+    summarizedCount = result.summarizedCount;
+
+    logger.info(
+      `Token budget for "${operationType}": ${budget.inputTokens} input tokens — ` +
+        `${result.includedCount} files included, ${result.summarizedCount} summarized`,
+    );
+  } else {
+    logger.info(
+      `No operation token budget applied — ${totalFiles} files included ` +
+        `(${Object.keys(contextFiles).length} existing, ${Object.keys(filteredFiles).length} new)`,
+    );
+  }
 
   if (totalFiles === 0) {
     logger.warn('No files selected for context — returning empty context');
+  }
+
+  if (summarizedCount > 0) {
+    logger.info(`${summarizedCount} large file(s) were summarized to structural skeletons`);
   }
 
   // Store in cache (evict oldest if over cap)

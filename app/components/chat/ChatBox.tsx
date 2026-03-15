@@ -1,10 +1,9 @@
 import React, { useState, useCallback, lazy, Suspense } from 'react';
-import { ClientOnly } from 'remix-utils/client-only';
+import { clientLazy } from '~/utils/react';
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST } from '~/utils/constants';
 import { CombinedModelSelector } from '~/components/chat/CombinedModelSelector';
 import FilePreview from './FilePreview';
-import { SendButton } from './SendButton.client';
 import { IconButton } from '~/components/ui/IconButton';
 import { toast } from 'react-toastify';
 import { SpeechRecognitionButton } from '~/components/chat/SpeechRecognition';
@@ -25,7 +24,8 @@ const ColorSchemeDialog = lazy(() =>
   import('~/components/ui/ColorSchemeDialog').then((m) => ({ default: m.ColorSchemeDialog })),
 );
 const McpTools = lazy(() => import('./MCPTools').then((m) => ({ default: m.McpTools })));
-const WebSearch = lazy(() => import('./WebSearch.client').then((m) => ({ default: m.WebSearch })));
+const WebSearch = clientLazy(() => import('./WebSearch.client').then((m) => ({ default: m.WebSearch })));
+const SendButton = clientLazy(() => import('./SendButton.client').then((m) => ({ default: m.SendButton })));
 const ControlPanel = lazy(() =>
   import('~/components/@settings/core/ControlPanel').then((m) => ({ default: m.ControlPanel })),
 );
@@ -41,7 +41,7 @@ interface ChatBoxProps {
   onApiKeysChange: (providerName: string, apiKey: string) => void;
   uploadedFiles: File[];
   imageDataList: string[];
-  textareaRef: React.RefObject<HTMLTextAreaElement> | undefined;
+  textareaRef: React.RefObject<HTMLTextAreaElement | null> | undefined;
   input: string;
   handlePaste: (e: React.ClipboardEvent) => void;
   TEXTAREA_MIN_HEIGHT: number;
@@ -281,25 +281,23 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           }
           translate="no"
         />
-        <ClientOnly>
-          {() => (
-            <SendButton
-              show={props.input.length > 0 || props.isStreaming || props.uploadedFiles.length > 0}
-              isStreaming={props.isStreaming}
-              disabled={!props.providerList || props.providerList.length === 0}
-              onClick={(event) => {
-                if (props.isStreaming) {
-                  props.handleStop?.();
-                  return;
-                }
+        <Suspense fallback={null}>
+          <SendButton
+            show={props.input.length > 0 || props.isStreaming || props.uploadedFiles.length > 0}
+            isStreaming={props.isStreaming}
+            disabled={!props.providerList || props.providerList.length === 0}
+            onClick={(event) => {
+              if (props.isStreaming) {
+                props.handleStop?.();
+                return;
+              }
 
-                if (props.input.length > 0 || props.uploadedFiles.length > 0) {
-                  props.handleSendMessage?.(event);
-                }
-              }}
-            />
-          )}
-        </ClientOnly>
+              if (props.input.length > 0 || props.uploadedFiles.length > 0) {
+                props.handleSendMessage?.(event);
+              }
+            }}
+          />
+        </Suspense>
         <div className="flex flex-col text-sm p-4 pt-2 gap-1">
           {/* Primary toolbar row */}
           <div className="flex justify-between items-center">

@@ -1,8 +1,8 @@
-import { json, type LoaderFunctionArgs } from '@remix-run/node';
+import { type LoaderFunctionArgs } from 'react-router';
 import { withSecurity } from '~/lib/security';
 
 async function healthLoader({ request: _request }: LoaderFunctionArgs) {
-  return json({
+  return Response.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
   });

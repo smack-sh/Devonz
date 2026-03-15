@@ -11,6 +11,13 @@ export interface ModelInfo {
 
   /** Maximum completion/output tokens - how many tokens the model can generate. If not specified, falls back to provider defaults */
   maxCompletionTokens?: number;
+
+  /**
+   * Optional fallback model in "provider/model" format (e.g. "anthropic/claude-3-haiku-20240307").
+   * When set, the system will retry with this model if the primary model call fails
+   * due to rate limits, auth errors, or timeouts. Capped at 1 fallback attempt.
+   */
+  fallbackModel?: string;
 }
 
 export interface ProviderInfo {

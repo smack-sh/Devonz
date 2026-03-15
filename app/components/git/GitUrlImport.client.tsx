@@ -1,8 +1,6 @@
-import { useSearchParams } from '@remix-run/react';
+import { useSearchParams } from 'react-router';
 import { generateId, type Message } from 'ai';
 import { useEffect, useState } from 'react';
-import { ClientOnly } from 'remix-utils/client-only';
-import { BaseChat } from '~/components/chat/BaseChat';
 import { Chat } from '~/components/chat/Chat.client';
 import { useChatHistory } from '~/lib/persistence';
 import { createCommandsMessage, detectProjectCommands, escapeDevonzTags } from '~/utils/projectCommands';
@@ -171,13 +169,9 @@ ${escapeDevonzTags(file.content)}
   }, [searchParams, historyReady, imported]);
 
   return (
-    <ClientOnly fallback={<BaseChat />}>
-      {() => (
-        <>
-          <Chat />
-          {loading && <LoadingOverlay message="Please wait while we clone the repository..." />}
-        </>
-      )}
-    </ClientOnly>
+    <>
+      <Chat />
+      {loading && <LoadingOverlay message="Please wait while we clone the repository..." />}
+    </>
   );
 }

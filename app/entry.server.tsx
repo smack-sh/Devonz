@@ -1,12 +1,9 @@
-import * as Sentry from '@sentry/remix';
-import type { AppLoadContext, EntryContext } from '@remix-run/node';
-import { RemixServer } from '@remix-run/react';
+import * as Sentry from '@sentry/node';
+import type { AppLoadContext, EntryContext } from 'react-router';
+import { ServerRouter } from 'react-router';
 import { isbot } from 'isbot';
 import { renderToPipeableStream } from 'react-dom/server';
-import { renderHeadToString } from 'remix-island';
-import { Head } from './root';
-import { themeStore } from '~/lib/stores/theme';
-import { PassThrough, Transform } from 'node:stream';
+import { PassThrough } from 'node:stream';
 import { createScopedLogger } from '~/utils/logger';
 
 // Register AES-256-GCM decryptor for encrypted cookie values (side-effect import)
@@ -15,7 +12,11 @@ import '~/lib/.server/init-decryptor';
 // Re-export WebSocket upgrade handler for custom server (server.ts) consumption
 export { handleUpgrade as handleWebSocketUpgrade } from '~/lib/.server/ws/ws-server';
 
-export const handleError = Sentry.wrapHandleErrorWithSentry;
+export function handleError(error: unknown) {
+  if (Sentry.isInitialized()) {
+    Sentry.captureException(error);
+  }
+}
 
 const logger = createScopedLogger('EntryServer');
 
@@ -78,63 +79,36 @@ export default async function handleRequest(
 
   return new Promise((resolve, reject) => {
     let shellRendered = false;
-    const { pipe, abort } = renderToPipeableStream(
-      <RemixServer context={remixContext} url={request.url} abortDelay={ABORT_DELAY} />,
-      {
-        [callbackName]: () => {
-          shellRendered = true;
+    const { pipe, abort } = renderToPipeableStream(<ServerRouter context={remixContext} url={request.url} />, {
+      [callbackName]: () => {
+        shellRendered = true;
 
-          const body = new PassThrough();
-          const head = renderHeadToString({ request, remixContext, Head });
+        const body = new PassThrough();
 
-          responseHeaders.set('Content-Type', 'text/html');
+        responseHeaders.set('Content-Type', 'text/html');
 
-          /*
-           * COEP/COOP headers removed — they were only required by the
-           * WebContainer runtime.  The local runtime doesn't need them,
-           * and they interfere with cross-origin iframe loading
-           * (e.g. project preview on a different localhost port).
-           * See plan/adr-001-local-runtime-migration.md §18.
-           */
+        resolve(
+          new Response(body as unknown as ReadableStream, {
+            headers: responseHeaders,
+            status: responseStatusCode,
+          }),
+        );
 
-          // Write the HTML shell
-          body.write(
-            `<!DOCTYPE html><html lang="en" data-theme="${themeStore.value}"><head>${head}</head><body><noscript><p style="padding:2rem;color:#fff;background:#0a0a0a;text-align:center">JavaScript is required to use Devonz.</p></noscript><div id="root" class="w-full h-full">`,
-          );
-
-          resolve(
-            new Response(body as unknown as ReadableStream, {
-              headers: responseHeaders,
-              status: responseStatusCode,
-            }),
-          );
-
-          // Create a transform stream to append closing tags after React content
-          const appendClosingTags = new Transform({
-            transform(chunk, encoding, callback) {
-              callback(null, chunk);
-            },
-            flush(callback) {
-              this.push('</div></body></html>');
-              callback();
-            },
-          });
-
-          // Pipe React content through transform (which appends closing tags) to body
-          pipe(appendClosingTags).pipe(body);
-        },
-        onShellError(error: unknown) {
-          reject(error);
-        },
-        onError(error: unknown) {
-          responseStatusCode = 500;
-
-          if (shellRendered) {
-            logger.error(error);
-          }
-        },
+        // Write doctype (React doesn't emit it) then pipe the full document from Layout
+        body.write('<!DOCTYPE html>');
+        pipe(body);
       },
-    );
+      onShellError(error: unknown) {
+        reject(error);
+      },
+      onError(error: unknown) {
+        responseStatusCode = 500;
+
+        if (shellRendered) {
+          logger.error(error);
+        }
+      },
+    });
 
     setTimeout(abort, ABORT_DELAY);
   });

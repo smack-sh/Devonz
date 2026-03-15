@@ -1,12 +1,16 @@
-import * as Sentry from '@sentry/remix';
+import * as Sentry from '@sentry/node';
 
 const dsn = process.env.SENTRY_DSN;
+const environment = process.env.SENTRY_ENVIRONMENT || 'development';
+const release = process.env.SENTRY_RELEASE || 'dev';
+const isProduction = process.env.NODE_ENV === 'production';
 
 if (dsn) {
   Sentry.init({
     dsn,
-    tracesSampleRate: 1.0,
-    autoInstrumentRemix: true,
+    environment,
+    release,
+    tracesSampleRate: isProduction ? 0.1 : 1.0,
   });
 } else {
   // eslint-disable-next-line no-console

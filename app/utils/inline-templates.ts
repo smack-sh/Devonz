@@ -2161,20 +2161,20 @@ const remixTypescript: InlineFile[] = [
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "remix vite:dev",
-    "build": "remix vite:build",
-    "start": "remix-serve ./build/server/index.js"
+    "dev": "react-router dev",
+    "build": "react-router build",
+    "start": "react-router-serve ./build/server/index.js"
   },
   "dependencies": {
-    "@remix-run/node": "^2.15.2",
-    "@remix-run/react": "^2.15.2",
-    "@remix-run/serve": "^2.15.2",
+    "@react-router/node": "^7.0.0",
+    "@react-router/serve": "^7.0.0",
     "isbot": "^5.1.17",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-router": "^7.0.0"
   },
   "devDependencies": {
-    "@remix-run/dev": "^2.15.2",
+    "@react-router/dev": "^7.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "typescript": "^5.6.3",
@@ -2186,12 +2186,12 @@ const remixTypescript: InlineFile[] = [
   ),
   f(
     'vite.config.ts',
-    `import { vitePlugin as remix } from '@remix-run/dev';
+    `import { reactRouter } from '@react-router/dev/vite';
 import { defineConfig } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
 export default defineConfig({
-  plugins: [remix(), tsconfigPaths()],
+  plugins: [reactRouter(), tsconfigPaths()],
   server: { port: 3000 },
 });
 `,
@@ -2217,7 +2217,7 @@ export default defineConfig({
   ),
   f(
     'app/root.tsx',
-    `import { Links, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
+    `import { Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router';
 
 export default function App() {
   return (

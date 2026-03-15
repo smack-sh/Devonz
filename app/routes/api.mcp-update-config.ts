@@ -1,4 +1,4 @@
-import { type ActionFunctionArgs, json } from '@remix-run/node';
+import { type ActionFunctionArgs } from 'react-router';
 import { MCPService, type MCPConfig } from '~/lib/services/mcpService';
 import { handleApiError } from '~/lib/api/apiUtils';
 import { withSecurity } from '~/lib/security';
@@ -10,13 +10,13 @@ async function mcpUpdateConfigAction({ request }: ActionFunctionArgs) {
       const mcpConfig = (await request.json()) as MCPConfig;
 
       if (!mcpConfig || typeof mcpConfig !== 'object') {
-        return json({ error: 'Invalid MCP servers configuration' }, { status: 400 });
+        return Response.json({ error: 'Invalid MCP servers configuration' }, { status: 400 });
       }
 
       const mcpService = MCPService.getInstance();
       const serverTools = await mcpService.updateConfig(mcpConfig);
 
-      return json(serverTools);
+      return Response.json(serverTools);
     },
     'Failed to update MCP config',
   );

@@ -1,4 +1,4 @@
-import { useParams } from '@remix-run/react';
+import { useParams } from 'react-router';
 import { classNames } from '~/utils/classNames';
 import { type ChatHistoryItem } from '~/lib/persistence';
 import WithTooltip from '~/components/ui/Tooltip';

@@ -15,7 +15,7 @@
  * 3. Return the response to the client
  */
 
-import { json, type ActionFunctionArgs, type LoaderFunctionArgs } from '@remix-run/node';
+import { type ActionFunctionArgs, type LoaderFunctionArgs } from 'react-router';
 import { externalFetch, handleApiError, resolveToken, unauthorizedResponse } from '~/lib/api/apiUtils';
 import { withSecurity } from '~/lib/security';
 
@@ -54,7 +54,7 @@ async function vercelProxyLoader({ request, context }: LoaderFunctionArgs) {
     if (!response.ok) {
       const errorText = await response.text();
 
-      return json(
+      return Response.json(
         {
           error: `Vercel API error: ${response.status}`,
           details: errorText,
@@ -65,7 +65,7 @@ async function vercelProxyLoader({ request, context }: LoaderFunctionArgs) {
 
     const data = await response.json();
 
-    return json(data);
+    return Response.json(data);
   });
 }
 
@@ -84,7 +84,7 @@ async function vercelProxyAction({ request, context }: ActionFunctionArgs) {
     const { endpoint, method = 'GET', body, params } = proxyRequest;
 
     if (!endpoint) {
-      return json({ error: 'Missing endpoint in request body' }, { status: 400 });
+      return Response.json({ error: 'Missing endpoint in request body' }, { status: 400 });
     }
 
     let url = `${VERCEL_API_BASE}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
@@ -120,7 +120,7 @@ async function vercelProxyAction({ request, context }: ActionFunctionArgs) {
     }
 
     if (!response.ok) {
-      return json(
+      return Response.json(
         {
           error: `Vercel API error: ${response.status}`,
           details: responseData,
@@ -129,7 +129,7 @@ async function vercelProxyAction({ request, context }: ActionFunctionArgs) {
       );
     }
 
-    return json(responseData);
+    return Response.json(responseData);
   });
 }
 

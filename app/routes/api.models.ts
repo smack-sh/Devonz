@@ -1,16 +1,10 @@
-import { json } from '@remix-run/node';
-import type { LoaderFunctionArgs } from '@remix-run/node';
+import type { LoaderFunctionArgs } from 'react-router';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { ProviderInfo } from '~/types/model';
+
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
 import { withSecurity } from '~/lib/security';
-
-interface ModelsResponse {
-  modelList: ModelInfo[];
-  providers: ProviderInfo[];
-  defaultProvider: ProviderInfo;
-}
 
 let cachedProviders: ProviderInfo[] | null = null;
 let cachedDefaultProvider: ProviderInfo | null = null;
@@ -81,7 +75,7 @@ async function modelsLoader({ request, params, context }: LoaderFunctionArgs): P
     cachedModelResponse = { models: modelList, timestamp: Date.now() };
   }
 
-  return json<ModelsResponse>({
+  return Response.json({
     modelList,
     providers,
     defaultProvider,

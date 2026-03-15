@@ -114,11 +114,15 @@ describe('model-router', () => {
       expect(isValidOperationType('')).toBe(false);
       expect(isValidOperationType('CODE_GENERATION')).toBe(false);
     });
+
+    it('accepts blueprint as a valid operation type', () => {
+      expect(isValidOperationType('blueprint')).toBe(true);
+    });
   });
 
   describe('OPERATION_TYPES', () => {
-    it('contains exactly 5 operation types', () => {
-      expect(OPERATION_TYPES).toHaveLength(5);
+    it('contains exactly 6 operation types', () => {
+      expect(OPERATION_TYPES).toHaveLength(6);
     });
 
     it('contains the expected operation types', () => {
@@ -127,6 +131,7 @@ describe('model-router', () => {
       expect(OPERATION_TYPES).toContain('error_correction');
       expect(OPERATION_TYPES).toContain('summarization');
       expect(OPERATION_TYPES).toContain('general');
+      expect(OPERATION_TYPES).toContain('blueprint');
     });
   });
 });

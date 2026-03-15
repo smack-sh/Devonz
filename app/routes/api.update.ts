@@ -1,18 +1,7 @@
-import { json, type ActionFunctionArgs } from '@remix-run/node';
+import { type ActionFunctionArgs } from 'react-router';
 import { withSecurity } from '~/lib/security';
 import { clearVersionCheckCache } from './api.version-check';
-
-interface StepResult {
-  name: string;
-  status: 'completed' | 'failed' | 'skipped';
-  error?: string;
-}
-
-interface UpdateResponse {
-  success: boolean;
-  message: string;
-  steps: StepResult[];
-}
+import type { UpdateStepResult } from '~/types/api-types';
 
 // Concurrency guard — only one update at a time
 let isUpdating = false;
@@ -30,7 +19,7 @@ async function updateAction(_args: ActionFunctionArgs) {
   const isDocker = process.env.RUNNING_IN_DOCKER === 'true';
 
   if (isDocker) {
-    return json<UpdateResponse>(
+    return Response.json(
       {
         success: false,
         message: 'Update is not available in Docker environments. Use `docker compose pull` instead.',
@@ -41,7 +30,7 @@ async function updateAction(_args: ActionFunctionArgs) {
   }
 
   if (isUpdating) {
-    return json<UpdateResponse>(
+    return Response.json(
       {
         success: false,
         message: 'An update is already in progress. Please wait for it to complete.',
@@ -53,7 +42,7 @@ async function updateAction(_args: ActionFunctionArgs) {
 
   isUpdating = true;
 
-  const steps: StepResult[] = [];
+  const steps: UpdateStepResult[] = [];
 
   try {
     const { execSync } = await import('child_process');
@@ -66,7 +55,7 @@ async function updateAction(_args: ActionFunctionArgs) {
     if (!existsSync(resolve(ROOT, '.git'))) {
       steps.push({ name: 'Check git repo', status: 'failed', error: 'Not a git repository' });
 
-      return json<UpdateResponse>(
+      return Response.json(
         {
           success: false,
           message: 'Not a git repository. Cannot update.',
@@ -92,7 +81,7 @@ async function updateAction(_args: ActionFunctionArgs) {
       const message = err instanceof Error ? err.message : 'Failed to stash changes';
       steps.push({ name: 'Stash changes', status: 'failed', error: message });
 
-      return json<UpdateResponse>(
+      return Response.json(
         {
           success: false,
           message: 'Failed to stash uncommitted changes.',
@@ -110,7 +99,7 @@ async function updateAction(_args: ActionFunctionArgs) {
       const message = err instanceof Error ? err.message : 'Failed to pull latest changes';
       steps.push({ name: 'Pull latest', status: 'failed', error: message });
 
-      return json<UpdateResponse>(
+      return Response.json(
         {
           success: false,
           message: 'Failed to pull latest changes. You may have merge conflicts.',
@@ -128,7 +117,7 @@ async function updateAction(_args: ActionFunctionArgs) {
       const message = err instanceof Error ? err.message : 'Failed to install dependencies';
       steps.push({ name: 'Install dependencies', status: 'failed', error: message });
 
-      return json<UpdateResponse>(
+      return Response.json(
         {
           success: false,
           message: 'Failed to install dependencies.',
@@ -153,7 +142,7 @@ async function updateAction(_args: ActionFunctionArgs) {
     // Clear cached version-check so the banner disappears after reload
     clearVersionCheckCache();
 
-    return json<UpdateResponse>({
+    return Response.json({
       success: true,
       message: `Updated successfully to ${hash}. Reload the page to apply changes.`,
       steps,
@@ -161,7 +150,7 @@ async function updateAction(_args: ActionFunctionArgs) {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'An unexpected error occurred during update';
 
-    return json<UpdateResponse>(
+    return Response.json(
       {
         success: false,
         message,
@@ -184,7 +173,7 @@ export const action = withSecurity(updateAction, {
  * Remix requires a loader export to handle GET requests without throwing.
  */
 export function loader() {
-  return json<UpdateResponse>(
+  return Response.json(
     {
       success: false,
       message: 'Method not allowed. Use POST to trigger an update.',

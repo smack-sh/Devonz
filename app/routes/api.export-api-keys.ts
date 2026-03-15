@@ -1,4 +1,4 @@
-import { type LoaderFunctionArgs, json } from '@remix-run/node';
+import { type LoaderFunctionArgs } from 'react-router';
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
 import { withSecurity } from '~/lib/security';
 
@@ -12,7 +12,7 @@ async function exportApiKeysLoader({ request }: LoaderFunctionArgs) {
   const cookieHeader = request.headers.get('Cookie');
   const apiKeys = getApiKeysFromCookie(cookieHeader);
 
-  return json(apiKeys);
+  return Response.json(apiKeys);
 }
 
 export const loader = withSecurity(exportApiKeysLoader, {

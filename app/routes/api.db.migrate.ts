@@ -1,4 +1,4 @@
-import { json, type ActionFunctionArgs } from '@remix-run/node';
+import { type ActionFunctionArgs } from 'react-router';
 import { z } from 'zod';
 import { db, schema } from '~/lib/.server/db';
 import { withSecurity } from '~/lib/security';
@@ -60,7 +60,7 @@ async function migrateAction({ request }: ActionFunctionArgs) {
   try {
     rawBody = await request.json();
   } catch {
-    return json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    return Response.json({ error: 'Invalid JSON in request body' }, { status: 400 });
   }
 
   const parsed = migrationPayloadSchema.safeParse(rawBody);
@@ -68,7 +68,7 @@ async function migrateAction({ request }: ActionFunctionArgs) {
   if (!parsed.success) {
     logger.warn('Migration payload validation failed:', parsed.error.issues);
 
-    return json(
+    return Response.json(
       {
         error: 'Invalid migration payload',
         details: parsed.error.issues.map((issue) => ({
@@ -83,7 +83,7 @@ async function migrateAction({ request }: ActionFunctionArgs) {
   const { chats, snapshots } = parsed.data;
 
   if (chats.length === 0) {
-    return json({
+    return Response.json({
       migrated: { chats: 0, messages: 0, snapshots: 0 },
       skipped: [],
       total: 0,
@@ -188,7 +188,7 @@ async function migrateAction({ request }: ActionFunctionArgs) {
     `Migration complete: ${migratedChats} chats, ${migratedMessages} messages, ${migratedSnapshots} snapshots. ${skipped.length} skipped.`,
   );
 
-  return json({
+  return Response.json({
     migrated: {
       chats: migratedChats,
       messages: migratedMessages,

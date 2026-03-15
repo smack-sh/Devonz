@@ -1,11 +1,11 @@
 /**
  * Global Env type declaration for server environment variables.
- * 
+ *
  * This type represents environment bindings that may come from:
  * - Cloudflare Workers (context.cloudflare.env)
  * - Node.js process.env
  * - Vite import.meta.env
- * 
+ *
  * It's declared globally to avoid import/export issues across the codebase.
  */
 
@@ -13,7 +13,7 @@
  * Cloudflare context type for Remix loaders/actions.
  * Augments the default AppLoadContext to include cloudflare.env bindings.
  */
-declare module '@remix-run/node' {
+declare module 'react-router' {
   interface AppLoadContext {
     cloudflare?: {
       env?: Env;
@@ -44,13 +44,13 @@ declare global {
     AWS_ACCESS_KEY_ID?: string;
     AWS_SECRET_ACCESS_KEY?: string;
     AWS_REGION?: string;
-    
+
     // Base URLs for self-hosted models
     OLLAMA_API_BASE_URL?: string;
     LMSTUDIO_API_BASE_URL?: string;
     OPENAI_LIKE_API_BASE_URL?: string;
     OPENAI_LIKE_API_KEY?: string;
-    
+
     // Other common env vars
     NODE_ENV?: string;
   }

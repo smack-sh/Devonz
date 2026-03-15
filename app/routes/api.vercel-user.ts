@@ -1,4 +1,4 @@
-import { json, type LoaderFunctionArgs, type ActionFunctionArgs } from '@remix-run/node';
+import { type LoaderFunctionArgs, type ActionFunctionArgs } from 'react-router';
 import { ApiError, resolveToken, unauthorizedResponse, externalFetch, handleApiError } from '~/lib/api/apiUtils';
 import { withSecurity } from '~/lib/security';
 
@@ -16,7 +16,7 @@ async function vercelUserLoader({ request, context }: LoaderFunctionArgs) {
 
     if (!response.ok) {
       if (response.status === 401) {
-        return json({ error: 'Invalid Vercel token' }, { status: 401 });
+        return Response.json({ error: 'Invalid Vercel token' }, { status: 401 });
       }
 
       throw new ApiError(`Vercel API error: ${response.status}`, response.status);
@@ -32,7 +32,7 @@ async function vercelUserLoader({ request, context }: LoaderFunctionArgs) {
       };
     };
 
-    return json({
+    return Response.json({
       id: userData.user.id,
       name: userData.user.name,
       email: userData.user.email,
@@ -76,7 +76,7 @@ async function vercelUserAction({ request, context }: ActionFunctionArgs) {
         }>;
       };
 
-      return json({
+      return Response.json({
         projects: data.projects.map((project) => ({
           id: project.id,
           name: project.name,
@@ -89,7 +89,7 @@ async function vercelUserAction({ request, context }: ActionFunctionArgs) {
       });
     }
 
-    return json({ error: 'Invalid action' }, { status: 400 });
+    return Response.json({ error: 'Invalid action' }, { status: 400 });
   });
 }
 

@@ -1,4 +1,4 @@
-import { json, type LoaderFunctionArgs } from '@remix-run/node';
+import { type LoaderFunctionArgs } from 'react-router';
 import { withSecurity } from '~/lib/security';
 import { parseCookies } from '~/lib/api/cookies';
 import { createScopedLogger } from '~/utils/logger';
@@ -95,7 +95,7 @@ async function gitInfoSystemLoader({ request, context }: LoaderFunctionArgs & { 
 
     if (!token) {
       logger.error('No GitHub token available');
-      return json(
+      return Response.json(
         { error: 'No GitHub token available' },
         {
           status: 401,
@@ -124,7 +124,7 @@ async function gitInfoSystemLoader({ request, context }: LoaderFunctionArgs & { 
 
         const userData = await response.json();
 
-        return json(
+        return Response.json(
           { user: userData },
           {
             headers: {
@@ -201,7 +201,7 @@ async function gitInfoSystemLoader({ request, context }: LoaderFunctionArgs & { 
            */
         }
 
-        return json(
+        return Response.json(
           {
             repos,
             stats: {
@@ -236,7 +236,7 @@ async function gitInfoSystemLoader({ request, context }: LoaderFunctionArgs & { 
 
         const orgs = await response.json();
 
-        return json(
+        return Response.json(
           { organizations: orgs },
           {
             headers: {
@@ -252,7 +252,7 @@ async function gitInfoSystemLoader({ request, context }: LoaderFunctionArgs & { 
 
         if (!username) {
           logger.error('GitHub username not found in cookies');
-          return json(
+          return Response.json(
             { error: 'GitHub username not found in cookies' },
             {
               status: 400,
@@ -279,7 +279,7 @@ async function gitInfoSystemLoader({ request, context }: LoaderFunctionArgs & { 
 
         const events = await response.json();
 
-        return json(
+        return Response.json(
           { recentActivity: events },
           {
             headers: {
@@ -291,7 +291,7 @@ async function gitInfoSystemLoader({ request, context }: LoaderFunctionArgs & { 
       }
     } catch (error) {
       logger.error('GitHub API error:', error);
-      return json(
+      return Response.json(
         { error: error instanceof Error ? error.message : 'Unknown error' },
         {
           status: 500,
@@ -317,7 +317,7 @@ async function gitInfoSystemLoader({ request, context }: LoaderFunctionArgs & { 
     timestamp: new Date().toISOString(),
   };
 
-  return json(gitInfo, {
+  return Response.json(gitInfo, {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',

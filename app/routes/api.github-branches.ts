@@ -1,4 +1,4 @@
-import { json, type LoaderFunctionArgs } from '@remix-run/node';
+import { type LoaderFunctionArgs } from 'react-router';
 import { ApiError, externalFetch, handleApiError, resolveToken, unauthorizedResponse } from '~/lib/api/apiUtils';
 import { withSecurity } from '~/lib/security';
 
@@ -33,11 +33,11 @@ async function githubBranchesLoader({ request, context }: LoaderFunctionArgs) {
       githubToken = body.token;
 
       if (!owner || !repo) {
-        return json({ error: 'Owner and repo parameters are required' }, { status: 400 });
+        return Response.json({ error: 'Owner and repo parameters are required' }, { status: 400 });
       }
 
       if (!githubToken) {
-        return json({ error: 'GitHub token is required' }, { status: 400 });
+        return Response.json({ error: 'GitHub token is required' }, { status: 400 });
       }
     } else {
       const url = new URL(request.url);
@@ -45,7 +45,7 @@ async function githubBranchesLoader({ request, context }: LoaderFunctionArgs) {
       repo = url.searchParams.get('repo') || '';
 
       if (!owner || !repo) {
-        return json({ error: 'Owner and repo parameters are required' }, { status: 400 });
+        return Response.json({ error: 'Owner and repo parameters are required' }, { status: 400 });
       }
 
       const token = resolveToken(request, context, 'GITHUB_API_KEY', 'VITE_GITHUB_ACCESS_TOKEN', 'GITHUB_TOKEN');
@@ -64,11 +64,11 @@ async function githubBranchesLoader({ request, context }: LoaderFunctionArgs) {
 
     if (!repoResponse.ok) {
       if (repoResponse.status === 404) {
-        return json({ error: 'Repository not found' }, { status: 404 });
+        return Response.json({ error: 'Repository not found' }, { status: 404 });
       }
 
       if (repoResponse.status === 401) {
-        return json({ error: 'Invalid GitHub token' }, { status: 401 });
+        return Response.json({ error: 'Invalid GitHub token' }, { status: 401 });
       }
 
       throw new ApiError(`GitHub API error: ${repoResponse.status}`, repoResponse.status);
@@ -108,7 +108,7 @@ async function githubBranchesLoader({ request, context }: LoaderFunctionArgs) {
       return a.name.localeCompare(b.name);
     });
 
-    return json({
+    return Response.json({
       branches: transformedBranches,
       defaultBranch,
       total: transformedBranches.length,

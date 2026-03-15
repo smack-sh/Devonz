@@ -1,4 +1,3 @@
-import { json } from '@remix-run/node';
 import { execSync } from 'child_process';
 import { existsSync } from 'fs';
 import { handleApiError } from '~/lib/api/apiUtils';
@@ -7,7 +6,7 @@ import { withSecurity } from '~/lib/security';
 async function gitInfoLoader() {
   return handleApiError('GitInfo', async () => {
     if (!existsSync('.git')) {
-      return json({
+      return Response.json({
         branch: 'unknown',
         commit: 'unknown',
         isDirty: false,
@@ -42,7 +41,7 @@ async function gitInfoLoader() {
       // Could not get commit info
     }
 
-    return json({
+    return Response.json({
       branch,
       commit,
       isDirty,

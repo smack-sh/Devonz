@@ -6,9 +6,11 @@
  */
 
 import { workbenchStore } from '~/lib/stores/workbench';
-import { setSnapshot } from './db';
+import { setSnapshot, openDatabase, getLatestCheckpoint } from './db';
 import { chatId, db } from './useChatHistory';
 import type { Snapshot } from './types';
+import type { AgentCheckpoint, TokenBudgetState } from '~/lib/agent/types';
+import { processStreamEvent } from '~/lib/stores/stream-event-router';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('SnapshotUtils');
@@ -70,4 +72,92 @@ export async function takeDelayedSnapshot(
 ): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, delayMs));
   return takeGlobalSnapshot(chatIndex, chatSummary);
+}
+
+/**
+ * Deserialized checkpoint state returned by restoreAgentCheckpoint.
+ */
+export interface RestoredCheckpointState {
+  /** The raw checkpoint record */
+  checkpoint: AgentCheckpoint;
+
+  /** Deserialized conversation messages */
+  messages: unknown[];
+
+  /** Deserialized agent execution state */
+  agentState: Record<string, unknown>;
+
+  /** Token budget snapshot at checkpoint time */
+  tokenBudget: TokenBudgetState;
+}
+
+/**
+ * Retrieve the latest agent checkpoint for a chat and return the deserialized state.
+ *
+ * When a checkpoint is found, an `agent_checkpoint` event with `action: 'restored'`
+ * is emitted through the stream event router so the UI can react.
+ *
+ * @param targetChatId - The chat ID to restore a checkpoint for.
+ *   Falls back to the current active chatId atom if not provided.
+ * @returns The deserialized checkpoint state, or null if none exists.
+ */
+export async function restoreAgentCheckpoint(targetChatId?: string): Promise<RestoredCheckpointState | null> {
+  const resolvedChatId = targetChatId || chatId.get();
+
+  if (!resolvedChatId) {
+    logger.warn('Cannot restore checkpoint: No chat ID available');
+    return null;
+  }
+
+  const database = await openDatabase();
+
+  if (!database) {
+    logger.warn('Cannot restore checkpoint: Database not available');
+    return null;
+  }
+
+  const checkpoint = await getLatestCheckpoint(database, resolvedChatId);
+
+  if (!checkpoint) {
+    logger.debug(`No checkpoint found for chat ${resolvedChatId}`);
+    return null;
+  }
+
+  let messages: unknown[] = [];
+
+  try {
+    messages = JSON.parse(checkpoint.messages);
+  } catch {
+    logger.warn('Failed to parse checkpoint messages — using empty array');
+  }
+
+  let agentState: Record<string, unknown> = {};
+
+  try {
+    agentState = JSON.parse(checkpoint.agentState);
+  } catch {
+    logger.warn('Failed to parse checkpoint agentState — using empty object');
+  }
+
+  // Emit restored event through the stream event router
+  processStreamEvent({
+    type: 'agent_checkpoint',
+    timestamp: new Date().toISOString(),
+    checkpointId: checkpoint.id,
+    phase: checkpoint.phase,
+    chatId: resolvedChatId,
+    action: 'restored',
+  });
+
+  logger.info(
+    `Checkpoint ${checkpoint.id} restored for chat ${resolvedChatId} ` +
+      `(phase: ${checkpoint.phase}, messages: ${messages.length})`,
+  );
+
+  return {
+    checkpoint,
+    messages,
+    agentState,
+    tokenBudget: checkpoint.tokenBudget,
+  };
 }

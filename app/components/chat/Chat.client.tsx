@@ -21,7 +21,7 @@ import Cookies from 'js-cookie';
 import { debounce } from '~/utils/debounce';
 import { useSettings } from '~/lib/hooks/useSettings';
 import type { ProviderInfo } from '~/types/model';
-import { useSearchParams } from '@remix-run/react';
+import { useSearchParams } from 'react-router';
 import { createSampler } from '~/utils/sampler';
 import { getTemplates, selectStarterTemplate } from '~/utils/selectStarterTemplate';
 import { logStore } from '~/lib/stores/logs';
@@ -48,14 +48,36 @@ import {
 import { createAutoFixHandler, handleFixSuccess, isAutoFixActive } from '~/lib/services/autoFixService';
 import { hasExceededMaxRetries, recordFixAttempt, resetAutoFix } from '~/lib/stores/autofix';
 import { planActionAtom, clearPlanAction } from '~/lib/stores/plan';
+import { modelRoutingConfigStore, blueprintModeStore } from '~/lib/stores/settings';
+import type { PlanPhase } from '~/lib/agent/types';
 
 const logger = createScopedLogger('Chat');
+
+const AGENT_PHASE_LABELS: Record<PlanPhase, string> = {
+  idle: 'Idle',
+  planning: 'Planning',
+  executing: 'Executing',
+  reviewing: 'Reviewing',
+};
+
+const AGENT_PHASE_DOT_COLORS: Record<PlanPhase, string> = {
+  idle: 'bg-gray-400',
+  planning: 'bg-blue-400 animate-pulse',
+  executing: 'bg-green-400 animate-pulse',
+  reviewing: 'bg-amber-400 animate-pulse',
+};
 
 export function Chat() {
   renderLogger.trace('Chat');
 
+  const [hasMounted, setHasMounted] = useState(false);
   const { ready, initialMessages, storeMessageHistory, importChat, exportChat } = useChatHistory();
   const title = useStore(description);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
   useEffect(() => {
     workbenchStore.setReloadedMessages(initialMessages.map((m) => m.id));
 
@@ -65,7 +87,7 @@ export function Chat() {
 
   return (
     <>
-      {ready && (
+      {hasMounted && ready && (
         <ChatImpl
           description={title}
           initialMessages={initialMessages}
@@ -159,6 +181,8 @@ export const ChatImpl = memo(
     const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
     const mcpSettings = useStore(mcpStore).settings;
     const agentState = useStore(agentModeStore);
+    const modelRoutingConfig = useStore(modelRoutingConfigStore);
+    const blueprintMode = useStore(blueprintModeStore);
 
     // Restore plan mode from localStorage when chat changes, or carry over pre-chat state
     useEffect(() => {
@@ -250,6 +274,8 @@ export const ChatImpl = memo(
         },
         maxLLMSteps: mcpSettings.maxLLMSteps,
         agentMode: agentState.settings.enabled,
+        ...(blueprintMode ? { blueprintMode: true } : {}),
+        ...(Object.keys(modelRoutingConfig).length > 0 ? { modelRoutingConfig } : {}),
       },
       maxSteps: mcpSettings.maxLLMSteps,
       sendExtraMessageFields: true,
@@ -1034,54 +1060,64 @@ export const ChatImpl = memo(
     );
 
     return (
-      <BaseChat
-        ref={animationScope}
-        textareaRef={textareaRef}
-        input={input}
-        showChat={showChat}
-        chatStarted={chatStarted}
-        isStreaming={isLoading || fakeLoading}
-        onStreamingChange={handleStreamingChange}
-        enhancingPrompt={enhancingPrompt}
-        promptEnhanced={promptEnhanced}
-        sendMessage={sendMessage}
-        model={model}
-        setModel={handleModelChange}
-        provider={provider}
-        setProvider={handleProviderChange}
-        providerList={activeProviders}
-        handleInputChange={handleInputChangeWrapped}
-        handleStop={abort}
-        description={description}
-        importChat={importChat}
-        exportChat={exportChat}
-        messages={processedMessages}
-        enhancePrompt={handleEnhancePrompt}
-        uploadedFiles={uploadedFiles}
-        setUploadedFiles={setUploadedFiles}
-        imageDataList={imageDataList}
-        setImageDataList={setImageDataList}
-        actionAlert={actionAlert}
-        clearAlert={handleClearAlert}
-        supabaseAlert={supabaseAlert}
-        clearSupabaseAlert={handleClearSupabaseAlert}
-        deployAlert={deployAlert}
-        clearDeployAlert={handleClearDeployAlert}
-        llmErrorAlert={llmErrorAlert}
-        clearLlmErrorAlert={clearApiErrorAlert}
-        data={chatData}
-        chatMode={chatMode}
-        setChatMode={setChatMode}
-        planMode={planMode}
-        setPlanMode={setPlanMode}
-        append={append}
-        designScheme={designScheme}
-        setDesignScheme={setDesignScheme}
-        selectedElement={selectedElement}
-        setSelectedElement={setSelectedElement}
-        addToolResult={addToolResult}
-        onWebSearchResult={handleWebSearchResult}
-      />
+      <div className="relative h-full">
+        {agentState.planPhase !== 'idle' && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full bg-devonz-elements-background-depth-2 border border-devonz-elements-borderColor shadow-md pointer-events-none">
+            <div className={`w-2 h-2 rounded-full ${AGENT_PHASE_DOT_COLORS[agentState.planPhase]}`} />
+            <span className="text-xs font-medium text-devonz-elements-textSecondary">
+              Agent {AGENT_PHASE_LABELS[agentState.planPhase]}
+            </span>
+          </div>
+        )}
+        <BaseChat
+          ref={animationScope}
+          textareaRef={textareaRef}
+          input={input}
+          showChat={showChat}
+          chatStarted={chatStarted}
+          isStreaming={isLoading || fakeLoading}
+          onStreamingChange={handleStreamingChange}
+          enhancingPrompt={enhancingPrompt}
+          promptEnhanced={promptEnhanced}
+          sendMessage={sendMessage}
+          model={model}
+          setModel={handleModelChange}
+          provider={provider}
+          setProvider={handleProviderChange}
+          providerList={activeProviders}
+          handleInputChange={handleInputChangeWrapped}
+          handleStop={abort}
+          description={description}
+          importChat={importChat}
+          exportChat={exportChat}
+          messages={processedMessages}
+          enhancePrompt={handleEnhancePrompt}
+          uploadedFiles={uploadedFiles}
+          setUploadedFiles={setUploadedFiles}
+          imageDataList={imageDataList}
+          setImageDataList={setImageDataList}
+          actionAlert={actionAlert}
+          clearAlert={handleClearAlert}
+          supabaseAlert={supabaseAlert}
+          clearSupabaseAlert={handleClearSupabaseAlert}
+          deployAlert={deployAlert}
+          clearDeployAlert={handleClearDeployAlert}
+          llmErrorAlert={llmErrorAlert}
+          clearLlmErrorAlert={clearApiErrorAlert}
+          data={chatData}
+          chatMode={chatMode}
+          setChatMode={setChatMode}
+          planMode={planMode}
+          setPlanMode={setPlanMode}
+          append={append}
+          designScheme={designScheme}
+          setDesignScheme={setDesignScheme}
+          selectedElement={selectedElement}
+          setSelectedElement={setSelectedElement}
+          addToolResult={addToolResult}
+          onWebSearchResult={handleWebSearchResult}
+        />
+      </div>
     );
   },
 );

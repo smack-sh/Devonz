@@ -638,3 +638,29 @@ const getInitialModelRoutingConfig = (): ModelRoutingConfig => {
 };
 
 export const modelRoutingConfigStore = map<ModelRoutingConfig>(getInitialModelRoutingConfig());
+
+// --- Blueprint Mode ---
+
+const BLUEPRINT_MODE_KEY = 'blueprint_mode';
+
+const getInitialBlueprintMode = (): boolean => {
+  if (!isBrowser) {
+    return false;
+  }
+
+  try {
+    return localStorage.getItem(BLUEPRINT_MODE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+};
+
+export const blueprintModeStore = atom<boolean>(getInitialBlueprintMode());
+
+export function setBlueprintMode(enabled: boolean) {
+  blueprintModeStore.set(enabled);
+
+  if (isBrowser) {
+    localStorage.setItem(BLUEPRINT_MODE_KEY, String(enabled));
+  }
+}

@@ -1,4 +1,4 @@
-import { json, type LoaderFunctionArgs } from '@remix-run/node';
+import { type LoaderFunctionArgs } from 'react-router';
 import { withSecurity } from '~/lib/security';
 import { parseCookies } from '~/lib/api/cookies';
 
@@ -110,7 +110,7 @@ async function diagnosticsLoader({ request, context }: LoaderFunctionArgs & { co
   };
 
   // Return diagnostics
-  return json(
+  return Response.json(
     {
       status: 'success',
       environment: envVars,

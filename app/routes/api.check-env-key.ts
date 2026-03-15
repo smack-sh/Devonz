@@ -1,4 +1,4 @@
-import { type LoaderFunctionArgs, json } from '@remix-run/node';
+import { type LoaderFunctionArgs } from 'react-router';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
 import { withSecurity } from '~/lib/security';
@@ -8,14 +8,14 @@ async function checkEnvKeyLoader({ context, request }: LoaderFunctionArgs) {
   const provider = url.searchParams.get('provider');
 
   if (!provider) {
-    return json({ isSet: false });
+    return Response.json({ isSet: false });
   }
 
   const llmManager = LLMManager.getInstance(context?.cloudflare?.env ?? {});
   const providerInstance = llmManager.getProvider(provider);
 
   if (!providerInstance || !providerInstance.config.apiTokenKey) {
-    return json({ isSet: false });
+    return Response.json({ isSet: false });
   }
 
   const envVarName = providerInstance.config.apiTokenKey;
@@ -38,7 +38,7 @@ async function checkEnvKeyLoader({ context, request }: LoaderFunctionArgs) {
     llmManager.env[envVarName]
   );
 
-  return json({ isSet });
+  return Response.json({ isSet });
 }
 
 export const loader = withSecurity(checkEnvKeyLoader, {

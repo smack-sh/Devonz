@@ -1,5 +1,4 @@
-import { json } from '@remix-run/node';
-import type { ActionFunctionArgs } from '@remix-run/node';
+import type { ActionFunctionArgs } from 'react-router';
 import { withSecurity } from '~/lib/security';
 import { isAllowedUrl } from '~/utils/url';
 import { ApiError, handleApiError } from '~/lib/api/apiUtils';
@@ -52,7 +51,7 @@ function extractTextContent(html: string): string {
 
 async function webSearchAction({ request }: ActionFunctionArgs) {
   if (request.method !== 'POST') {
-    return json({ error: 'Method not allowed' }, { status: 405 });
+    return Response.json({ error: 'Method not allowed' }, { status: 405 });
   }
 
   return handleApiError(
@@ -61,11 +60,14 @@ async function webSearchAction({ request }: ActionFunctionArgs) {
       const { url } = (await request.json()) as { url?: string };
 
       if (!url || typeof url !== 'string') {
-        return json({ error: 'URL is required' }, { status: 400 });
+        return Response.json({ error: 'URL is required' }, { status: 400 });
       }
 
       if (!isAllowedUrl(url)) {
-        return json({ error: 'URL is not allowed. Only public HTTP/HTTPS URLs are accepted.' }, { status: 400 });
+        return Response.json(
+          { error: 'URL is not allowed. Only public HTTP/HTTPS URLs are accepted.' },
+          { status: 400 },
+        );
       }
 
       let response: Response;
@@ -84,19 +86,22 @@ async function webSearchAction({ request }: ActionFunctionArgs) {
       }
 
       if (!response.ok) {
-        return json({ error: `Failed to fetch URL: ${response.status} ${response.statusText}` }, { status: 502 });
+        return Response.json(
+          { error: `Failed to fetch URL: ${response.status} ${response.statusText}` },
+          { status: 502 },
+        );
       }
 
       const contentType = response.headers.get('content-type') || '';
 
       if (!contentType.includes('text/html') && !contentType.includes('text/plain')) {
-        return json({ error: 'URL must point to an HTML or text page' }, { status: 400 });
+        return Response.json({ error: 'URL must point to an HTML or text page' }, { status: 400 });
       }
 
       const contentLength = parseInt(response.headers.get('content-length') || '0', 10);
 
       if (contentLength > MAX_RESPONSE_SIZE) {
-        return json(
+        return Response.json(
           { error: `Response too large (${contentLength} bytes). Maximum is ${MAX_RESPONSE_SIZE}.` },
           { status: 413 },
         );
@@ -105,14 +110,14 @@ async function webSearchAction({ request }: ActionFunctionArgs) {
       const html = await response.text();
 
       if (html.length > MAX_RESPONSE_SIZE) {
-        return json({ error: 'Response body exceeds maximum allowed size.' }, { status: 413 });
+        return Response.json({ error: 'Response body exceeds maximum allowed size.' }, { status: 413 });
       }
 
       const title = extractTitle(html);
       const description = extractMetaDescription(html);
       const content = extractTextContent(html);
 
-      return json({
+      return Response.json({
         success: true,
         data: {
           title,
